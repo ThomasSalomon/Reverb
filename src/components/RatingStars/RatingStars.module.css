@@ -1,0 +1,44 @@
+.starsContainer {
+  display: inline-flex;
+  align-items: center;
+  user-select: none;
+}
+
+.interactive {
+  cursor: pointer;
+}
+
+.star {
+  transition: transform 0.15s cubic-bezier(0.16, 1, 0.3, 1), color 0.15s ease;
+}
+
+.interactive:hover .star {
+  transform: scale(1.08);
+}
+
+.star.empty {
+  color: var(--text-muted);
+  fill: transparent;
+}
+
+.star.full {
+  color: var(--primary);
+  fill: var(--primary);
+  filter: drop-shadow(0 0 4px rgba(0, 229, 117, 0.3));
+}
+
+.star.half {
+  color: var(--primary);
+  fill: url(#halfStarGrad);
+  filter: drop-shadow(0 0 2px rgba(0, 229, 117, 0.2));
+}
+
+.ratingText {
+  font-family: var(--font-display);
+  font-weight: 700;
+  color: var(--primary);
+  font-size: 1rem;
+  margin-left: 8px;
+  min-width: 24px;
+  letter-spacing: -0.02em;
+}

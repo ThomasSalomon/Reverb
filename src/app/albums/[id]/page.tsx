@@ -1,0 +1,585 @@
+"use client";
+
+import { useEffect, useState, useCallback } from "react";
+import Link from "next/link";
+import { useParams, useRouter } from "next/navigation";
+import Cover3D from "@/components/Cover3D/Cover3D";
+import RatingStars from "@/components/RatingStars/RatingStars";
+import ReviewCard from "@/components/ReviewCard/ReviewCard";
+import ReviewForm from "@/components/ReviewForm/ReviewForm";
+import styles from "./page.module.css";
+import { showToast } from "@/components/Toast/ToastListener";
+
+interface Track {
+  title: string;
+  duration: string;
+  preview?: string;
+}
+
+interface Review {
+  id: string;
+  content: string;
+  ratingValue: number;
+  createdAt: string;
+  user: {
+    id: string;
+    username: string;
+    profileColor?: string | null;
+    profileImage?: string | null;
+  };
+  favoriteTrack?: string | null;
+  likesCount?: number;
+  commentsCount?: number;
+  likedByUser?: boolean;
+}
+
+interface MusicItemDetail {
+  id: string;
+  title: string;
+  artist: string;
+  type: string;
+  coverUrl: string;
+  releaseYear: number;
+  tracks: Track[] | null;
+  reviews: Review[];
+  stats: {
+    averageRating: number;
+    totalRatings: number;
+    totalReviews: number;
+  };
+}
+
+interface User {
+  id: string;
+  username: string;
+}
+
+export default function AlbumDetailPage() {
+  const { id } = useParams();
+  const router = useRouter();
+  const [album, setAlbum] = useState<MusicItemDetail | null>(null);
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [favTrack, setFavTrack] = useState<string | null>(null);
+  const [playingTrackUrl, setPlayingTrackUrl] = useState<string | null>(null);
+  const [isListenLater, setIsListenLater] = useState(false);
+  const [currentUserRating, setCurrentUserRating] = useState<number | null>(null);
+  const [isDiaryOpen, setIsDiaryOpen] = useState(false);
+  const [diaryRating, setDiaryRating] = useState("5");
+  const [diaryNotes, setDiaryNotes] = useState("");
+
+  const handlePlayPreview = (previewUrl: string) => {
+    if (playingTrackUrl === previewUrl) {
+      setPlayingTrackUrl(null);
+    } else {
+      setPlayingTrackUrl(previewUrl);
+    }
+  };
+
+  const fetchAlbumDetails = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/music/${id}`, { cache: "no-store" });
+      if (!res.ok) {
+        throw new Error("Álbum no encontrado");
+      }
+      const data = await res.json();
+      setAlbum(data);
+      setFavTrack(data.favoriteTrack || null);
+      setIsListenLater(data.isListenLater || false);
+      setCurrentUserRating(data.currentUserRating || null);
+    } catch (e: any) {
+      setError(e.message || "Error al cargar el álbum");
+    }
+  }, [id]);
+
+  const handleListenLaterToggle = async () => {
+    if (!user) {
+      router.push("/login");
+      return;
+    }
+    try {
+      const method = isListenLater ? "DELETE" : "POST";
+      const url = isListenLater ? `/api/listen-later/${id}` : "/api/listen-later";
+      const body = isListenLater ? undefined : JSON.stringify({ musicItemId: id });
+
+      const res = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body,
+      });
+
+      if (res.ok) {
+        setIsListenLater(!isListenLater);
+        showToast(isListenLater ? "Eliminado de Deseos" : "Añadido a Deseos", "success");
+      }
+    } catch (e) {
+      console.error(e);
+      showToast("Error de conexión", "error");
+    }
+  };
+
+  const handleQuickRate = async (value: number) => {
+    if (!user) {
+      showToast("Inicia sesión para calificar", "error");
+      return;
+    }
+    try {
+      const res = await fetch(`/api/ratings`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ musicItemId: id, value }),
+      });
+
+      if (res.ok) {
+        setCurrentUserRating(value);
+        showToast("Calificación guardada", "success");
+        await fetchAlbumDetails();
+      } else {
+        const data = await res.json();
+        showToast(data.error || "Error al guardar calificación", "error");
+      }
+    } catch (e) {
+      console.error(e);
+      showToast("Error de conexión", "error");
+    }
+  };
+
+  const handleLogDiary = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const res = await fetch("/api/diary", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          musicItemId: id,
+          ratingValue: parseFloat(diaryRating),
+          notes: diaryNotes,
+        }),
+      });
+      if (res.ok) {
+        setIsDiaryOpen(false);
+        setDiaryNotes("");
+        setDiaryRating("5");
+        showToast("Escucha registrada con éxito en tu bitácora", "success");
+      } else {
+        const data = await res.json();
+        showToast(data.error || "Error al guardar en bitácora", "error");
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const handleFavoriteTrackClick = async (trackTitle: string) => {
+    if (!user) return;
+
+    const isCurrentFav = favTrack === trackTitle;
+    setFavTrack(isCurrentFav ? null : trackTitle);
+
+    try {
+      const method = isCurrentFav ? "DELETE" : "POST";
+      const res = await fetch(`/api/music/${id}/favorite-track`, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: isCurrentFav ? undefined : JSON.stringify({ trackTitle }),
+      });
+      if (!res.ok) {
+        setFavTrack(isCurrentFav ? trackTitle : null);
+      } else {
+        // Re-fetch to pull updated community reviews with this track highlighted
+        await fetchAlbumDetails();
+      }
+    } catch (e) {
+      console.error("Error toggling favorite track:", e);
+      setFavTrack(isCurrentFav ? trackTitle : null);
+    }
+  };
+
+  useEffect(() => {
+    async function init() {
+      setLoading(true);
+      try {
+        const userRes = await fetch("/api/auth/me", { cache: "no-store" });
+        const userData = await userRes.json();
+        setUser(userData.user);
+
+        await fetchAlbumDetails();
+      } catch (e) {
+        console.error("Initialization error:", e);
+      } finally {
+        setLoading(false);
+      }
+    }
+    if (id) init();
+  }, [id, fetchAlbumDetails]);
+
+  if (loading) {
+    return <div className={styles.loadingContainer}>Cargando información del álbum...</div>;
+  }
+
+  if (error || !album) {
+    return (
+      <div className={styles.errorContainer}>
+        <h2>{error || "Álbum no encontrado"}</h2>
+        <Link href="/" className="secondary-btn" style={{ marginTop: "20px", display: "inline-block" }}>
+          Volver al Inicio
+        </Link>
+      </div>
+    );
+  }
+
+  return (
+    <main className={styles.main}>
+      <div className={styles.detailGrid}>
+        {/* Left Column: Visual Cover and Quick Stats */}
+        <section className={styles.leftCol}>
+          <Cover3D src={album.coverUrl} alt={album.title} size={320} />
+
+          <div className={`${styles.statsCard} glass`}>
+            <div className={styles.statsValue}>
+              <span className={styles.average}>{album.stats.averageRating.toFixed(1)}</span>
+              <RatingStars value={album.stats.averageRating} size={16} />
+            </div>
+            <div className={styles.statsMeta}>
+              <div>
+                <span>{album.stats.totalRatings}</span> Calificaciones
+              </div>
+              <div>
+                <span>{album.stats.totalReviews}</span> Reseñas
+              </div>
+            </div>
+          </div>
+
+          {/* Deezer Album Player Widget */}
+          <div className={`${styles.playerCard} glass`} style={{ marginTop: "24px", overflow: "hidden" }}>
+            <iframe
+              title="Deezer Album Player"
+              src={`https://www.deezer.com/plugins/player?format=classic&autoplay=false&playlist=false&width=100%&height=350&color=10b981&layout=dark&size=medium&type=album&id=${album.id}`}
+              width="100%"
+              height="350"
+              frameBorder="0"
+              allowFullScreen
+              allow="encrypted-media; clipboard-write"
+              loading="lazy"
+              sandbox="allow-scripts allow-same-origin allow-popups"
+              style={{ borderRadius: "12px", border: "none", display: "block" }}
+            />
+          </div>
+        </section>
+
+        {/* Right Column: Title, Tracklist, Review Form & List */}
+        <section className={styles.rightCol}>
+          <header className={styles.header}>
+            <h1 className={styles.title}>{album.title}</h1>
+            <p className={styles.artistSub}>
+              por <span>{album.artist}</span> • {album.releaseYear}
+            </p>
+            {user && (
+              <div className={styles.actionsBar} style={{ display: "flex", gap: "12px", marginTop: "16px", flexWrap: "wrap" }}>
+                <button
+                  onClick={handleListenLaterToggle}
+                  className={`${styles.actionBtn} ${isListenLater ? styles.actionBtnActive : ""}`}
+                  style={{
+                    background: isListenLater ? "rgba(16, 185, 129, 0.1)" : "transparent",
+                    color: isListenLater ? "var(--primary)" : "var(--text-secondary)",
+                    border: `1px solid ${isListenLater ? "var(--primary)" : "var(--border)"}`,
+                    padding: "8px 16px",
+                    borderRadius: "8px",
+                    cursor: "pointer",
+                    fontWeight: 600,
+                    fontSize: "0.85rem",
+                    transition: "all var(--transition-fast)"
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                    {isListenLater ? (
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <polyline points="12 6 12 12 16 14"></polyline>
+                      </svg>
+                    ) : (
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <polyline points="12 6 12 12 16 14"></polyline>
+                      </svg>
+                    )}
+                    {isListenLater ? "Guardado en Deseos" : "Escuchar más tarde"}
+                  </div>
+                </button>
+                <button
+                  onClick={() => setIsDiaryOpen(true)}
+                  className={styles.actionBtn}
+                  style={{
+                    background: "transparent",
+                    color: "var(--text-secondary)",
+                    border: "1px solid var(--border)",
+                    padding: "8px 16px",
+                    borderRadius: "8px",
+                    cursor: "pointer",
+                    fontWeight: 600,
+                    fontSize: "0.85rem",
+                    transition: "all var(--transition-fast)"
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                    </svg>
+                    Registrar escucha
+                  </div>
+                </button>
+                <div style={{
+                  display: "flex", 
+                  alignItems: "center", 
+                  gap: "8px", 
+                  background: "rgba(255, 255, 255, 0.03)", 
+                  padding: "8px 16px", 
+                  borderRadius: "8px",
+                  border: "1px solid var(--border)"
+                }}>
+                  <span style={{ fontSize: "0.85rem", color: "var(--text-secondary)", fontWeight: 600 }}>Calificar:</span>
+                  <RatingStars 
+                    value={currentUserRating || 0} 
+                    onChange={handleQuickRate} 
+                    interactive={true} 
+                    size={20} 
+                  />
+                </div>
+              </div>
+            )}
+          </header>
+
+          <section className={`${styles.tracksCard} glass`}>
+            <h3 className={styles.cardTitle}>Lista de Canciones</h3>
+            {album.tracks && album.tracks.length > 0 ? (
+              <ol className={styles.tracklist}>
+                {album.tracks.map((track, i) => {
+                  const isFavorite = favTrack === track.title;
+                  return (
+                    <li key={i} className={`${styles.trackItem} ${isFavorite ? styles.trackItemFav : ""}`}>
+                      <div className={styles.trackTitleCol}>
+                        {user ? (
+                          <button
+                            onClick={() => handleFavoriteTrackClick(track.title)}
+                            className={styles.favTrackBtn}
+                            title={isFavorite ? "Quitar de favoritas" : "Marcar como favorita"}
+                          >
+                            {isFavorite ? "❤️" : "🤍"}
+                          </button>
+                        ) : (
+                          <span className={styles.bulletDot}>•</span>
+                        )}
+                        {track.preview && (
+                          <button
+                            onClick={() => handlePlayPreview(track.preview!)}
+                            className={styles.playPreviewBtn}
+                            title={playingTrackUrl === track.preview ? "Pausar demo" : "Escuchar demo 30s"}
+                          >
+                            {playingTrackUrl === track.preview ? "⏸️" : "▶️"}
+                          </button>
+                        )}
+                        <span className={styles.trackTitle}>{track.title}</span>
+                      </div>
+                      <span className={styles.trackDuration}>{track.duration}</span>
+                    </li>
+                  );
+                })}
+              </ol>
+            ) : (
+              <p className={styles.noTracks}>No hay canciones listadas para este álbum.</p>
+            )}
+          </section>
+
+          <section className={styles.reviewFormSection}>
+            {user ? (
+              <ReviewForm
+                musicItemId={album.id}
+                onSuccess={fetchAlbumDetails}
+              />
+            ) : (
+              <div className={`${styles.authPrompt} glass`}>
+                <p>¿Quieres calificar y reseñar este álbum?</p>
+                <Link
+                  href="/login"
+                  className="neon-btn"
+                  style={{ marginTop: "12px", display: "inline-block" }}
+                >
+                  Inicia Sesión
+                </Link>
+              </div>
+            )}
+          </section>
+
+          <section className={styles.reviewsListSection}>
+            <h3 className={styles.sectionHeading}>Reseñas de la comunidad</h3>
+            {album.reviews.length === 0 ? (
+              <p className={styles.noReviews}>
+                Aún no hay reseñas para este álbum. ¡Comparte tus pensamientos!
+              </p>
+            ) : (
+              <div className={styles.reviewsStack}>
+                {album.reviews.map((rev) => (
+                  <ReviewCard key={rev.id} review={rev} showMusicDetails={false} />
+                ))}
+              </div>
+            )}
+          </section>
+          </section>
+        </div>
+        {playingTrackUrl && (
+          <audio
+            src={playingTrackUrl}
+            autoPlay
+            controls={false}
+            onEnded={() => setPlayingTrackUrl(null)}
+            style={{ display: "none" }}
+          />
+        )}
+
+        {/* Diary Modal */}
+        {isDiaryOpen && (
+          <div
+            style={{
+              position: "fixed",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              background: "rgba(0, 0, 0, 0.7)",
+              backdropFilter: "blur(5px)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              zIndex: 1000,
+              padding: "20px"
+            }}
+          >
+            <div
+              className="card glass"
+              style={{
+                width: "100%",
+                maxWidth: "480px",
+                padding: "28px",
+                display: "flex",
+                flexDirection: "column",
+                gap: "20px"
+              }}
+            >
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <h3 style={{ fontSize: "1.25rem", fontWeight: 700, color: "var(--text-primary)", fontFamily: "var(--font-display)" }}>
+                  Registrar en Bitácora
+                </h3>
+                <button
+                  onClick={() => setIsDiaryOpen(false)}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    color: "var(--text-secondary)",
+                    fontSize: "1.5rem",
+                    cursor: "pointer"
+                  }}
+                >
+                  &times;
+                </button>
+              </div>
+
+              <form onSubmit={handleLogDiary} style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "12px", padding: "12px", background: "rgba(255,255,255,0.03)", borderRadius: "8px", border: "1px solid var(--border)" }}>
+                  <img src={album.coverUrl} alt={album.title} style={{ width: "45px", height: "45px", borderRadius: "6px", objectFit: "cover" }} />
+                  <div>
+                    <div style={{ fontWeight: 700, color: "var(--text-primary)", fontSize: "0.9rem" }}>{album.title}</div>
+                    <div style={{ color: "var(--text-secondary)", fontSize: "0.8rem" }}>{album.artist}</div>
+                  </div>
+                </div>
+
+                {/* Rating */}
+                <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                  <label style={{ fontSize: "0.8rem", textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--text-secondary)", fontWeight: 700 }}>
+                    Calificación (Estrellas)
+                  </label>
+                  <select
+                    value={diaryRating}
+                    onChange={(e) => setDiaryRating(e.target.value)}
+                    style={{
+                      background: "rgba(0, 0, 0, 0.2)",
+                      border: "1px solid var(--border)",
+                      borderRadius: "8px",
+                      padding: "10px 12px",
+                      color: "var(--text-primary)",
+                      fontSize: "0.9rem"
+                    }}
+                  >
+                    <option value="5">★★★★★ (5.0)</option>
+                    <option value="4.5">★★★★½ (4.5)</option>
+                    <option value="4">★★★★☆ (4.0)</option>
+                    <option value="3.5">★★★½☆ (3.5)</option>
+                    <option value="3">★★★☆☆ (3.0)</option>
+                    <option value="2.5">★★½☆☆ (2.5)</option>
+                    <option value="2">★★☆☆☆ (2.0)</option>
+                    <option value="1.5">★½☆☆☆ (1.5)</option>
+                    <option value="1">★☆☆☆☆ (1.0)</option>
+                    <option value="0.5">½☆☆☆☆ (0.5)</option>
+                  </select>
+                </div>
+
+                {/* Notes */}
+                <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                  <label style={{ fontSize: "0.8rem", textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--text-secondary)", fontWeight: 700 }}>
+                    Notas rápidas / Comentarios (Opcional)
+                  </label>
+                  <textarea
+                    rows={3}
+                    maxLength={500}
+                    value={diaryNotes}
+                    onChange={(e) => setDiaryNotes(e.target.value)}
+                    placeholder="Apuntes rápidos sobre esta escucha..."
+                    style={{
+                      background: "rgba(0, 0, 0, 0.2)",
+                      border: "1px solid var(--border)",
+                      borderRadius: "8px",
+                      padding: "10px 12px",
+                      color: "var(--text-primary)",
+                      fontSize: "0.9rem",
+                      resize: "none",
+                      fontFamily: "inherit"
+                    }}
+                  />
+                </div>
+
+                <div style={{ display: "flex", justifyContent: "flex-end", gap: "12px", marginTop: "10px" }}>
+                  <button
+                    type="button"
+                    onClick={() => setIsDiaryOpen(false)}
+                    style={{
+                      background: "transparent",
+                      border: "1px solid var(--border)",
+                      color: "var(--text-secondary)",
+                      padding: "10px 20px",
+                      borderRadius: "8px",
+                      cursor: "pointer",
+                      fontWeight: 600,
+                      fontSize: "0.9rem"
+                    }}
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    className="neon-btn"
+                    style={{
+                      padding: "10px 24px",
+                      fontSize: "0.9rem"
+                    }}
+                  >
+                    Registrar
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+      </main>
+  );
+}
