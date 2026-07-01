@@ -7,6 +7,7 @@
   flex-direction: column;
   gap: 16px;
   transition: border-color var(--transition-fast);
+  contain: content;
 }
 
 .card:hover {

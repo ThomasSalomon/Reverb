@@ -143,7 +143,7 @@
   border: 1px solid var(--border);
   color: var(--text-secondary);
   cursor: pointer;
-  transition: all 150ms cubic-bezier(0.23, 1, 0.32, 1);
+  transition: background-color 150ms cubic-bezier(0.23, 1, 0.32, 1), color 150ms cubic-bezier(0.23, 1, 0.32, 1), border-color 150ms cubic-bezier(0.23, 1, 0.32, 1);
 }
 
 .iconBtn:hover {
@@ -346,16 +346,14 @@
   font-size: 0.95rem;
 }
 
-/* Nuevo contenedor para controlar el desenfoque en la GPU */
 .mainContentWrapper {
-  transition: filter 0.25s ease, opacity 0.25s ease;
+  transition: opacity 0.25s ease;
   width: 100%;
 }
 
 /* Cuando un modal se abre, desenfocamos y oscurecemos levemente el fondo */
 .blurredBackground {
-  filter: blur(6px);
-  opacity: 0.65;
+  opacity: 0.35;
   pointer-events: none; /* Evita interacciones accidentales con el fondo */
 }
 
@@ -926,60 +924,70 @@
 .recapBtnContainer {
   margin-top: 32px;
   display: flex;
-  justify-content: stretch;
   width: 100%;
 }
 
 .recapBtn {
+  --cyan: 186, 100%;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 12px;
-  padding: 16px 24px;
+  gap: 10px;
+  padding: 14px 24px;
   width: 100%;
-  background: linear-gradient(135deg, var(--profile-theme-color, #10b981) 0%, #0d9468 100%);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  color: #ffffff;
-  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.75);
+  border-radius: 14px;
   font-family: var(--font-display);
-  font-weight: 800;
-  font-size: 1.1rem;
-  letter-spacing: 0.02em;
+  font-weight: 700;
+  font-size: 0.9rem;
+  letter-spacing: 0.04em;
   cursor: pointer;
-  transition: transform 250ms cubic-bezier(0.23, 1, 0.32, 1), box-shadow 250ms cubic-bezier(0.23, 1, 0.32, 1), filter 250ms ease;
+  transition: transform 250ms cubic-bezier(0.23, 1, 0.32, 1),
+              box-shadow 250ms ease,
+              border-color 250ms ease,
+              color 250ms ease;
   will-change: transform;
-  box-shadow: 0 8px 24px rgba(16, 185, 129, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
   position: relative;
   overflow: hidden;
 }
 
-/* Pseudo-element for shimmer/shine effect on hover */
+/* Shimmer sweep — GPU-accelerated translateX */
 .recapBtn::after {
   content: "";
   position: absolute;
   top: 0;
-  left: -100%;
-  width: 50%;
+  left: 0;
+  width: 40%;
   height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-  transform: skewX(-20deg);
-  transition: left 0.7s ease;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.06),
+    transparent
+  );
+  transform: translateX(-200%) skewX(-15deg);
+  transition: transform 0.8s cubic-bezier(0.23, 1, 0.32, 1);
 }
 
 @media (hover: hover) and (pointer: fine) {
   .recapBtn:hover {
-    transform: perspective(1000px) translateZ(10px) translateY(-3px) scale(1.02);
-    box-shadow: 0 16px 32px rgba(16, 185, 129, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.3);
-    filter: brightness(1.1);
+    color: #ffffff;
+    border-color: hsla(var(--cyan), 55%, 0.25);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3),
+                0 0 20px hsla(var(--cyan), 50%, 0.06);
   }
-  
   .recapBtn:hover::after {
-    left: 150%;
+    transform: translateX(350%) skewX(-15deg);
   }
 }
 
 .recapBtn:active {
-  transform: perspective(1000px) translateZ(0) translateY(0) scale(0.96);
-  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
+  transform: translateY(0) scale(0.97);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
   transition-duration: 100ms;
 }
+

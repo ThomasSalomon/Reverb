@@ -12,7 +12,7 @@
   cursor: pointer;
   padding: 8px;
   border-radius: 50%;
-  transition: all var(--transition-fast);
+  transition: background-color var(--transition-fast), color var(--transition-fast);
   position: relative;
   display: flex;
   align-items: center;
@@ -43,7 +43,7 @@
   right: 0;
   width: 320px;
   max-height: 400px;
-  background: var(--surface);
+  background: var(--bg-card, #121216);
   border: 1px solid var(--border);
   border-radius: 12px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
