@@ -22,7 +22,7 @@
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
   cursor: pointer;
   animation: slideIn 300ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
-  transition: transform var(--transition-fast) ease, opacity var(--transition-fast) ease;
+  transition: transform var(--transition-fast), opacity var(--transition-fast);
 }
 
 .toast:hover {

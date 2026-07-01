@@ -652,10 +652,9 @@ export default function UserProfilePage() {
             onClick={() => setIsRecapOpen(true)}
             className={styles.recapBtn}
           >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
-              <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
-              <path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path>
+            <svg className={styles.recapBtnIcon} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10" />
+              <circle cx="12" cy="12" r="3" />
             </svg>
             Reverb Recap {new Date().getFullYear()}
           </button>
@@ -1148,7 +1147,7 @@ export default function UserProfilePage() {
                             <div key={rating} className={styles.barRow}>
                               <span className={styles.ratingLabel}>{parseFloat(rating).toFixed(1)} ★</span>
                               <div className={styles.barWrapper}>
-                                <div className={styles.barFill} style={{ width: `${pct}%` }} />
+                                <div className={styles.barFill} style={{ transform: `scaleX(${pct / 100})` }} />
                               </div>
                               <span className={styles.barCount}>{count as number}</span>
                             </div>

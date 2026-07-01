@@ -295,7 +295,7 @@
   border-radius: 8px;
   overflow: hidden;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
-  transition: transform var(--transition-normal);
+  transition: transform var(--transition-smooth);
 }
 
 .favCoverWrapper:hover {
@@ -717,10 +717,12 @@
 }
 
 .barFill {
+  width: 100%;
   height: 100%;
   background: linear-gradient(90deg, var(--profile-theme-color, var(--primary)), var(--text-primary));
   border-radius: 8px;
-  transition: width 0.8s ease-out;
+  transform-origin: left;
+  transition: transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .barCount {
@@ -989,5 +991,22 @@
   transform: translateY(0) scale(0.97);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
   transition-duration: 100ms;
+}
+
+.recapBtnIcon {
+  color: hsla(var(--cyan), 70%, 0.8);
+  animation: spin 10s linear infinite;
+  will-change: transform;
+  transition: color 250ms ease;
+}
+
+.recapBtn:hover .recapBtnIcon {
+  color: #ffffff;
+  animation-duration: 3s; /* Spin faster on hover! */
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 

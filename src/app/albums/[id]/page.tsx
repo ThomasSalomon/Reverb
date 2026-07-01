@@ -9,6 +9,7 @@ import ReviewCard from "@/components/ReviewCard/ReviewCard";
 import ReviewForm from "@/components/ReviewForm/ReviewForm";
 import styles from "./page.module.css";
 import { showToast } from "@/components/Toast/ToastListener";
+import { useLazyIframe } from "@/hooks/useLazyIframe";
 
 interface Track {
   title: string;
@@ -68,6 +69,12 @@ export default function AlbumDetailPage() {
   const [isDiaryOpen, setIsDiaryOpen] = useState(false);
   const [diaryRating, setDiaryRating] = useState("5");
   const [diaryNotes, setDiaryNotes] = useState("");
+
+  // Lazy-load the Deezer iframe only when it enters the viewport
+  const deezerSrc = album
+    ? `https://www.deezer.com/plugins/player?format=classic&autoplay=false&playlist=false&width=100%&height=350&color=10b981&layout=dark&size=medium&type=album&id=${album.id}`
+    : "";
+  const { containerRef: deezerRef, activeSrc: deezerActiveSrc } = useLazyIframe(deezerSrc);
 
   const handlePlayPreview = (previewUrl: string) => {
     if (playingTrackUrl === previewUrl) {
@@ -251,20 +258,36 @@ export default function AlbumDetailPage() {
             </div>
           </div>
 
-          {/* Deezer Album Player Widget */}
-          <div className={`${styles.playerCard} glass`} style={{ marginTop: "24px", overflow: "hidden" }}>
-            <iframe
-              title="Deezer Album Player"
-              src={`https://www.deezer.com/plugins/player?format=classic&autoplay=false&playlist=false&width=100%&height=350&color=10b981&layout=dark&size=medium&type=album&id=${album.id}`}
-              width="100%"
-              height="350"
-              frameBorder="0"
-              allowFullScreen
-              allow="encrypted-media; clipboard-write"
-              loading="lazy"
-              sandbox="allow-scripts allow-same-origin allow-popups"
-              style={{ borderRadius: "12px", border: "none", display: "block" }}
-            />
+          {/* Deezer Album Player Widget — carga diferida con IntersectionObserver */}
+          <div
+            ref={deezerRef}
+            className={`${styles.playerCard} glass`}
+            style={{ marginTop: "24px", overflow: "hidden", minHeight: "374px" }}
+          >
+            {deezerActiveSrc ? (
+              <iframe
+                title="Deezer Album Player"
+                src={deezerActiveSrc}
+                width="100%"
+                height="350"
+                frameBorder="0"
+                allowFullScreen
+                allow="encrypted-media; clipboard-write"
+                sandbox="allow-scripts allow-same-origin allow-popups"
+                style={{ borderRadius: "12px", border: "none", display: "block" }}
+              />
+            ) : (
+              <div style={{
+                height: "350px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: "var(--text-muted)",
+                fontSize: "0.85rem"
+              }}>
+                Cargando reproductor…
+              </div>
+            )}
           </div>
         </section>
 
@@ -366,7 +389,15 @@ export default function AlbumDetailPage() {
                             className={styles.favTrackBtn}
                             title={isFavorite ? "Quitar de favoritas" : "Marcar como favorita"}
                           >
-                            {isFavorite ? "❤️" : "🤍"}
+                            {isFavorite ? (
+                              <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" className={styles.heartIconActive}>
+                                <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+                              </svg>
+                            ) : (
+                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round" className={styles.heartIcon}>
+                                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                              </svg>
+                            )}
                           </button>
                         ) : (
                           <span className={styles.bulletDot}>•</span>
@@ -377,7 +408,16 @@ export default function AlbumDetailPage() {
                             className={styles.playPreviewBtn}
                             title={playingTrackUrl === track.preview ? "Pausar demo" : "Escuchar demo 30s"}
                           >
-                            {playingTrackUrl === track.preview ? "⏸️" : "▶️"}
+                            {playingTrackUrl === track.preview ? (
+                              <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor">
+                                <rect x="5" y="4" width="4" height="16" rx="1" />
+                                <rect x="15" y="4" width="4" height="16" rx="1" />
+                              </svg>
+                            ) : (
+                              <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor" style={{ marginLeft: '1px' }}>
+                                <path d="M8 5v14l11-7z" />
+                              </svg>
+                            )}
                           </button>
                         )}
                         <span className={styles.trackTitle}>{track.title}</span>

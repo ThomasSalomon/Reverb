@@ -84,10 +84,13 @@ button, input, textarea, select {
 
 /* Base Utility Classes */
 .glass {
-  background: rgba(18, 18, 22, 0.7);
+  background: rgba(18, 18, 22, 0.75);
+  border: 1px solid var(--border);
+}
+
+.glass-effect {
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border: 1px solid var(--border);
 }
 
 .neon-btn {
@@ -150,4 +153,13 @@ button, input, textarea, select {
 .input-field:focus {
   border-color: var(--primary);
   box-shadow: 0 0 10px rgba(0, 229, 117, 0.1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

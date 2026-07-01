@@ -130,31 +130,48 @@ export default function NotificationsDropdown() {
               <li className={styles.emptyState}>No tienes notificaciones</li>
             ) : (
               notifications.map((n) => {
-                const Wrapper = n.link ? Link : "div";
-                const wrapperProps = n.link ? { href: n.link, className: `${styles.notificationItem} ${!n.isRead ? styles.unread : ""}`, onClick: () => markAsRead(n.id, n.isRead) } : { className: `${styles.notificationItem} ${!n.isRead ? styles.unread : ""}`, onClick: () => markAsRead(n.id, n.isRead) };
-                
+                const innerContent = (
+                  <>
+                    {n.sourceUser && (
+                      <div className={styles.iconWrap}>
+                        <Avatar
+                          username={n.sourceUser.username}
+                          profileColor={n.sourceUser.profileColor}
+                          profileImage={n.sourceUser.profileImage}
+                          size={32}
+                          style={{ border: "none" }}
+                        />
+                      </div>
+                    )}
+                    <div className={styles.content}>
+                      <p className={styles.message}>{n.message}</p>
+                      <p className={styles.time}>
+                        {timeAgo(n.createdAt)}
+                      </p>
+                    </div>
+                    {!n.isRead && <div className={styles.dot}></div>}
+                  </>
+                );
+
                 return (
                   <li key={n.id}>
-                    <Wrapper {...wrapperProps}>
-                      {n.sourceUser && (
-                        <div className={styles.iconWrap}>
-                          <Avatar
-                            username={n.sourceUser.username}
-                            profileColor={n.sourceUser.profileColor}
-                            profileImage={n.sourceUser.profileImage}
-                            size={32}
-                            style={{ border: "none" }}
-                          />
-                        </div>
-                      )}
-                      <div className={styles.content}>
-                        <p className={styles.message}>{n.message}</p>
-                        <p className={styles.time}>
-                          {timeAgo(n.createdAt)}
-                        </p>
+                    {n.link ? (
+                      <Link
+                        href={n.link}
+                        className={`${styles.notificationItem} ${!n.isRead ? styles.unread : ""}`}
+                        onClick={() => markAsRead(n.id, n.isRead)}
+                      >
+                        {innerContent}
+                      </Link>
+                    ) : (
+                      <div
+                        className={`${styles.notificationItem} ${!n.isRead ? styles.unread : ""}`}
+                        onClick={() => markAsRead(n.id, n.isRead)}
+                        style={{ cursor: "pointer" }}
+                      >
+                        {innerContent}
                       </div>
-                      {!n.isRead && <div className={styles.dot}></div>}
-                    </Wrapper>
+                    )}
                   </li>
                 );
               })

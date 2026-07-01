@@ -51,7 +51,7 @@ export default function ToastListener() {
       {toasts.map((toast) => (
         <div
           key={toast.id}
-          className={`${styles.toast} ${styles[toast.type]} glass`}
+          className={`${styles.toast} ${styles[toast.type]} glass glass-effect`}
           onClick={() => removeToast(toast.id)}
         >
           <span className={styles.icon}>

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useRef } from "react";
+import React, { useRef, useEffect } from "react";
 import styles from "./Cover3D.module.css";
 
 interface Cover3DProps {
@@ -13,16 +13,43 @@ export default function Cover3D({ src, alt, size = 300 }: Cover3DProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const cardRef = useRef<HTMLDivElement>(null);
   const glowRef = useRef<HTMLDivElement>(null);
+  
+  // Cache the bounding rect to avoid layout thrashing on mousemove
+  const rectRef = useRef<DOMRect | null>(null);
+  const rafRef = useRef<number | null>(null);
 
-  let rafId: number | null = null;
+  useEffect(() => {
+    const handleScroll = () => {
+      rectRef.current = null;
+    };
+    window.addEventListener("scroll", handleScroll, { passive: true });
+
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+      if (rafRef.current) {
+        cancelAnimationFrame(rafRef.current);
+      }
+    };
+  }, []);
+
+  const handleMouseEnter = () => {
+    if (containerRef.current) {
+      rectRef.current = containerRef.current.getBoundingClientRect();
+    }
+  };
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    const container = containerRef.current;
     const card = cardRef.current;
     const glow = glowRef.current;
-    if (!container || !card) return;
+    if (!card) return;
 
-    const rect = container.getBoundingClientRect();
+    // Fallback if mouseenter was missed
+    if (!rectRef.current && containerRef.current) {
+      rectRef.current = containerRef.current.getBoundingClientRect();
+    }
+    if (!rectRef.current) return;
+
+    const rect = rectRef.current;
     const x = e.clientX - rect.left; // cursor x relative to card
     const y = e.clientY - rect.top;  // cursor y relative to card
 
@@ -34,8 +61,8 @@ export default function Cover3D({ src, alt, size = 300 }: Cover3DProps) {
     const rotateX = -normalizedY * 20;
     const rotateY = normalizedX * 20;
 
-    if (rafId) cancelAnimationFrame(rafId);
-    rafId = requestAnimationFrame(() => {
+    if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    rafRef.current = requestAnimationFrame(() => {
       card.style.transform = `rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale(1.03)`;
       if (glow) {
         glow.style.background = `radial-gradient(circle 160px at ${x}px ${y}px, rgba(255, 255, 255, 0.16), transparent)`;
@@ -46,10 +73,11 @@ export default function Cover3D({ src, alt, size = 300 }: Cover3DProps) {
   const handleMouseLeave = () => {
     const card = cardRef.current;
     const glow = glowRef.current;
+    rectRef.current = null; // Clear cache on leave
     if (!card) return;
 
-    if (rafId) cancelAnimationFrame(rafId);
-    rafId = requestAnimationFrame(() => {
+    if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    rafRef.current = requestAnimationFrame(() => {
       card.style.transform = "rotateX(0deg) rotateY(0deg) scale(1)";
       if (glow) {
         glow.style.background = "transparent";
@@ -63,6 +91,7 @@ export default function Cover3D({ src, alt, size = 300 }: Cover3DProps) {
     <div
       ref={containerRef}
       className={styles.container}
+      onMouseEnter={handleMouseEnter}
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
       style={{ width: sizeStyle, height: sizeStyle }}

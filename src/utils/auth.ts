@@ -1,4 +1,5 @@
 import * as jose from "jose";
+import { cookies } from "next/headers";
 
 function getSecretKey(): Uint8Array {
   const secret = process.env.JWT_SECRET;
@@ -26,6 +27,17 @@ export async function verifyToken(token: string) {
     const { payload } = await jose.jwtVerify(token, secretKey);
     return payload as { userId: string; username: string };
   } catch (error) {
+    return null;
+  }
+}
+
+export async function getAuthUser() {
+  try {
+    const cookieStore = cookies();
+    const token = cookieStore.get("token")?.value;
+    if (!token) return null;
+    return await verifyToken(token);
+  } catch {
     return null;
   }
 }

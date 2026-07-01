@@ -86,8 +86,8 @@ export async function GET(
     avgRating = sumRating / totalReviews;
 
     // Sort to find top artist
-    const topArtist = [...artistCounts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] || "Desconocido";
-    const topTag = [...tagCounts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] || "Ninguno";
+    const topArtist = Array.from(artistCounts.entries()).sort((a, b) => b[1] - a[1])[0]?.[0] || "Desconocido";
+    const topTag = Array.from(tagCounts.entries()).sort((a, b) => b[1] - a[1])[0]?.[0] || "Ninguno";
     
     // Top rated items this year (sort by rating desc, take top 3)
     const topItems = reviews

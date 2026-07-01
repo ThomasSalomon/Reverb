@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/services/db";
 import { getAuthUser } from "@/utils/auth";
-import { hashPassword, comparePasswords } from "@/utils/crypto";
+import { hashPassword, comparePassword } from "@/utils/crypto";
 
 export async function PATCH(
   req: Request,
@@ -46,7 +46,7 @@ export async function PATCH(
       );
     }
 
-    const isMatch = await comparePasswords(currentPassword, user.password);
+    const isMatch = await comparePassword(currentPassword, user.password);
     if (!isMatch) {
       return NextResponse.json(
         { error: "La contraseña actual es incorrecta" },

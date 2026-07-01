@@ -9,12 +9,18 @@
   height: 100%;
   position: relative;
   transform-style: preserve-3d;
-  transition: transform 0.1s cubic-bezier(0.25, 1, 0.5, 1);
+  transition: transform 0.5s cubic-bezier(0.25, 1, 0.5, 1);
   border-radius: 12px;
   overflow: hidden;
   box-shadow: var(--shadow-lg);
   border: 1px solid var(--border);
   background: var(--bg-card);
+  will-change: transform;
+  transform: translateZ(0);
+}
+
+.container:hover .card {
+  transition: none;
 }
 
 .image {

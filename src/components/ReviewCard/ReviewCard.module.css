@@ -135,27 +135,55 @@
 .favTrackBadge {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
-  border-radius: 6px;
-  border: 1px solid;
-  font-size: 0.85rem;
-  margin-bottom: 12px;
-  font-weight: 500;
+  gap: 10px;
+  padding: 8px 14px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  margin-bottom: 16px;
   width: fit-content;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  transition: transform var(--transition-fast), border-color var(--transition-fast);
 }
 
-.favIcon {
-  font-size: 0.9rem;
+.favTrackBadge:hover {
+  transform: translateY(-2px);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.favTrackIcon {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.favTrackIcon svg {
+  filter: drop-shadow(0 0 6px currentColor);
 }
 
 .favLabel {
-  opacity: 0.8;
-  font-weight: 400;
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  line-height: 1;
 }
 
 .favTitle {
+  font-family: var(--font-display);
   font-weight: 700;
+  color: var(--text-primary);
+  font-size: 0.85rem;
+  letter-spacing: -0.01em;
+  line-height: 1;
+  border-left: 1px solid rgba(255, 255, 255, 0.1);
+  padding-left: 10px;
 }
 
 .actionsRow {
