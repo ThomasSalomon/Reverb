@@ -10,6 +10,21 @@ export async function GET(
 ) {
   try {
     const { id } = params;
+
+    let currentUserId: string | null = null;
+    try {
+      const cookieStore = cookies();
+      const token = cookieStore.get("token")?.value;
+      if (token) {
+        const authUser = await verifyToken(token);
+        if (authUser) {
+          currentUserId = authUser.userId;
+        }
+      }
+    } catch (e) {
+      console.error("Failed to verify token:", e);
+    }
+
     const item = await MusicService.getItemById(id);
 
     if (!item) {
@@ -25,44 +40,39 @@ export async function GET(
     let currentUserRating: number | null = null;
     let enrichedReviews = item.reviews || [];
     try {
-      const cookieStore = cookies();
-      const token = cookieStore.get("token")?.value;
-      if (token) {
-        const authUser = await verifyToken(token);
-        if (authUser) {
-          const record = await prisma.favoriteTrack.findUnique({
-            where: {
-              userId_musicItemId: {
-                userId: authUser.userId,
-                musicItemId: id,
-              },
+      if (currentUserId) {
+        const record = await prisma.favoriteTrack.findUnique({
+          where: {
+            userId_musicItemId: {
+              userId: currentUserId,
+              musicItemId: id,
             },
-            select: { trackTitle: true },
-          });
-          favoriteTrack = record?.trackTitle || null;
+          },
+          select: { trackTitle: true },
+        });
+        favoriteTrack = record?.trackTitle || null;
 
-          const listenLaterRecord = await prisma.listenLater.findUnique({
-            where: {
-              userId_musicItemId: {
-                userId: authUser.userId,
-                musicItemId: id,
-              },
+        const listenLaterRecord = await prisma.listenLater.findUnique({
+          where: {
+            userId_musicItemId: {
+              userId: currentUserId,
+              musicItemId: id,
             },
-            select: { userId: true },
-          });
-          isListenLater = !!listenLaterRecord;
+          },
+          select: { userId: true },
+        });
+        isListenLater = !!listenLaterRecord;
 
-          const ratingRecord = await prisma.rating.findUnique({
-            where: {
-              userId_musicItemId: {
-                userId: authUser.userId,
-                musicItemId: id,
-              },
+        const ratingRecord = await prisma.rating.findUnique({
+          where: {
+            userId_musicItemId: {
+              userId: currentUserId,
+              musicItemId: id,
             },
-            select: { value: true },
-          });
-          currentUserRating = ratingRecord?.value || null;
-        }
+          },
+          select: { value: true },
+        });
+        currentUserRating = ratingRecord?.value || null;
       }
 
       // Fetch favorite tracks for all authors of the reviews on this album
@@ -106,14 +116,7 @@ export async function GET(
           commentsCountMap.set(c.reviewId, count + 1);
         });
 
-        // Authenticated user
-        let currentUserId: string | null = null;
-        const cookieStore = cookies();
-        const token = cookieStore.get("token")?.value;
-        if (token) {
-          const authUser = await verifyToken(token);
-          if (authUser) currentUserId = authUser.userId;
-        }
+        // Authenticated user (already resolved at the beginning of the handler)
 
         enrichedReviews = (item.reviews || []).map((r: any) => {
           const likesList = likesMap.get(r.id) || [];

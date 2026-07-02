@@ -31,7 +31,7 @@ export default function RatingStars({
     // Round to nearest 0.5
     rating = Math.ceil(rating * 2) / 2;
     // Bound the values
-    rating = Math.max(0.5, Math.min(5, rating));
+    rating = Math.max(1, Math.min(5, rating));
 
     setHoverValue(rating);
   };
