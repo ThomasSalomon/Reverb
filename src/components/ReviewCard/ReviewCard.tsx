@@ -7,6 +7,8 @@ import styles from "./ReviewCard.module.css";
 import { showToast } from "@/components/Toast/ToastListener";
 import Avatar from "@/components/Avatar/Avatar";
 
+import sharedStyles from "../SharedModal.module.css";
+
 interface ReviewCardProps {
   review: {
     id: string;
@@ -26,6 +28,7 @@ interface ReviewCardProps {
       coverUrl: string;
       type: string;
     };
+    musicItemId?: string;
     tags?: string | null;
     favoriteTrack?: string | null;
     likesCount?: number;
@@ -34,6 +37,7 @@ interface ReviewCardProps {
   };
   showMusicDetails?: boolean;
   onDeleted?: (reviewId: string) => void;
+  onUpdated?: (reviewId: string, updatedData: { content: string; ratingValue: number; tags: string | null; favoriteTrack: string | null }) => void;
 }
 
 const COLOR_MAP: Record<string, string> = {
@@ -45,7 +49,21 @@ const COLOR_MAP: Record<string, string> = {
   slate: "#64748b"
 };
 
-const ReviewCard = React.memo(function ReviewCard({ review, showMusicDetails = false, onDeleted }: ReviewCardProps) {
+const ReviewCard = React.memo(function ReviewCard({ review, showMusicDetails = false, onDeleted, onUpdated }: ReviewCardProps) {
+  // Local display states (allows real-time updates without reload)
+  const [content, setContent] = useState(review.content);
+  const [ratingValue, setRatingValue] = useState(review.ratingValue);
+  const [tags, setTags] = useState(review.tags);
+  const [favoriteTrack, setFavoriteTrack] = useState(review.favoriteTrack);
+
+  // Sync props to state if they change
+  useEffect(() => {
+    setContent(review.content);
+    setRatingValue(review.ratingValue);
+    setTags(review.tags);
+    setFavoriteTrack(review.favoriteTrack);
+  }, [review]);
+
   // Interaction states
   const [likesCount, setLikesCount] = useState(review.likesCount || 0);
   const [liked, setLiked] = useState(review.likedByUser || false);
@@ -58,6 +76,27 @@ const ReviewCard = React.memo(function ReviewCard({ review, showMusicDetails = f
   const [currentUser, setCurrentUser] = useState<{ userId: string; username: string } | null>(null);
   const [commentToDelete, setCommentToDelete] = useState<string | null>(null);
   const [reviewToDelete, setReviewToDelete] = useState<string | null>(null);
+
+  // Review editing states
+  const [isEditing, setIsEditing] = useState(false);
+  const [editContent, setEditContent] = useState(review.content);
+  const [editRating, setEditRating] = useState(review.ratingValue);
+  const [editTags, setEditTags] = useState<string[]>(review.tags ? review.tags.split(",") : []);
+  const [editFavoriteTrack, setEditFavoriteTrack] = useState(review.favoriteTrack || "");
+  const [savingEdit, setSavingEdit] = useState(false);
+
+  const AVAILABLE_TAGS = [
+    "Épico", "Relajante", "Melancólico", "Enérgico", "Oscuro",
+    "Experimental", "Clásico", "Innovador", "Nostálgico", "Divertido"
+  ];
+
+  const toggleEditTag = (tag: string) => {
+    setEditTags(prev => 
+      prev.includes(tag) 
+        ? prev.filter(t => t !== tag)
+        : prev.length < 5 ? [...prev, tag] : prev
+    );
+  };
 
   // Check auth user
   useEffect(() => {
@@ -206,6 +245,61 @@ const ReviewCard = React.memo(function ReviewCard({ review, showMusicDetails = f
     }
   };
 
+  const handleSaveEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (editRating === 0) {
+      showToast("Por favor, selecciona una calificación de estrellas", "error");
+      return;
+    }
+    if (!editContent.trim()) {
+      showToast("Por favor, escribe el contenido de la reseña", "error");
+      return;
+    }
+
+    setSavingEdit(true);
+    try {
+      const res = await fetch(`/api/reviews/${review.id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          content: editContent,
+          ratingValue: editRating,
+          tags: editTags,
+          favoriteTrack: editFavoriteTrack,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Error al actualizar la reseña");
+      }
+
+      // Update local display state
+      setContent(editContent.trim());
+      setRatingValue(editRating);
+      setTags(editTags.join(","));
+      setFavoriteTrack(editFavoriteTrack.trim() || null);
+
+      showToast("Reseña actualizada con éxito", "success");
+      setIsEditing(false);
+
+      if (onUpdated) {
+        onUpdated(review.id, {
+          content: editContent.trim(),
+          ratingValue: editRating,
+          tags: editTags.join(","),
+          favoriteTrack: editFavoriteTrack.trim() || null,
+        });
+      }
+    } catch (err: any) {
+      showToast(err.message || "Error al actualizar la reseña", "error");
+    } finally {
+      setSavingEdit(false);
+    }
+  };
+
   return (
     <>
       <div className={styles.card}>
@@ -226,11 +320,25 @@ const ReviewCard = React.memo(function ReviewCard({ review, showMusicDetails = f
                 <span className={styles.username}>@{review.user.username}</span>
               </Link>
               <div className={styles.meta}>
-                <RatingStars value={review.ratingValue} size={14} />
+                 <RatingStars value={ratingValue} size={14} />
                 <span className={styles.dot}>•</span>
                 <span className={styles.date}>{formattedDate}</span>
                 {currentUser && currentUser.userId === review.user.id && (
                   <>
+                    <span className={styles.dot}>•</span>
+                    <button 
+                      onClick={() => {
+                        setEditContent(content);
+                        setEditRating(ratingValue);
+                        setEditTags(tags ? tags.split(",") : []);
+                        setEditFavoriteTrack(favoriteTrack || "");
+                        setIsEditing(true);
+                      }}
+                      className={styles.editReviewBtn}
+                      title="Editar reseña"
+                    >
+                      Editar
+                    </button>
                     <span className={styles.dot}>•</span>
                     <button 
                       onClick={() => setReviewToDelete(review.id)}
@@ -261,7 +369,7 @@ const ReviewCard = React.memo(function ReviewCard({ review, showMusicDetails = f
           )}
         </div>
 
-        {review.favoriteTrack && (
+        {favoriteTrack && (
           <div 
             className={styles.favTrackBadge}
             style={{
@@ -274,20 +382,20 @@ const ReviewCard = React.memo(function ReviewCard({ review, showMusicDetails = f
                 <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
               </svg>
             </div>
-            <span className={styles.favLabel}>Tema favorito</span>
-            <span className={styles.favTitle}>{review.favoriteTrack}</span>
+            <span className={styles.favLabel}>Canción favorita</span>
+            <span className={styles.favTitle}>{favoriteTrack}</span>
           </div>
         )}
         
-        {review.tags && review.tags.length > 0 && (
+        {tags && tags.length > 0 && (
           <div className={styles.tagsContainer}>
-            {review.tags.split(",").map(tag => (
+            {tags.split(",").map(tag => (
               <span key={tag} className={styles.tagPill}>{tag}</span>
             ))}
           </div>
         )}
 
-        <p className={styles.content}>{review.content}</p>
+        <p className={styles.content}>{content}</p>
 
         {/* Likes and Comments tray buttons */}
         <div className={styles.actionsRow}>
@@ -554,6 +662,114 @@ const ReviewCard = React.memo(function ReviewCard({ review, showMusicDetails = f
                 Eliminar
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Custom Review Edit Modal Overlay */}
+      {isEditing && (
+        <div className={sharedStyles.modalOverlay}>
+          <div className={sharedStyles.modalContent} style={{ maxWidth: "500px" }}>
+            <div className={sharedStyles.modalHeader}>
+              <h3 className={sharedStyles.modalTitle}>Editar Reseña</h3>
+              <button 
+                className={sharedStyles.closeBtn} 
+                onClick={() => setIsEditing(false)}
+                aria-label="Cerrar modal"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="18" y1="6" x2="6" y2="18"></line>
+                  <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveEdit} className={sharedStyles.formContainer}>
+              {/* Rating Section */}
+              <div className={sharedStyles.formGroup}>
+                <label className={sharedStyles.formLabel}>Tu Calificación:</label>
+                <div style={{ display: "flex", alignItems: "center" }}>
+                  <RatingStars value={editRating} onChange={setEditRating} interactive={true} size={28} />
+                </div>
+              </div>
+
+              {/* Tags Section */}
+              <div className={sharedStyles.formGroup}>
+                <label className={sharedStyles.formLabel}>Tags / Mood (Máx 5):</label>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
+                  {AVAILABLE_TAGS.map(tag => {
+                    const isActive = editTags.includes(tag);
+                    return (
+                      <button
+                        key={tag}
+                        type="button"
+                        onClick={() => toggleEditTag(tag)}
+                        style={{
+                          background: isActive ? "rgba(0, 229, 117, 0.15)" : "rgba(255, 255, 255, 0.05)",
+                          border: `1px solid ${isActive ? "var(--primary)" : "var(--border)"}`,
+                          color: isActive ? "var(--primary)" : "var(--text-secondary)",
+                          padding: "6px 12px",
+                          borderRadius: "20px",
+                          fontSize: "0.8rem",
+                          fontWeight: 500,
+                          cursor: "pointer",
+                          transition: "all 160ms ease",
+                          userSelect: "none"
+                        }}
+                      >
+                        {tag}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Content Textarea */}
+              <div className={sharedStyles.formGroup}>
+                <label className={sharedStyles.formLabel}>Tu Reseña:</label>
+                <textarea
+                  value={editContent}
+                  onChange={(e) => setEditContent(e.target.value)}
+                  placeholder="¿Qué opinas de este álbum?..."
+                  rows={5}
+                  className={sharedStyles.formInput}
+                  style={{ resize: "vertical", fontFamily: "inherit" }}
+                  disabled={savingEdit}
+                />
+              </div>
+
+              {/* Favorite Track */}
+              <div className={sharedStyles.formGroup}>
+                <label className={sharedStyles.formLabel}>Canción favorita (opcional):</label>
+                <input
+                  type="text"
+                  value={editFavoriteTrack}
+                  onChange={(e) => setEditFavoriteTrack(e.target.value)}
+                  placeholder="Nombre de la canción..."
+                  className={sharedStyles.formInput}
+                  disabled={savingEdit}
+                />
+              </div>
+
+              {/* Modal Footer */}
+              <div className={sharedStyles.modalFooter}>
+                <button
+                  type="button"
+                  onClick={() => setIsEditing(false)}
+                  className={sharedStyles.cancelBtn}
+                  disabled={savingEdit}
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className={sharedStyles.saveBtn}
+                  disabled={savingEdit}
+                >
+                  {savingEdit ? "Guardando..." : "Guardar Cambios"}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

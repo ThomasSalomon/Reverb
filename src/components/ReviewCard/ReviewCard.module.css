@@ -236,6 +236,8 @@
   flex-direction: column;
   box-shadow: -10px 0 30px rgba(0, 0, 0, 0.5);
   animation: slideIn 250ms cubic-bezier(0.16, 1, 0.3, 1);
+  transform: translateZ(0);
+  will-change: transform;
 }
 
 @keyframes slideIn {
@@ -259,9 +261,10 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.6);
-  backdrop-filter: blur(4px);
+  background: rgba(0, 0, 0, 0.65);
+  /* backdrop-filter eliminado — causaba repintados de pantalla completa en cada frame */
   z-index: 999;
+  transform: translateZ(0);
 }
 
 .drawerHeader {
@@ -451,3 +454,43 @@
   font-weight: 500;
   user-select: none;
 }
+
+.editReviewBtn {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 500;
+  padding: 4px 8px;
+  min-width: 24px;
+  min-height: 24px;
+  border-radius: 4px;
+  transition: transform 160ms ease-out, color 160ms ease-out, background-color 160ms ease-out;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .editReviewBtn:hover {
+    color: var(--primary);
+    background-color: rgba(0, 229, 117, 0.08);
+  }
+}
+
+.editReviewBtn:active {
+  transform: scale(0.97);
+}
+
+.editReviewBtn:focus {
+  outline: none;
+}
+
+.editReviewBtn:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+  color: var(--primary);
+  background-color: rgba(0, 229, 117, 0.08);
+}
+

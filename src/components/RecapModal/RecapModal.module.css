@@ -23,17 +23,16 @@
 .overlay {
   position: absolute;
   inset: 0;
-  background: rgba(4, 4, 6, 0.75);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  background: rgba(4, 4, 6, 0.85);
   z-index: 1;
   opacity: 0;
   animation: fadeIn 350ms var(--ease-out) forwards;
+  transform: translateZ(0);
 }
 
 /* ── Modal Container ── */
 .modal {
-  background: rgba(12, 12, 18, 0.88);
+  background: #0c0c12;
   border: 1px solid rgba(255, 255, 255, 0.05);
   border-radius: 28px;
   width: 100%;
@@ -42,8 +41,7 @@
   max-height: 92vh; /* Tarjeta más grande verticalmente (menos comprimida) */
   position: relative;
   z-index: 2; /* Sit on top of static overlay blur */
-  overflow-y: auto; /* Restored: allows scrolling only if viewport is tiny */
-  overflow-x: hidden;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
   box-shadow:
@@ -54,7 +52,6 @@
   transform: scale(0.95) translateY(20px);
   will-change: transform, opacity;
   animation: modalEnter 500ms var(--ease-spring) forwards;
-  overscroll-behavior: contain;
 }
 
 /* ── Animated Background Blobs ──
@@ -66,6 +63,7 @@
   pointer-events: none;
   z-index: 0;
   will-change: transform;
+  transform: translateZ(0);
 }
 
 .blob1 {
@@ -100,7 +98,8 @@
   position: absolute;
   top: 15%;
   left: 50%;
-  transform: translateX(-50%);
+  transform: translateX(-50%) translateZ(0);
+  will-change: transform;
   font-family: var(--font-display);
   font-size: 13rem;
   font-weight: 900;
@@ -131,19 +130,18 @@
 }
 
 /* ── Scrollbar ── */
-.modal::-webkit-scrollbar { width: 4px; }
-.modal::-webkit-scrollbar-track { background: transparent; }
-.modal::-webkit-scrollbar-thumb {
+.content::-webkit-scrollbar { width: 4px; }
+.content::-webkit-scrollbar-track { background: transparent; }
+.content::-webkit-scrollbar-thumb {
   background: rgba(255, 255, 255, 0.06);
   border-radius: 4px;
 }
 
 /* ── Close Button ── */
 .closeBtn {
-  position: sticky;
+  position: absolute;
   top: 16px;
-  margin-left: auto;
-  margin-right: 16px;
+  right: 16px;
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.06);
   color: rgba(255, 255, 255, 0.4);
@@ -179,6 +177,10 @@
   text-align: center;
   position: relative;
   z-index: 2;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  transform: translateZ(0);
 }
 
 /* ── Year Badge ── */

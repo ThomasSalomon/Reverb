@@ -318,6 +318,24 @@ export default function UserProfilePage() {
     }
   }, [selectedList, fetchLists, handleSelectList]);
 
+  const handleRemoveFromListenLater = useCallback(async (musicItemId: string) => {
+    try {
+      const res = await fetch(`/api/listen-later/${musicItemId}`, {
+        method: "DELETE",
+      });
+      if (res.ok) {
+        showToast("Eliminado de escuchar después", "success");
+        setListenLaterItems(prev => prev.filter(item => item.musicItemId !== musicItemId));
+      } else {
+        const data = await res.json();
+        showToast(data.error || "Error al eliminar de la lista", "error");
+      }
+    } catch (e) {
+      console.error(e);
+      showToast("Error de conexión", "error");
+    }
+  }, []);
+
   const handleCreateDiaryLog = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!diarySelectedAlbum) {
@@ -1179,6 +1197,62 @@ export default function UserProfilePage() {
                 </div>
               ) : (
                 <div style={{ textAlign: "center", padding: "20px" }}>No hay estadísticas disponibles.</div>
+              )}
+            </div>
+          )}
+
+          {activeTab === "listen-later" && (
+            <div style={{ width: "100%" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
+                <h3 className={styles.sectionTitle}>Escuchar Después</h3>
+              </div>
+
+              {listenLaterItems.length > 0 ? (
+                <div className={styles.listsGrid}>
+                  {listenLaterItems.map((item) => (
+                    <div 
+                      key={item.id} 
+                      className="card glass" 
+                      style={{ 
+                        padding: "16px", 
+                        display: "flex", 
+                        gap: "12px", 
+                        alignItems: "center", 
+                        position: "relative" 
+                      }}
+                    >
+                      <img 
+                        src={item.musicItem.coverUrl} 
+                        alt={item.musicItem.title} 
+                        style={{ width: "60px", height: "60px", borderRadius: "6px", objectFit: "cover" }} 
+                      />
+                      <div style={{ flexGrow: 1, minWidth: 0 }}>
+                        <h4 style={{ fontSize: "0.95rem", fontWeight: 700, color: "var(--text-primary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                          <Link href={`/albums/${item.musicItem.id}`} style={{ color: "inherit", textDecoration: "none" }}>
+                            {item.musicItem.title}
+                          </Link>
+                        </h4>
+                        <p style={{ fontSize: "0.8rem", color: "var(--text-secondary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                          {item.musicItem.artist}
+                        </p>
+                      </div>
+                      {isOwnProfile && (
+                        <button
+                          onClick={() => handleRemoveFromListenLater(item.musicItemId)}
+                          className="secondary-btn"
+                          style={{ padding: "4px 8px", fontSize: "0.75rem", borderColor: "rgba(255, 255, 255, 0.1)" }}
+                          title="Remover de escuchar después"
+                        >
+                          &times;
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className={styles.noReviews} style={{ textAlign: "center", padding: "40px" }}>
+                  No tienes álbumes guardados para escuchar después.
+                </div>
               )}
             </div>
           )}

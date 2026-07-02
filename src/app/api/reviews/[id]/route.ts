@@ -48,3 +48,146 @@ export async function DELETE(
     );
   }
 }
+
+export async function PATCH(
+  request: Request,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const user = await getAuthUser();
+    if (!user) {
+      return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+    }
+
+    const reviewId = params.id;
+
+    // Check if review exists and belongs to user
+    const review = await prisma.review.findUnique({
+      where: { id: reviewId },
+    });
+
+    if (!review) {
+      return NextResponse.json(
+        { error: "Reseña no encontrada" },
+        { status: 404 }
+      );
+    }
+
+    if (review.userId !== user.userId) {
+      return NextResponse.json(
+        { error: "No tienes permiso para modificar esta reseña" },
+        { status: 403 }
+      );
+    }
+
+    const { content, ratingValue, tags, favoriteTrack } = await request.json();
+
+    // Validations
+    let numericRating: number | undefined = undefined;
+    if (ratingValue !== undefined) {
+      numericRating = parseFloat(ratingValue);
+      if (isNaN(numericRating) || numericRating < 1 || numericRating > 5 || numericRating % 0.5 !== 0) {
+        return NextResponse.json(
+          { error: "Calificación inválida. Debe ser entre 1 y 5 con incrementos de 0.5" },
+          { status: 400 }
+        );
+      }
+    }
+
+    if (content !== undefined && !content.trim()) {
+      return NextResponse.json(
+        { error: "El contenido de la reseña no puede estar vacío" },
+        { status: 400 }
+      );
+    }
+
+    let validTags: string | null = null;
+    if (tags !== undefined) {
+      validTags = Array.isArray(tags)
+        ? tags.filter((t) => typeof t === "string").join(",")
+        : null;
+    }
+
+    const musicItemId = review.musicItemId;
+    const userId = user.userId;
+
+    // Update using an interactive transaction to keep Review and Rating in sync
+    const updatedReview = await prisma.$transaction(async (tx) => {
+      const updated = await tx.review.update({
+        where: { id: reviewId },
+        data: {
+          content: content !== undefined ? content.trim() : undefined,
+          ratingValue: numericRating !== undefined ? numericRating : undefined,
+          tags: tags !== undefined ? validTags : undefined,
+        },
+      });
+
+      if (numericRating !== undefined) {
+        await tx.rating.update({
+          where: {
+            userId_musicItemId: {
+              userId,
+              musicItemId,
+            },
+          },
+          data: {
+            value: numericRating,
+          },
+        });
+      }
+
+      if (favoriteTrack !== undefined) {
+        if (favoriteTrack === null || favoriteTrack.trim() === "") {
+          try {
+            await tx.favoriteTrack.delete({
+              where: {
+                userId_musicItemId: {
+                  userId,
+                  musicItemId,
+                },
+              },
+            });
+          } catch (e: any) {
+            // P2025 is Prisma's error for record to delete not found
+            if (e.code !== "P2025") throw e;
+          }
+        } else {
+          await tx.favoriteTrack.upsert({
+            where: {
+              userId_musicItemId: {
+                userId,
+                musicItemId,
+              },
+            },
+            create: {
+              userId,
+              musicItemId,
+              trackTitle: favoriteTrack.trim(),
+            },
+            update: {
+              trackTitle: favoriteTrack.trim(),
+            },
+          });
+        }
+      }
+
+      return updated;
+    });
+
+    return NextResponse.json({
+      success: true,
+      review: {
+        ...updatedReview,
+        favoriteTrack: favoriteTrack !== undefined ? (favoriteTrack || null) : undefined,
+      }
+    }, { status: 200 });
+
+  } catch (error) {
+    console.error("Patch review error:", error);
+    return NextResponse.json(
+      { error: "Error al modificar la reseña" },
+      { status: 500 }
+    );
+  }
+}
+
