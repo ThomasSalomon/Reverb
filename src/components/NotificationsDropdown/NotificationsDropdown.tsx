@@ -97,6 +97,16 @@ export default function NotificationsDropdown() {
     }
   };
 
+  const clearAllNotifications = async () => {
+    try {
+      await fetch("/api/notifications", { method: "DELETE" });
+      setNotifications([]);
+      setUnreadCount(0);
+    } catch (e) {
+      console.error("Failed to clear notifications", e);
+    }
+  };
+
   const toggleDropdown = () => {
     setIsOpen(!isOpen);
     if (!isOpen && unreadCount > 0) {
@@ -118,11 +128,22 @@ export default function NotificationsDropdown() {
         <div className={styles.dropdown}>
           <div className={styles.header}>
             <h3 className={styles.title}>Notificaciones</h3>
-            {unreadCount > 0 && (
-              <button onClick={markAllAsRead} className={styles.markAllBtn}>
-                Marcar todas leídas
-              </button>
-            )}
+            <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
+              {unreadCount > 0 && (
+                <button onClick={markAllAsRead} className={styles.markAllBtn}>
+                  Marcar todas leídas
+                </button>
+              )}
+              {notifications.length > 0 && (
+                <button 
+                  onClick={clearAllNotifications} 
+                  className={styles.markAllBtn} 
+                  style={{ color: "var(--text-secondary)", background: "transparent", padding: "0", fontWeight: "normal" }}
+                >
+                  Limpiar todas
+                </button>
+              )}
+            </div>
           </div>
 
           <ul className={styles.list}>

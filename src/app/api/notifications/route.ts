@@ -60,3 +60,24 @@ export async function GET(req: Request) {
     );
   }
 }
+
+export async function DELETE(req: Request) {
+  try {
+    const authUser = await getAuthUser();
+    if (!authUser) {
+      return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+    }
+
+    await prisma.notification.deleteMany({
+      where: { userId: authUser.userId }
+    });
+
+    return NextResponse.json({ message: "Todas las notificaciones han sido eliminadas" });
+  } catch (error) {
+    console.error("DELETE notifications error:", error);
+    return NextResponse.json(
+      { error: "Error al eliminar notificaciones" },
+      { status: 500 }
+    );
+  }
+}
