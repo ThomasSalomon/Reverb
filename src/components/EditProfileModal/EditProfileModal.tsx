@@ -5,6 +5,7 @@ import styles from "../SharedModal.module.css";
 import localStyles from "../../app/users/[username]/page.module.css";
 import { showToast } from "@/components/Toast/ToastListener";
 import { useBodyScrollLock } from "@/hooks/useBodyScrollLock";
+import ImageCropper from "./ImageCropper";
 
 interface FavoriteAlbumRelation {
   slot: number;
@@ -49,6 +50,7 @@ export default function EditProfileModal({ isOpen, onClose, profile, onSave }: E
   const [editColor, setEditColor] = useState("emerald");
   const [editImage, setEditImage] = useState("");
   const [saving, setSaving] = useState(false);
+  const [cropImageSrc, setCropImageSrc] = useState<string | null>(null);
 
   // Initialize state when modal opens
   useEffect(() => {
@@ -57,6 +59,7 @@ export default function EditProfileModal({ isOpen, onClose, profile, onSave }: E
       setEditGenre(profile.favoriteGenre || "");
       setEditColor(profile.profileColor || "emerald");
       setEditImage(profile.profileImage || "");
+      setCropImageSrc(null);
     }
   }, [isOpen, profile]);
 
@@ -74,7 +77,8 @@ export default function EditProfileModal({ isOpen, onClose, profile, onSave }: E
     const reader = new FileReader();
     reader.onloadend = () => {
       if (typeof reader.result === "string") {
-        setEditImage(reader.result);
+        setCropImageSrc(reader.result);
+        e.target.value = "";
       }
     };
     reader.readAsDataURL(file);
@@ -119,212 +123,226 @@ export default function EditProfileModal({ isOpen, onClose, profile, onSave }: E
     <div className={styles.modalOverlay}>
       <div className={styles.modalContent}>
         <div className={styles.modalHeader}>
-          <h3 className={styles.modalTitle}>Editar Perfil</h3>
+          <h3 className={styles.modalTitle}>
+            {cropImageSrc ? "Recortar Foto" : "Editar Perfil"}
+          </h3>
           <button onClick={onClose} className={styles.closeBtn}>
             &times;
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className={styles.formContainer}>
-          {/* Foto de Perfil Picker */}
-          <div className={styles.formGroup}>
-            <label className={styles.formLabel}>Foto de Perfil</label>
-            <div style={{ display: "flex", gap: "14px", marginBottom: "12px", alignItems: "center", flexWrap: "wrap" }}>
-              {/* Default Text Initials Fallback */}
-              <div 
-                onClick={() => setEditImage("")}
-                style={{
-                  width: "50px",
-                  height: "50px",
-                  borderRadius: "50%",
-                  backgroundColor: `${COLOR_MAP[editColor]?.value || "#10b981"}1a`,
-                  color: COLOR_MAP[editColor]?.value || "#10b981",
-                  border: `2px solid ${editImage === "" ? (COLOR_MAP[editColor]?.value || "#10b981") : `${COLOR_MAP[editColor]?.value || "#10b981"}33`}`,
-                  boxShadow: editImage === "" ? `0 0 10px ${COLOR_MAP[editColor]?.value || "#10b981"}55` : "none",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontWeight: "bold",
-                  fontSize: "0.85rem",
-                  cursor: "pointer",
-                  transition: "all 0.2s"
-                }}
-                title="Iniciales del perfil"
-              >
-                {profile.username.substring(0, 2).toUpperCase()}
+        {cropImageSrc ? (
+          <ImageCropper
+            imageSrc={cropImageSrc}
+            profileColor={editColor}
+            onCancel={() => setCropImageSrc(null)}
+            onCropComplete={(croppedImage) => {
+              setEditImage(croppedImage);
+              setCropImageSrc(null);
+            }}
+          />
+        ) : (
+          <form onSubmit={handleSubmit} className={styles.formContainer}>
+            {/* Foto de Perfil Picker */}
+            <div className={styles.formGroup}>
+              <label className={styles.formLabel}>Foto de Perfil</label>
+              <div style={{ display: "flex", gap: "14px", marginBottom: "12px", alignItems: "center", flexWrap: "wrap" }}>
+                {/* Default Text Initials Fallback */}
+                <div 
+                  onClick={() => setEditImage("")}
+                  style={{
+                    width: "50px",
+                    height: "50px",
+                    borderRadius: "50%",
+                    backgroundColor: `${COLOR_MAP[editColor]?.value || "#10b981"}1a`,
+                    color: COLOR_MAP[editColor]?.value || "#10b981",
+                    border: `2px solid ${editImage === "" ? (COLOR_MAP[editColor]?.value || "#10b981") : `${COLOR_MAP[editColor]?.value || "#10b981"}33`}`,
+                    boxShadow: editImage === "" ? `0 0 10px ${COLOR_MAP[editColor]?.value || "#10b981"}55` : "none",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontWeight: "bold",
+                    fontSize: "0.85rem",
+                    cursor: "pointer",
+                    transition: "all 0.2s"
+                  }}
+                  title="Iniciales del perfil"
+                >
+                  {profile.username.substring(0, 2).toUpperCase()}
+                </div>
+
+                {/* Music Theme Presets */}
+                {[1, 2, 3].map((num) => {
+                  const presetUrl = `/avatars/preset-${num}.png`;
+                  const isActive = editImage === presetUrl;
+                  const activeColor = COLOR_MAP[editColor]?.value || "#10b981";
+                  return (
+                    <img
+                      key={num}
+                      src={presetUrl}
+                      alt={`Preset ${num}`}
+                      onClick={() => setEditImage(presetUrl)}
+                      style={{
+                        width: "50px",
+                        height: "50px",
+                        borderRadius: "50%",
+                        objectFit: "cover",
+                        cursor: "pointer",
+                        border: `2px solid ${isActive ? activeColor : "transparent"}`,
+                        boxShadow: isActive ? `0 0 10px ${activeColor}55` : "none",
+                        transition: "all 0.2s"
+                      }}
+                    />
+                  );
+                })}
+
+                {/* Custom uploaded image preview */}
+                {(editImage.startsWith("data:image/") || editImage.startsWith("/uploads/")) && (
+                  <div style={{ position: "relative" }}>
+                    <img
+                      src={editImage}
+                      alt="Foto de perfil cargada"
+                      onClick={() => setEditImage(editImage)}
+                      style={{
+                        width: "50px",
+                        height: "50px",
+                        borderRadius: "50%",
+                        objectFit: "cover",
+                        border: `2px solid ${COLOR_MAP[editColor]?.value || "#10b981"}`,
+                        boxShadow: `0 0 10px ${COLOR_MAP[editColor]?.value || "#10b981"}55`,
+                        cursor: "pointer"
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setEditImage("")}
+                      style={{
+                        position: "absolute",
+                        top: "-4px",
+                        right: "-4px",
+                        background: "#f43f5e",
+                        color: "#fff",
+                        border: "none",
+                        borderRadius: "50%",
+                        width: "18px",
+                        height: "18px",
+                        fontSize: "10px",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        cursor: "pointer",
+                        fontWeight: "bold"
+                      }}
+                      title="Eliminar foto cargada"
+                    >
+                      &times;
+                    </button>
+                  </div>
+                )}
               </div>
 
-              {/* Music Theme Presets */}
-              {[1, 2, 3].map((num) => {
-                const presetUrl = `/avatars/preset-${num}.png`;
-                const isActive = editImage === presetUrl;
-                const activeColor = COLOR_MAP[editColor]?.value || "#10b981";
-                return (
-                  <img
-                    key={num}
-                    src={presetUrl}
-                    alt={`Preset ${num}`}
-                    onClick={() => setEditImage(presetUrl)}
-                    style={{
-                      width: "50px",
-                      height: "50px",
-                      borderRadius: "50%",
-                      objectFit: "cover",
-                      cursor: "pointer",
-                      border: `2px solid ${isActive ? activeColor : "transparent"}`,
-                      boxShadow: isActive ? `0 0 10px ${activeColor}55` : "none",
-                      transition: "all 0.2s"
-                    }}
+              {/* Custom File Uploader Button */}
+              <div style={{ marginTop: "8px" }}>
+                <label 
+                  style={{ 
+                    display: "inline-flex", 
+                    alignItems: "center", 
+                    gap: "8px", 
+                    padding: "8px 16px", 
+                    borderRadius: "8px", 
+                    background: "rgba(255, 255, 255, 0.05)", 
+                    border: "1px dashed var(--border)", 
+                    cursor: "pointer",
+                    fontSize: "0.85rem",
+                    fontWeight: 600,
+                    transition: "all 0.2s"
+                  }}
+                  onMouseOver={(e) => {
+                    e.currentTarget.style.borderColor = COLOR_MAP[editColor]?.value || "#10b981";
+                    e.currentTarget.style.background = "rgba(255, 255, 255, 0.08)";
+                  }}
+                  onMouseOut={(e) => {
+                    e.currentTarget.style.borderColor = "var(--border)";
+                    e.currentTarget.style.background = "rgba(255, 255, 255, 0.05)";
+                  }}
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="17 8 12 3 7 8"></polyline>
+                    <line x1="12" y1="3" x2="12" y2="15"></line>
+                  </svg>
+                  Subir imagen desde ordenador
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleFileChange}
+                    style={{ display: "none" }}
                   />
-                );
-              })}
-
-              {/* Custom uploaded image preview */}
-              {(editImage.startsWith("data:image/") || editImage.startsWith("/uploads/")) && (
-                <div style={{ position: "relative" }}>
-                  <img
-                    src={editImage}
-                    alt="Foto de perfil cargada"
-                    onClick={() => setEditImage(editImage)}
-                    style={{
-                      width: "50px",
-                      height: "50px",
-                      borderRadius: "50%",
-                      objectFit: "cover",
-                      border: `2px solid ${COLOR_MAP[editColor]?.value || "#10b981"}`,
-                      boxShadow: `0 0 10px ${COLOR_MAP[editColor]?.value || "#10b981"}55`,
-                      cursor: "pointer"
-                    }}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setEditImage("")}
-                    style={{
-                      position: "absolute",
-                      top: "-4px",
-                      right: "-4px",
-                      background: "#f43f5e",
-                      color: "#fff",
-                      border: "none",
-                      borderRadius: "50%",
-                      width: "18px",
-                      height: "18px",
-                      fontSize: "10px",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      cursor: "pointer",
-                      fontWeight: "bold"
-                    }}
-                    title="Eliminar foto cargada"
-                  >
-                    &times;
-                  </button>
-                </div>
-              )}
+                </label>
+              </div>
             </div>
 
-            {/* Custom File Uploader Button */}
-            <div style={{ marginTop: "8px" }}>
-              <label 
-                style={{ 
-                  display: "inline-flex", 
-                  alignItems: "center", 
-                  gap: "8px", 
-                  padding: "8px 16px", 
-                  borderRadius: "8px", 
-                  background: "rgba(255, 255, 255, 0.05)", 
-                  border: "1px dashed var(--border)", 
-                  cursor: "pointer",
-                  fontSize: "0.85rem",
-                  fontWeight: 600,
-                  transition: "all 0.2s"
-                }}
-                onMouseOver={(e) => {
-                  e.currentTarget.style.borderColor = COLOR_MAP[editColor]?.value || "#10b981";
-                  e.currentTarget.style.background = "rgba(255, 255, 255, 0.08)";
-                }}
-                onMouseOut={(e) => {
-                  e.currentTarget.style.borderColor = "var(--border)";
-                  e.currentTarget.style.background = "rgba(255, 255, 255, 0.05)";
-                }}
-              >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                  <polyline points="17 8 12 3 7 8"></polyline>
-                  <line x1="12" y1="3" x2="12" y2="15"></line>
-                </svg>
-                Subir imagen desde ordenador
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleFileChange}
-                  style={{ display: "none" }}
-                />
-              </label>
+            {/* Bio */}
+            <div className={styles.formGroup}>
+              <label className={styles.formLabel}>Biografía</label>
+              <textarea
+                className={styles.formInput}
+                rows={4}
+                maxLength={500}
+                value={editBio}
+                onChange={(e) => setEditBio(e.target.value)}
+                placeholder="Cuéntanos sobre tus gustos musicales..."
+                style={{ resize: "none" }}
+              />
+              <span style={{ fontSize: "0.75rem", color: "var(--text-secondary)", textAlign: "right" }}>
+                {editBio.length}/500 caracteres
+              </span>
             </div>
-          </div>
 
-          {/* Bio */}
-          <div className={styles.formGroup}>
-            <label className={styles.formLabel}>Biografía</label>
-            <textarea
-              className={styles.formInput}
-              rows={4}
-              maxLength={500}
-              value={editBio}
-              onChange={(e) => setEditBio(e.target.value)}
-              placeholder="Cuéntanos sobre tus gustos musicales..."
-              style={{ resize: "none" }}
-            />
-            <span style={{ fontSize: "0.75rem", color: "var(--text-secondary)", textAlign: "right" }}>
-              {editBio.length}/500 caracteres
-            </span>
-          </div>
-
-          {/* Genre */}
-          <div className={styles.formGroup}>
-            <label className={styles.formLabel}>Género Favorito</label>
-            <input
-              type="text"
-              className={styles.formInput}
-              value={editGenre}
-              onChange={(e) => setEditGenre(e.target.value)}
-              placeholder="Ej: Heavy Metal, Synthpop, Jazz..."
-            />
-          </div>
-
-          {/* Color Preset Selector */}
-          <div className={styles.formGroup}>
-            <label className={styles.formLabel}>Color de Perfil</label>
-            <div className={localStyles.colorPicker}>
-              {Object.keys(COLOR_MAP).map((colorKey) => {
-                const colorData = COLOR_MAP[colorKey];
-                return (
-                  <div
-                    key={colorKey}
-                    className={`${localStyles.colorOption} ${
-                      editColor === colorKey ? localStyles.colorOptionActive : ""
-                    }`}
-                    style={{ backgroundColor: colorData.value }}
-                    onClick={() => setEditColor(colorKey)}
-                    title={colorKey}
-                  />
-                );
-              })}
+            {/* Genre */}
+            <div className={styles.formGroup}>
+              <label className={styles.formLabel}>Género Favorito</label>
+              <input
+                type="text"
+                className={styles.formInput}
+                value={editGenre}
+                onChange={(e) => setEditGenre(e.target.value)}
+                placeholder="Ej: Heavy Metal, Synthpop, Jazz..."
+              />
             </div>
-          </div>
 
-          {/* Footer */}
-          <div className={styles.modalFooter}>
-            <button type="button" onClick={onClose} className={styles.cancelBtn} disabled={saving}>
-              Cancelar
-            </button>
-            <button type="submit" className={styles.saveBtn} disabled={saving}>
-              {saving ? "Guardando..." : "Guardar Cambios"}
-            </button>
-          </div>
-        </form>
+            {/* Color Preset Selector */}
+            <div className={styles.formGroup}>
+              <label className={styles.formLabel}>Color de Perfil</label>
+              <div className={localStyles.colorPicker}>
+                {Object.keys(COLOR_MAP).map((colorKey) => {
+                  const colorData = COLOR_MAP[colorKey];
+                  return (
+                    <div
+                      key={colorKey}
+                      className={`${localStyles.colorOption} ${
+                        editColor === colorKey ? localStyles.colorOptionActive : ""
+                      }`}
+                      style={{ backgroundColor: colorData.value }}
+                      onClick={() => setEditColor(colorKey)}
+                      title={colorKey}
+                    />
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className={styles.modalFooter}>
+              <button type="button" onClick={onClose} className={styles.cancelBtn} disabled={saving}>
+                Cancelar
+              </button>
+              <button type="submit" className={styles.saveBtn} disabled={saving}>
+                {saving ? "Guardando..." : "Guardar Cambios"}
+              </button>
+            </div>
+          </form>
+        )}
       </div>
     </div>
   );

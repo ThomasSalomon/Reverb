@@ -248,3 +248,188 @@
   font-size: 0.95rem;
   line-height: 1.6;
 }
+
+/* Image Cropper Component Styles */
+.cropperContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  animation: fadeIn 300ms ease forwards;
+}
+
+.cropperSubtitle {
+  font-size: 0.85rem;
+  color: #a1a1aa;
+  text-align: center;
+  margin-top: -8px;
+  margin-bottom: 20px;
+  line-height: 1.4;
+}
+
+.cropperViewportWrapper {
+  width: 280px;
+  height: 280px;
+  position: relative;
+  overflow: hidden;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: #000;
+  margin: 0 auto;
+  user-select: none;
+  touch-action: none; /* Prevents default scroll when dragging on mobile */
+  box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.8);
+}
+
+.cropperImage {
+  /* Dynamic styles injected inline: transform, top, left, position */
+  will-change: transform;
+}
+
+.cropperMaskCircle {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 240px;
+  height: 240px;
+  border-radius: 50%;
+  border: 2px dashed rgba(255, 255, 255, 0.4);
+  pointer-events: none;
+  z-index: 2;
+  /* Box shadow and border color are set dynamically in react inline styling */
+}
+
+.cropperControls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  width: 100%;
+  margin-top: 20px;
+}
+
+.zoomBtn {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #a1a1aa;
+  cursor: pointer;
+  transition: all 160ms cubic-bezier(0.23, 1, 0.32, 1);
+  outline: none;
+}
+
+.zoomBtn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+.zoomBtn:active {
+  transform: scale(0.92);
+}
+
+.zoomSlider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 160px;
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.1);
+  outline: none;
+  cursor: pointer;
+  transition: background 150ms ease;
+}
+
+.zoomSlider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--slider-color, #10b981);
+  border: 2px solid #09090b;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+  transition: transform 150ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.zoomSlider::-webkit-slider-thumb:hover {
+  transform: scale(1.15);
+}
+
+.zoomSlider::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--slider-color, #10b981);
+  border: 2px solid #09090b;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+  transition: transform 150ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.zoomSlider::-moz-range-thumb:hover {
+  transform: scale(1.15);
+}
+
+.cropperFooter {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 24px;
+  width: 100%;
+}
+
+.cropperCancelBtn {
+  padding: 12px 20px;
+  border-radius: 12px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 160ms cubic-bezier(0.23, 1, 0.32, 1);
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #d4d4d8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  outline: none;
+}
+
+.cropperCancelBtn:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: #fff;
+}
+
+.cropperCancelBtn:active {
+  transform: scale(0.96);
+}
+
+.cropperSaveBtn {
+  padding: 12px 20px;
+  border-radius: 12px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 160ms cubic-bezier(0.23, 1, 0.32, 1);
+  border: 1px solid transparent;
+  color: #000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  outline: none;
+}
+
+.cropperSaveBtn:hover {
+  filter: brightness(1.1);
+  transform: translateY(-1px);
+}
+
+.cropperSaveBtn:active {
+  transform: scale(0.96);
+}
+
