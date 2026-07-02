@@ -259,6 +259,11 @@ export async function POST(req: Request) {
             badgeId: "FIRST_REVIEW"
           }
         });
+
+        const userForBadge = await prisma.user.findUnique({
+          where: { id: userId },
+          select: { username: true }
+        });
         
         // Notify them
         await prisma.notification.create({
@@ -266,7 +271,7 @@ export async function POST(req: Request) {
             userId,
             type: "NEW_BADGE",
             message: "¡Has obtenido el logro 'Crítico en Ascenso' por tu primera reseña!",
-            link: `/users/${userId}` // Can adjust to their actual username if needed
+            link: `/users/${userForBadge?.username || userId}`
           }
         });
       } catch (badgeErr) {

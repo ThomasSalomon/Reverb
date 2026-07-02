@@ -63,7 +63,6 @@ export default function AlbumDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [favTrack, setFavTrack] = useState<string | null>(null);
-  const [playingTrackUrl, setPlayingTrackUrl] = useState<string | null>(null);
   const [isListenLater, setIsListenLater] = useState(false);
   const [currentUserRating, setCurrentUserRating] = useState<number | null>(null);
   const [isDiaryOpen, setIsDiaryOpen] = useState(false);
@@ -75,14 +74,6 @@ export default function AlbumDetailPage() {
     ? `https://www.deezer.com/plugins/player?format=classic&autoplay=false&playlist=false&width=100%&height=350&color=10b981&layout=dark&size=medium&type=album&id=${album.id}`
     : "";
   const { containerRef: deezerRef, activeSrc: deezerActiveSrc } = useLazyIframe(deezerSrc);
-
-  const handlePlayPreview = (previewUrl: string) => {
-    if (playingTrackUrl === previewUrl) {
-      setPlayingTrackUrl(null);
-    } else {
-      setPlayingTrackUrl(previewUrl);
-    }
-  };
 
   const fetchAlbumDetails = useCallback(async () => {
     try {
@@ -402,24 +393,7 @@ export default function AlbumDetailPage() {
                         ) : (
                           <span className={styles.bulletDot}>•</span>
                         )}
-                        {track.preview && (
-                          <button
-                            onClick={() => handlePlayPreview(track.preview!)}
-                            className={styles.playPreviewBtn}
-                            title={playingTrackUrl === track.preview ? "Pausar demo" : "Escuchar demo 30s"}
-                          >
-                            {playingTrackUrl === track.preview ? (
-                              <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor">
-                                <rect x="5" y="4" width="4" height="16" rx="1" />
-                                <rect x="15" y="4" width="4" height="16" rx="1" />
-                              </svg>
-                            ) : (
-                              <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor" style={{ marginLeft: '1px' }}>
-                                <path d="M8 5v14l11-7z" />
-                              </svg>
-                            )}
-                          </button>
-                        )}
+
                         <span className={styles.trackTitle}>{track.title}</span>
                       </div>
                       <span className={styles.trackDuration}>{track.duration}</span>
@@ -468,15 +442,7 @@ export default function AlbumDetailPage() {
           </section>
           </section>
         </div>
-        {playingTrackUrl && (
-          <audio
-            src={playingTrackUrl}
-            autoPlay
-            controls={false}
-            onEnded={() => setPlayingTrackUrl(null)}
-            style={{ display: "none" }}
-          />
-        )}
+
 
         {/* Diary Modal */}
         {isDiaryOpen && (
