@@ -12,11 +12,18 @@ export async function GET(req: Request) {
       // If no query, return top users by follower count
       const topUsers = await prisma.user.findMany({
         take: 10,
-        orderBy: {
-          followers: {
-            _count: "desc",
+        orderBy: [
+          {
+            followers: {
+              _count: "desc",
+            },
           },
-        },
+          {
+            reviews: {
+              _count: "desc",
+            },
+          }
+        ],
         select: {
           id: true,
           username: true,
