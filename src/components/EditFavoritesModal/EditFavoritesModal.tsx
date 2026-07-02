@@ -75,7 +75,7 @@ export default function EditFavoritesModal({ isOpen, onClose, profile, onSave }:
         const res = await fetch(`/api/music?q=${encodeURIComponent(query)}`);
         if (res.ok) {
           const data = await res.json();
-          setSlotSearchResults(prev => ({ ...prev, 1: data.slice(0, 5) }));
+          setSlotSearchResults(prev => ({ ...prev, 1: data.slice(0, 20) }));
         }
       } catch (e) {
         console.error(e);
@@ -98,7 +98,7 @@ export default function EditFavoritesModal({ isOpen, onClose, profile, onSave }:
         const res = await fetch(`/api/music?q=${encodeURIComponent(query)}`);
         if (res.ok) {
           const data = await res.json();
-          setSlotSearchResults(prev => ({ ...prev, 2: data.slice(0, 5) }));
+          setSlotSearchResults(prev => ({ ...prev, 2: data.slice(0, 20) }));
         }
       } catch (e) {
         console.error(e);
@@ -121,7 +121,7 @@ export default function EditFavoritesModal({ isOpen, onClose, profile, onSave }:
         const res = await fetch(`/api/music?q=${encodeURIComponent(query)}`);
         if (res.ok) {
           const data = await res.json();
-          setSlotSearchResults(prev => ({ ...prev, 3: data.slice(0, 5) }));
+          setSlotSearchResults(prev => ({ ...prev, 3: data.slice(0, 20) }));
         }
       } catch (e) {
         console.error(e);
