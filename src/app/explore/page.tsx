@@ -23,7 +23,9 @@ export default function ExplorePage() {
   const fetchUsers = async (query: string) => {
     try {
       setLoading(true);
-      const res = await fetch(`/api/users/search?q=${encodeURIComponent(query)}`);
+      const res = await fetch(`/api/users/search?q=${encodeURIComponent(query)}`, {
+        cache: "no-store",
+      });
       if (res.ok) {
         const data = await res.json();
         setUsers(data);
