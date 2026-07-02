@@ -203,3 +203,27 @@
   filter: brightness(1.1);
 }
 
+@media (max-width: 768px) {
+  .main {
+    padding: 24px 16px 48px;
+    gap: 40px;
+  }
+  .hero {
+    padding: 20px 0;
+    gap: 12px;
+  }
+  .heroTitle {
+    font-size: 2.2rem;
+  }
+  .heroSub {
+    font-size: 1rem;
+  }
+  .sectionTitle {
+    font-size: 1.35rem;
+  }
+  .sectionHeader {
+    gap: 12px;
+  }
+}
+
+

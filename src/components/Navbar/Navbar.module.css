@@ -166,3 +166,40 @@
 .loginLink:hover {
   color: var(--text-primary);
 }
+
+@media (max-width: 640px) {
+  .container {
+    padding: 0 12px;
+  }
+  .logo {
+    font-size: 1.25rem;
+    gap: 6px;
+  }
+  .logoIcon {
+    width: 22px;
+    height: 22px;
+  }
+  .links {
+    gap: 12px;
+  }
+  .link {
+    font-size: 0.85rem;
+  }
+  .authButtons {
+    gap: 10px;
+  }
+  .loginLink {
+    font-size: 0.85rem;
+  }
+  .username {
+    display: none;
+  }
+  .userSection {
+    gap: 10px;
+  }
+  .logoutBtn {
+    padding: 5px 10px;
+    font-size: 0.8rem;
+  }
+}
+

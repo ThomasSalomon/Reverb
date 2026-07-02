@@ -1010,3 +1010,36 @@
   to { transform: rotate(360deg); }
 }
 
+@media (max-width: 600px) {
+  .profilePage {
+    margin: 20px auto;
+    padding: 0 16px;
+  }
+  .profileHeader {
+    padding: 20px;
+    gap: 16px;
+  }
+  .userInfo {
+    gap: 16px;
+  }
+  .avatar {
+    width: 64px;
+    height: 64px;
+    font-size: 1.8rem;
+  }
+  .username {
+    font-size: 1.5rem;
+  }
+  .joinDate {
+    font-size: 0.8rem;
+  }
+  .headerMain {
+    gap: 12px;
+  }
+  .actionBtn {
+    padding: 8px 16px;
+    font-size: 0.85rem;
+  }
+}
+
+

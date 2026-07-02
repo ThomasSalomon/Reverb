@@ -74,3 +74,17 @@
 .footerText a:hover {
   text-decoration: underline;
 }
+
+@media (max-width: 480px) {
+  .main {
+    padding: 24px 16px;
+  }
+  .authCard {
+    padding: 24px 20px;
+    gap: 20px;
+  }
+  .title {
+    font-size: 1.5rem;
+  }
+}
+
