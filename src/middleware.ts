@@ -9,15 +9,25 @@ export async function middleware(request: NextRequest) {
   const payload = token ? await verifyToken(token) : null;
   const { pathname } = request.nextUrl;
 
-  // Protect write requests to reviews or ratings
-  if (pathname.startsWith("/api/reviews") || pathname.startsWith("/api/ratings")) {
-    if (request.method !== "GET") {
-      if (!payload) {
-        return NextResponse.json(
-          { error: "Inicia sesión para realizar esta acción" },
-          { status: 401 }
-        );
-      }
+  const protectedWriteRoutes = [
+    "/api/reviews",
+    "/api/ratings",
+    "/api/diary",
+    "/api/lists",
+    "/api/listen-later",
+    "/api/comments",
+    "/api/users" // /api/users requires auth for PUT/PATCH/DELETE
+  ];
+
+  const isProtectedWrite = protectedWriteRoutes.some(route => pathname.startsWith(route));
+
+  // Protect write requests
+  if (isProtectedWrite && request.method !== "GET") {
+    if (!payload) {
+      return NextResponse.json(
+        { error: "Inicia sesión para realizar esta acción" },
+        { status: 401 }
+      );
     }
   }
 
@@ -45,5 +55,10 @@ export const config = {
   matcher: [
     "/api/reviews/:path*",
     "/api/ratings/:path*",
+    "/api/diary/:path*",
+    "/api/lists/:path*",
+    "/api/listen-later/:path*",
+    "/api/comments/:path*",
+    "/api/users/:path*",
   ],
 };

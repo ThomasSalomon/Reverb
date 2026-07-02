@@ -2,9 +2,17 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/services/db";
 import { signToken } from "@/utils/auth";
 import { comparePassword } from "@/utils/crypto";
+import { rateLimit, getIP } from "@/utils/rateLimit";
 
 export async function POST(req: Request) {
   try {
+    const ip = getIP(req);
+    const { success } = rateLimit(ip, { windowMs: 15 * 60 * 1000, max: 10 }); // 10 attempts per 15 minutes
+    
+    if (!success) {
+      return NextResponse.json({ error: "Demasiados intentos de inicio de sesión. Por favor, intenta de nuevo más tarde." }, { status: 429 });
+    }
+
     const { usernameOrEmail, password } = await req.json();
 
     if (!usernameOrEmail || !password) {
@@ -59,7 +67,7 @@ export async function POST(req: Request) {
     response.cookies.set("token", token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
+      sameSite: "strict",
       maxAge: 60 * 60 * 24 * 7, // 7 days
       path: "/",
     });
