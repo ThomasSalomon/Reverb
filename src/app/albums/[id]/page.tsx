@@ -410,6 +410,8 @@ export default function AlbumDetailPage() {
             {user ? (
               <ReviewForm
                 musicItemId={album.id}
+                rating={currentUserRating || 0}
+                onRatingChange={(newRating) => setCurrentUserRating(newRating)}
                 onSuccess={fetchAlbumDetails}
               />
             ) : (

@@ -7,18 +7,31 @@ import styles from "./ReviewForm.module.css";
 interface ReviewFormProps {
   musicItemId: string;
   initialContent?: string;
-  initialRating?: number;
+  rating?: number;
+  onRatingChange?: (rating: number) => void;
   onSuccess?: () => void;
 }
 
 export default function ReviewForm({
   musicItemId,
   initialContent = "",
-  initialRating = 0,
+  rating = 0,
+  onRatingChange,
   onSuccess,
 }: ReviewFormProps) {
   const [content, setContent] = useState(initialContent);
-  const [rating, setRating] = useState(initialRating);
+  const [localRating, setLocalRating] = useState(rating);
+
+  React.useEffect(() => {
+    setLocalRating(rating);
+  }, [rating]);
+
+  const handleRatingChange = (newVal: number) => {
+    setLocalRating(newVal);
+    if (onRatingChange) {
+      onRatingChange(newVal);
+    }
+  };
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
@@ -39,7 +52,7 @@ export default function ReviewForm({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (rating === 0) {
+    if (localRating === 0) {
       setError("Por favor, selecciona una calificación de estrellas");
       return;
     }
@@ -61,7 +74,7 @@ export default function ReviewForm({
         body: JSON.stringify({
           musicItemId,
           content,
-          ratingValue: rating,
+          ratingValue: localRating,
           tags: selectedTags,
         }),
       });
@@ -88,7 +101,7 @@ export default function ReviewForm({
       
       <div className={styles.ratingSection}>
         <span className={styles.label}>Tu Calificación:</span>
-        <RatingStars value={rating} onChange={setRating} interactive={true} size={28} />
+        <RatingStars value={localRating} onChange={handleRatingChange} interactive={true} size={28} />
       </div>
 
       <div className={styles.tagsSection}>
