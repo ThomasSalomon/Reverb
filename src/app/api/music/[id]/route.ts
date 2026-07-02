@@ -78,7 +78,7 @@ export async function GET(
             trackTitle: true,
           },
         });
-        const favMap = new Map(favTracks.map((ft) => [ft.userId, ft.trackTitle]));
+        const favMap = new Map(favTracks.map((ft: any) => [ft.userId, ft.trackTitle]));
         
         // Fetch likes and comments count
         const reviewIds = (item.reviews || []).map((r: any) => r.id);
