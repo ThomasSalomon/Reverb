@@ -3,8 +3,6 @@ import { cookies } from "next/headers";
 import { prisma } from "@/services/db";
 import { verifyToken } from "@/utils/auth";
 import { MusicService } from "@/services/music";
-import fs from "fs";
-import path from "path";
 
 export const dynamic = "force-dynamic";
 
@@ -172,7 +170,6 @@ export async function PUT(
       }
 
       const mimeType = matches[1];
-      const base64Data = matches[2];
       
       const allowedMimes = ["image/png", "image/jpeg", "image/jpg", "image/webp", "image/gif"];
       if (!allowedMimes.includes(mimeType)) {
@@ -182,69 +179,26 @@ export async function PUT(
         );
       }
 
-      const buffer = Buffer.from(base64Data, "base64");
-      if (buffer.length > 2 * 1024 * 1024) {
+      // Max size limit: 2MB. A base64 string length is ~1.37 times the binary size.
+      if (profileImage.length > 2.8 * 1024 * 1024) {
         return NextResponse.json(
           { error: "La imagen supera el límite de tamaño de 2MB." },
           { status: 400 }
         );
       }
 
-      let ext = "png";
-      if (mimeType.includes("jpeg") || mimeType.includes("jpg")) ext = "jpg";
-      else if (mimeType.includes("webp")) ext = "webp";
-      else if (mimeType.includes("gif")) ext = "gif";
-
-      const uploadDir = path.join(process.cwd(), "public", "uploads");
-      if (!fs.existsSync(uploadDir)) {
-        fs.mkdirSync(uploadDir, { recursive: true });
-      }
-
-      // Delete older custom avatar file if it exists to optimize disk space
-      const existingUser = await prisma.user.findUnique({
-        where: { username },
-        select: { profileImage: true }
-      });
-      if (existingUser?.profileImage && existingUser.profileImage.startsWith("/uploads/")) {
-        const oldFilePath = path.join(process.cwd(), "public", existingUser.profileImage);
-        if (fs.existsSync(oldFilePath)) {
-          try {
-            fs.unlinkSync(oldFilePath);
-          } catch (err) {
-            console.error("Failed to delete old avatar file:", err);
-          }
-        }
-      }
-
-      const filename = `avatar-${username}-${Date.now()}.${ext}`;
-      const filePath = path.join(uploadDir, filename);
-      fs.writeFileSync(filePath, buffer);
-      
-      finalProfileImage = `/uploads/${filename}`;
+      // Store the base64 string directly in the database (serverless friendly)
+      finalProfileImage = profileImage;
     } else if (profileImage && profileImage.trim() !== "") {
-      // Validate preset image or existing custom image
-      if (!profileImage.startsWith("/avatars/") && !profileImage.startsWith("/uploads/")) {
+      // Validate preset image or existing custom image/base64
+      if (!profileImage.startsWith("/avatars/") && !profileImage.startsWith("/uploads/") && !profileImage.startsWith("data:image/")) {
         return NextResponse.json(
           { error: "Avatar inválido. Seleccione un preset o cargue una foto." },
           { status: 400 }
         );
       }
     } else if (profileImage === "") {
-      // If clearing avatar, delete older custom file from disk
-      const existingUser = await prisma.user.findUnique({
-        where: { username },
-        select: { profileImage: true }
-      });
-      if (existingUser?.profileImage && existingUser.profileImage.startsWith("/uploads/")) {
-        const oldFilePath = path.join(process.cwd(), "public", existingUser.profileImage);
-        if (fs.existsSync(oldFilePath)) {
-          try {
-            fs.unlinkSync(oldFilePath);
-          } catch (err) {
-            console.error("Failed to delete old avatar file:", err);
-          }
-        }
-      }
+      // Image cleared, will be set to null in database
     }
 
     // Process favorite albums slots (Top 3)
