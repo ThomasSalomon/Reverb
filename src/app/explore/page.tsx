@@ -72,7 +72,7 @@ export default function ExplorePage() {
                     profileColor={user.profileColor}
                     profileImage={user.profileImage}
                     size={80}
-                    style={{ border: "4px solid var(--surface-light)", boxShadow: "0 4px 10px rgba(0,0,0,0.3)" }}
+                    style={{ boxShadow: "0 4px 10px rgba(0,0,0,0.3)" }}
                   />
                   <h3 className={styles.username}>@{user.username}</h3>
                   <div className={styles.userStats}>
