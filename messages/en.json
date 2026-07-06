@@ -1,0 +1,25 @@
+{
+  "Navbar": {
+    "explore": "Explore",
+    "login": "Log in",
+    "register": "Sign Up",
+    "logout": "Log out"
+  },
+  "Home": {
+    "heroTitle1": "Take note of every",
+    "heroTitleHighlight": "beat",
+    "heroSubtitle": "Rate albums, write detailed reviews, and keep track of your musical journey.",
+    "searchPlaceholder": "Search for albums or artists...",
+    "popularAlbums": "Popular Albums",
+    "loadingCatalog": "Loading musical catalog...",
+    "noAlbums": "No albums found",
+    "recentActivity": "Recent Activity",
+    "tabGlobal": "Global",
+    "tabFollowing": "Following",
+    "loadingReviews": "Loading reviews...",
+    "loginPromptFollowing": "Log in to see the activity of the people you follow.",
+    "loginBtn": "Log In",
+    "noReviewsFollowing": "No recent reviews from the people you follow. Follow some music lovers to see their activity!",
+    "noReviewsGlobal": "No reviews written yet. Be the first to rate an album!"
+  }
+}

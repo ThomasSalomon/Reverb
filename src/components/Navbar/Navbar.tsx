@@ -1,10 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
+import { Link } from "@/i18n/routing";
+import { useTranslations } from "next-intl";
 import styles from "./Navbar.module.css";
 import Avatar from "@/components/Avatar/Avatar";
 import NotificationsDropdown from "@/components/NotificationsDropdown/NotificationsDropdown";
+import LanguageSelector from "@/components/LanguageSelector/LanguageSelector";
 
 interface User {
   id: string;
@@ -14,6 +16,7 @@ interface User {
 }
 
 export default function Navbar() {
+  const t = useTranslations("Navbar");
   const [user, setUser] = useState<User | null>(null);
 
   useEffect(() => {
@@ -51,13 +54,14 @@ export default function Navbar() {
 
         <div className={styles.links}>
           <Link href="/explore" className={styles.link}>
-            Explorar
+            {t('explore')}
           </Link>
         </div>
 
         <div className={styles.auth}>
           {user ? (
             <div className={styles.userSection} style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+              <LanguageSelector />
               <NotificationsDropdown />
               <Link href={`/users/${user.username}`} className={styles.profileLink}>
                 <Avatar
@@ -71,19 +75,20 @@ export default function Navbar() {
                 <span className={styles.username}>@{user.username}</span>
               </Link>
               <button onClick={handleLogout} className={styles.logoutBtn}>
-                Salir
+                {t('logout')}
               </button>
             </div>
           ) : (
             <div className={styles.authButtons}>
+              <LanguageSelector />
               <Link href="/login" className={styles.loginLink}>
-                Entrar
+                {t('login')}
               </Link>
               <Link
                 href="/register"
                 className={`neon-btn ${styles.registerBtn}`}
               >
-                Crear Cuenta
+                {t('register')}
               </Link>
             </div>
           )}

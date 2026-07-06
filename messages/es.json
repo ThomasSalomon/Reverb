@@ -1,0 +1,25 @@
+{
+  "Navbar": {
+    "explore": "Explorar",
+    "login": "Entrar",
+    "register": "Crear Cuenta",
+    "logout": "Salir"
+  },
+  "Home": {
+    "heroTitle1": "Toma nota de cada",
+    "heroTitleHighlight": "ritmo",
+    "heroSubtitle": "Califica álbumes, escribe reseñas detalladas y lleva un registro de tu viaje musical.",
+    "searchPlaceholder": "Buscar álbumes o artistas...",
+    "popularAlbums": "Álbumes Populares",
+    "loadingCatalog": "Cargando catálogo musical...",
+    "noAlbums": "No se encontraron álbumes",
+    "recentActivity": "Actividad Reciente",
+    "tabGlobal": "Global",
+    "tabFollowing": "Siguiendo",
+    "loadingReviews": "Cargando reseñas...",
+    "loginPromptFollowing": "Inicia sesión para ver la actividad de las personas que sigues.",
+    "loginBtn": "Iniciar Sesión",
+    "noReviewsFollowing": "No hay reseñas recientes de las personas que sigues. ¡Sigue a algunos melómanos para ver su actividad!",
+    "noReviewsGlobal": "Aún no hay reseñas escritas. ¡Sé el primero en calificar un álbum!"
+  }
+}

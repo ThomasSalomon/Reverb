@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
+import { Link } from "@/i18n/routing";
+import { useTranslations } from "next-intl";
 import Cover3D from "@/components/Cover3D/Cover3D";
 import RatingStars from "@/components/RatingStars/RatingStars";
 import ReviewCard from "@/components/ReviewCard/ReviewCard";
@@ -45,6 +46,7 @@ interface Review {
 }
 
 export default function HomePage() {
+  const t = useTranslations("Home");
   const [items, setItems] = useState<MusicItem[]>([]);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
@@ -116,17 +118,17 @@ export default function HomePage() {
     <main className={styles.main}>
       <section className={styles.hero}>
         <h1 className={styles.heroTitle}>
-          Toma nota de cada <span>ritmo</span>.
+          {t("heroTitle1")} <span>{t("heroTitleHighlight")}</span>.
         </h1>
         <p className={styles.heroSub}>
-          Califica álbumes, escribe reseñas detalladas y lleva un registro de tu viaje musical.
+          {t("heroSubtitle")}
         </p>
         <div className={styles.searchContainer}>
           <input
             type="text"
             value={searchQuery}
             onChange={handleSearch}
-            placeholder="Buscar álbumes o artistas..."
+            placeholder={t("searchPlaceholder")}
             className="input-field"
             style={{ width: "100%", maxWidth: "500px" }}
           />
@@ -135,11 +137,11 @@ export default function HomePage() {
 
       <div className={styles.contentGrid}>
         <section className={styles.musicSection}>
-          <h2 className={styles.sectionTitle}>Álbumes Populares</h2>
+          <h2 className={styles.sectionTitle}>{t("popularAlbums")}</h2>
           {loading ? (
-            <div className={styles.loader}>Cargando catálogo musical...</div>
+            <div className={styles.loader}>{t("loadingCatalog")}</div>
           ) : items.length === 0 ? (
-            <div className={styles.noResults}>No se encontraron álbumes</div>
+            <div className={styles.noResults}>{t("noAlbums")}</div>
           ) : (
             <div className={styles.albumsGrid}>
               {items.map((item) => (
@@ -165,39 +167,39 @@ export default function HomePage() {
 
         <section className={styles.reviewsSection}>
           <div className={styles.sectionHeader}>
-            <h2 className={styles.sectionTitle}>Actividad Reciente</h2>
+            <h2 className={styles.sectionTitle}>{t("recentActivity")}</h2>
             {currentUser && (
               <div className={styles.tabs}>
                 <button
                   onClick={() => setActiveFeed("global")}
                   className={`${styles.tab} ${activeFeed === "global" ? styles.activeTab : ""}`}
                 >
-                  Global
+                  {t("tabGlobal")}
                 </button>
                 <button
                   onClick={() => setActiveFeed("following")}
                   className={`${styles.tab} ${activeFeed === "following" ? styles.activeTab : ""}`}
                 >
-                  Siguiendo
+                  {t("tabFollowing")}
                 </button>
               </div>
             )}
           </div>
 
           {reviewsLoading ? (
-            <div className={styles.loader}>Cargando reseñas...</div>
+            <div className={styles.loader}>{t("loadingReviews")}</div>
           ) : activeFeed === "following" && !currentUser ? (
             <div className={styles.loginPrompt}>
-              <p>Inicia sesión para ver la actividad de las personas que sigues.</p>
+              <p>{t("loginPromptFollowing")}</p>
               <Link href="/login" className={styles.loginPromptBtn}>
-                Iniciar Sesión
+                {t("loginBtn")}
               </Link>
             </div>
           ) : reviews.length === 0 ? (
             <div className={styles.noReviews}>
               {activeFeed === "following"
-                ? "No hay reseñas recientes de las personas que sigues. ¡Sigue a algunos melómanos para ver su actividad!"
-                : "Aún no hay reseñas escritas. ¡Sé el primero en calificar un álbum!"}
+                ? t("noReviewsFollowing")
+                : t("noReviewsGlobal")}
             </div>
           ) : (
             <div className={styles.reviewsList}>

@@ -2,7 +2,9 @@ import type { Metadata } from "next";
 import { Inter, Plus_Jakarta_Sans } from "next/font/google";
 import Navbar from "@/components/Navbar/Navbar";
 import ToastListener from "@/components/Toast/ToastListener";
-import "./globals.css";
+import { NextIntlClientProvider } from 'next-intl';
+import { getMessages } from 'next-intl/server';
+import "../globals.css";
 
 const inter = Inter({ 
   subsets: ["latin"],
@@ -29,7 +31,7 @@ export const metadata: Metadata = {
     siteName: "Reverb",
     images: [
       {
-        url: "/logo.png", // Recommended: replace with a 1200x630 image (e.g. /og-image.png) for best results
+        url: "/logo.png",
         width: 1200,
         height: 630,
         alt: "Reverb - Plataforma de música",
@@ -46,17 +48,24 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
+  params: { locale }
 }: Readonly<{
   children: React.ReactNode;
+  params: { locale: string };
 }>) {
+  // Fetch messages (dictionaries) for the client components
+  const messages = await getMessages();
+
   return (
-    <html lang="es">
+    <html lang={locale}>
       <body className={`${inter.variable} ${plusJakartaSans.variable}`}>
-        <Navbar />
-        {children}
-        <ToastListener />
+        <NextIntlClientProvider messages={messages}>
+          <Navbar />
+          {children}
+          <ToastListener />
+        </NextIntlClientProvider>
       </body>
     </html>
   );

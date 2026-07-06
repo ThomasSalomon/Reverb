@@ -1,0 +1,42 @@
+.container {
+  display: flex;
+  align-items: center;
+}
+
+.select {
+  background-color: var(--background-secondary, #1a1a1a);
+  color: var(--text-primary, #ffffff);
+  border: 1px solid var(--border-color, #333333);
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-family: inherit;
+  font-size: 0.9rem;
+  cursor: pointer;
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+.select:hover {
+  border-color: var(--primary-color, #ff0055);
+}
+
+.select:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.mobileSelect {
+  display: none;
+}
+
+@media (max-width: 640px) {
+  .desktopSelect {
+    display: none;
+  }
+  
+  .mobileSelect {
+    display: block;
+    padding: 6px 8px; /* Reducimos el padding horizontal */
+    font-size: 0.8rem; /* Fuente un poco más pequeña */
+  }
+}
