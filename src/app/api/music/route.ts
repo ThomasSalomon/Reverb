@@ -7,20 +7,23 @@ export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
     const query = searchParams.get("q");
-    const type = searchParams.get("type") as "ALBUM" | "SONG" | null;
 
     if (query) {
-      const results = await MusicService.searchItems(query);
+      const results = await MusicService.searchItems(query).catch((err) => {
+        console.error("searchItems failed:", err);
+        return [];
+      });
       return NextResponse.json(results);
     }
 
-    const items = await MusicService.getPopularItems();
+    const items = await MusicService.getPopularItems().catch((err) => {
+      console.error("getPopularItems failed:", err);
+      return [];
+    });
     return NextResponse.json(items);
   } catch (error) {
     console.error("Music API fetch error:", error);
-    return NextResponse.json(
-      { error: "Error al obtener ítems musicales" },
-      { status: 500 }
-    );
+    // Return empty array instead of 500 so the UI doesn't crash
+    return NextResponse.json([]);
   }
 }

@@ -1,5 +1,5 @@
 import { prisma } from "./db";
-import { DeezerService } from "./deezer";
+import { DeezerService, DeezerAlbumSearchItem } from "./deezer";
 
 export interface Track {
   title: string;
@@ -164,7 +164,12 @@ export const MusicService = {
     }
 
     // 1. Fetch from Deezer API in real-time
-    const deezerResults = await DeezerService.searchAlbums(query);
+    let deezerResults: DeezerAlbumSearchItem[] = [];
+    try {
+      deezerResults = await DeezerService.searchAlbums(query);
+    } catch (err) {
+      console.error("Deezer searchAlbums failed (may be blocked on this server):", err);
+    }
     if (deezerResults.length === 0) return [];
 
     // 2. Query matching local records to get their ratings and reviews
@@ -223,7 +228,12 @@ export const MusicService = {
 
   async getPopularItems() {
     // 1. Fetch popular albums from Deezer Chart
-    const popularAlbums = await DeezerService.getPopularAlbums();
+    let popularAlbums: DeezerAlbumSearchItem[] = [];
+    try {
+      popularAlbums = await DeezerService.getPopularAlbums();
+    } catch (err) {
+      console.error("Deezer getPopularAlbums failed (may be blocked on this server):", err);
+    }
     if (popularAlbums.length === 0) return [];
 
     // 2. Query matching local records
