@@ -7,6 +7,7 @@ import Cover3D from "@/components/Cover3D/Cover3D";
 import RatingStars from "@/components/RatingStars/RatingStars";
 import ReviewCard from "@/components/ReviewCard/ReviewCard";
 import ReviewForm from "@/components/ReviewForm/ReviewForm";
+import ShareModal from "@/components/ShareModal/ShareModal";
 import styles from "./page.module.css";
 import { showToast } from "@/components/Toast/ToastListener";
 import { useLazyIframe } from "@/hooks/useLazyIframe";
@@ -65,6 +66,7 @@ export default function AlbumDetailClient({ id }: { id: string }) {
   const [isListenLater, setIsListenLater] = useState(false);
   const [currentUserRating, setCurrentUserRating] = useState<number | null>(null);
   const [isDiaryOpen, setIsDiaryOpen] = useState(false);
+  const [isShareOpen, setIsShareOpen] = useState(false);
   const [diaryRating, setDiaryRating] = useState("5");
   const [diaryNotes, setDiaryNotes] = useState("");
 
@@ -193,38 +195,10 @@ export default function AlbumDetailClient({ id }: { id: string }) {
     }
   };
 
-  const handleShare = async () => {
-    if (!album) return;
-    
-    const shareUrl = window.location.href;
-    const shareData = {
-      title: `${album.title} por ${album.artist} - MusicBox`,
-      text: `Escucha ${album.title} de ${album.artist} en MusicBox`,
-      url: shareUrl,
-    };
-
-    if (navigator.share) {
-      try {
-        await navigator.share(shareData);
-      } catch (err: any) {
-        if (err.name !== 'AbortError') {
-          console.error("Error sharing via native API:", err);
-          fallbackShare(shareUrl);
-        }
-      }
-    } else {
-      fallbackShare(shareUrl);
-    }
+  const handleShare = () => {
+    setIsShareOpen(true);
   };
 
-  const fallbackShare = (url: string) => {
-    navigator.clipboard.writeText(url)
-      .then(() => showToast("Enlace copiado al portapapeles", "success"))
-      .catch((err) => {
-        console.error("Error copying to clipboard", err);
-        showToast("No se pudo copiar el enlace", "error");
-      });
-  };
 
   useEffect(() => {
     async function init() {
@@ -649,6 +623,21 @@ export default function AlbumDetailClient({ id }: { id: string }) {
             </form>
           </div>
         </div>
+      )}
+
+      {/* Share Modal */}
+      {album && (
+        <ShareModal
+          isOpen={isShareOpen}
+          onClose={() => setIsShareOpen(false)}
+          album={{
+            title: album.title,
+            artist: album.artist,
+            releaseYear: album.releaseYear,
+            coverUrl: album.coverUrl,
+          }}
+          shareUrl={typeof window !== "undefined" ? window.location.href : `https://reverb-ivory.vercel.app/albums/${id}`}
+        />
       )}
     </main>
   );
