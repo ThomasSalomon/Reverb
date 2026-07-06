@@ -237,7 +237,10 @@ export default function ShareModal({
                 title={`Compartir en ${network.name}`}
                 style={{ "--network-color": network.color } as React.CSSProperties}
               >
-                <span className={styles.socialIcon}>{network.icon}</span>
+                <span className={styles.socialIcon}>
+                  <span className={styles.socialIconGlow} />
+                  {network.icon}
+                </span>
                 <span className={styles.socialName}>{network.name}</span>
               </a>
             ))}

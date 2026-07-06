@@ -1,7 +1,9 @@
 /* ================================================
    ShareModal — Spotify-style share card
+   GPU-optimized: animates only transform + opacity
    ================================================ */
 
+/* ── Backdrop: blur en pseudo-elemento fijo, se anima con opacity (no con blur) ── */
 .backdrop {
   position: fixed;
   inset: 0;
@@ -10,18 +12,26 @@
   align-items: center;
   justify-content: center;
   padding: 20px;
-  background: rgba(0, 0, 0, 0);
-  backdrop-filter: blur(0px);
-  -webkit-backdrop-filter: blur(0px);
-  transition:
-    background 0.3s ease,
-    backdrop-filter 0.3s ease;
+  /* Fondo oscuro animado con opacity — barato */
+  background: rgba(0, 0, 0, 0.72);
+  opacity: 0;
+  transition: opacity 0.28s ease;
+  /* Forzar capa propia para que el compositing sea en GPU */
+  will-change: opacity;
+}
+
+/* El blur está en un pseudo-elemento que no anima su valor — solo opacity del padre */
+.backdrop::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  /* Nota: el blur NO se anima, solo aparece/desaparece junto con el padre vía opacity */
 }
 
 .backdropVisible {
-  background: rgba(0, 0, 0, 0.72);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  opacity: 1;
 }
 
 /* ── Modal card ── */
@@ -39,12 +49,13 @@
     0 32px 80px rgba(0, 0, 0, 0.9),
     0 0 0 1px rgba(255, 255, 255, 0.04) inset;
 
-  /* Animate in */
+  /* Animar solo transform + opacity — GPU compositing puro */
   opacity: 0;
   transform: scale(0.93) translateY(10px);
   transition:
     opacity 0.28s cubic-bezier(0.16, 1, 0.3, 1),
     transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: transform, opacity;
 }
 
 .modalVisible {
@@ -67,11 +78,28 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: background 0.15s ease, color 0.15s ease;
+  /* Opacidad en pseudo-elemento para hover sin repaint de background */
+  position: absolute;
+  isolation: isolate;
+  transition: opacity 0.15s ease;
+}
+
+/* Hover via pseudo-elemento: evita repaint de background */
+.closeBtn::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: rgba(255, 255, 255, 0.12);
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.closeBtn:hover::before {
+  opacity: 1;
 }
 
 .closeBtn:hover {
-  background: rgba(255, 255, 255, 0.12);
   color: var(--text-primary);
 }
 
@@ -80,7 +108,7 @@
   display: flex;
   align-items: center;
   gap: 18px;
-  padding-right: 28px; /* avoid overlap with close btn */
+  padding-right: 28px;
 }
 
 .coverWrapper {
@@ -99,13 +127,17 @@
   z-index: 1;
 }
 
+/* Glow: estático, no anima — sin costo de repaint continuo */
 .coverGlow {
   position: absolute;
   inset: -8px;
   border-radius: 18px;
-  opacity: 0.5;
+  opacity: 0.45;
   filter: blur(20px);
   z-index: 0;
+  /* Promover a capa propia para que no afecte compositing del resto */
+  will-change: transform;
+  transform: translateZ(0);
 }
 
 .albumInfo {
@@ -130,7 +162,6 @@
   font-family: var(--font-display);
   letter-spacing: -0.02em;
   line-height: 1.2;
-  /* Truncate long titles */
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -187,6 +218,7 @@
   text-decoration: none;
   flex: 1;
   min-width: 60px;
+  /* Solo transform — GPU puro */
   transition: transform 0.18s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
@@ -194,10 +226,19 @@
   transform: translateY(-3px);
 }
 
+/* Hover effect vía pseudo-elemento: cambia opacity, no background — evita repaint */
+.socialBtn:hover .socialIcon::before {
+  opacity: 1;
+}
+
 .socialBtn:hover .socialIcon {
-  background: var(--network-color);
-  border-color: transparent;
-  box-shadow: 0 6px 20px color-mix(in srgb, var(--network-color) 45%, transparent);
+  /* Solo box-shadow via pseudo-elemento; color queda en pseudo */
+  color: #fff;
+}
+
+/* Glow del hover: pseudo-elemento pre-renderizado con la sombra */
+.socialBtn:hover .socialIconGlow {
+  opacity: 0.6;
 }
 
 .socialIcon {
@@ -210,10 +251,35 @@
   align-items: center;
   justify-content: center;
   color: var(--text-primary);
-  transition:
-    background 0.18s ease,
-    border-color 0.18s ease,
-    box-shadow 0.18s ease;
+  position: relative;
+  isolation: isolate;
+  /* Eliminar transición de background y box-shadow — son costosas */
+  transition: color 0.18s ease;
+}
+
+/* Pseudo-elemento con el color de fondo de la red — anima opacity, no background */
+.socialIcon::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--network-color);
+  opacity: 0;
+  transition: opacity 0.18s ease;
+}
+
+/* Glow separado como elemento div para aislarlo del stacking context del icono */
+.socialIconGlow {
+  position: absolute;
+  inset: -4px;
+  border-radius: 18px;
+  background: var(--network-color);
+  opacity: 0;
+  filter: blur(12px);
+  z-index: -1;
+  transition: opacity 0.18s ease;
+  /* Capa propia para no mezclar con el contenido del icono */
+  will-change: opacity;
 }
 
 .socialName {
@@ -252,7 +318,8 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  transition: border-color 0.15s ease;
+  /* Solo border-color — no fuerza layout */
+  transition: border-color 0.15s ease, color 0.15s ease;
   min-width: 0;
 }
 
@@ -273,20 +340,41 @@
   font-weight: 700;
   font-family: var(--font-display);
   flex-shrink: 0;
-  transition:
-    background 0.18s ease,
-    transform 0.15s ease;
+  /* Solo transform — GPU puro */
+  transition: transform 0.15s ease;
   background: var(--text-primary);
   color: var(--bg-deep);
+  position: relative;
+  isolation: isolate;
+}
+
+/* Hover vía pseudo-elemento para evitar repaint de background */
+.copyBtn::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--primary);
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.copyBtn:hover::before {
+  opacity: 1;
 }
 
 .copyBtn:hover {
-  background: var(--primary);
   transform: translateY(-1px);
 }
 
 .copyBtn:active {
   transform: scale(0.97);
+}
+
+/* El svg y texto deben estar sobre el pseudo-elemento */
+.copyBtn > * {
+  position: relative;
+  z-index: 1;
 }
 
 .copyBtnCopied {
@@ -318,5 +406,20 @@
 
   .albumTitle {
     font-size: 1rem;
+  }
+}
+
+/* ── Respeto por prefers-reduced-motion ── */
+@media (prefers-reduced-motion: reduce) {
+  .backdrop,
+  .modal,
+  .socialBtn,
+  .socialIcon,
+  .socialIcon::before,
+  .socialIconGlow,
+  .closeBtn::before,
+  .copyBtn,
+  .copyBtn::before {
+    transition-duration: 0.01ms !important;
   }
 }
