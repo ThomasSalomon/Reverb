@@ -169,15 +169,18 @@
 
 @media (max-width: 640px) {
   .container {
-    padding: 0 12px;
+    padding: 0 16px;
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
   }
   .logo {
-    font-size: 1.4rem;
+    font-size: 1.25rem;
     gap: 6px;
   }
   .logoIcon {
-    width: 26px;
-    height: 26px;
+    width: 24px;
+    height: 24px;
   }
   .links {
     gap: 12px;
@@ -186,7 +189,7 @@
     font-size: 0.85rem;
   }
   .authButtons {
-    gap: 10px;
+    gap: 12px;
   }
   .loginLink {
     font-size: 0.85rem;
@@ -195,11 +198,20 @@
     display: none;
   }
   .userSection {
-    gap: 10px;
+    gap: 12px;
   }
   .logoutBtn {
-    padding: 5px 10px;
+    padding: 6px 12px;
     font-size: 0.8rem;
   }
+  .registerBtn {
+    padding: 6px 12px !important;
+    font-size: 0.8rem !important;
+  }
+}
+
+.registerBtn {
+  padding: 8px 16px;
+  font-size: 0.9rem;
 }
 

@@ -81,8 +81,7 @@ export default function Navbar() {
               </Link>
               <Link
                 href="/register"
-                className="neon-btn"
-                style={{ padding: "8px 16px", fontSize: "0.9rem" }}
+                className={`neon-btn ${styles.registerBtn}`}
               >
                 Crear Cuenta
               </Link>
