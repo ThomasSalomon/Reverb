@@ -17,6 +17,28 @@ const plusJakartaSans = Plus_Jakarta_Sans({
 export const metadata: Metadata = {
   title: "Reverb | Califica, Reseña y Descubre Música",
   description: "Una plataforma premium para amantes de la música. Califica álbumes, escribe reseñas y comparte tu pasión musical.",
+  openGraph: {
+    title: "Reverb | Califica, Reseña y Descubre Música",
+    description: "Una plataforma premium para amantes de la música. Califica álbumes, escribe reseñas y comparte tu pasión musical.",
+    url: "https://reverb.com",
+    siteName: "Reverb",
+    images: [
+      {
+        url: "/logo.png", // Recommended: replace with a 1200x630 image (e.g. /og-image.png) for best results
+        width: 1200,
+        height: 630,
+        alt: "Reverb - Plataforma de música",
+      },
+    ],
+    locale: "es_ES",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Reverb | Califica, Reseña y Descubre Música",
+    description: "Una plataforma premium para amantes de la música. Califica álbumes, escribe reseñas y comparte tu pasión musical.",
+    images: ["/logo.png"],
+  },
 };
 
 export default function RootLayout({
