@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import styles from "../SharedModal.module.css";
-import localStyles from "../../app/users/[username]/page.module.css";
+import localStyles from "../../app/[locale]/users/[username]/page.module.css";
 import { showToast } from "@/components/Toast/ToastListener";
 import { useBodyScrollLock } from "@/hooks/useBodyScrollLock";
 import ImageCropper from "./ImageCropper";
