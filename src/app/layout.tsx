@@ -14,13 +14,18 @@ const plusJakartaSans = Plus_Jakarta_Sans({
   variable: "--font-plus-jakarta" 
 });
 
+const siteUrl = process.env.VERCEL_URL
+  ? `https://${process.env.VERCEL_URL}`
+  : "http://localhost:3000";
+
 export const metadata: Metadata = {
+  metadataBase: new URL(siteUrl),
   title: "Reverb | Califica, Reseña y Descubre Música",
   description: "Una plataforma premium para amantes de la música. Califica álbumes, escribe reseñas y comparte tu pasión musical.",
   openGraph: {
     title: "Reverb | Califica, Reseña y Descubre Música",
     description: "Una plataforma premium para amantes de la música. Califica álbumes, escribe reseñas y comparte tu pasión musical.",
-    url: "https://reverb.com",
+    url: siteUrl,
     siteName: "Reverb",
     images: [
       {
