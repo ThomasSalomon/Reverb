@@ -1,9 +1,15 @@
 /* ================================================
    ShareModal — Spotify-style share card
-   GPU-optimized: animates only transform + opacity
+   Performance rules applied:
+   - ONLY transform + opacity are animated (GPU compositing)
+   - backdrop-filter REMOVED (full-screen blur = 30fps)
+   - No animated background/box-shadow (forces CPU paint)
+   - ::before pseudo-elements use z-index:-1 to stay behind icons
    ================================================ */
 
-/* ── Backdrop: blur en pseudo-elemento fijo, se anima con opacity (no con blur) ── */
+/* ── Backdrop ──
+   NO backdrop-filter — full-screen blur is the #1 cause of 30fps.
+   Plain rgba with opacity transition is GPU compositing-only.       */
 .backdrop {
   position: fixed;
   inset: 0;
@@ -12,22 +18,9 @@
   align-items: center;
   justify-content: center;
   padding: 20px;
-  /* Fondo oscuro animado con opacity — barato */
-  background: rgba(0, 0, 0, 0.72);
+  background: rgba(0, 0, 0, 0.78);
   opacity: 0;
-  transition: opacity 0.28s ease;
-  /* Forzar capa propia para que el compositing sea en GPU */
-  will-change: opacity;
-}
-
-/* El blur está en un pseudo-elemento que no anima su valor — solo opacity del padre */
-.backdrop::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  /* Nota: el blur NO se anima, solo aparece/desaparece junto con el padre vía opacity */
+  transition: opacity 0.25s ease;
 }
 
 .backdropVisible {
@@ -49,13 +42,12 @@
     0 32px 80px rgba(0, 0, 0, 0.9),
     0 0 0 1px rgba(255, 255, 255, 0.04) inset;
 
-  /* Animar solo transform + opacity — GPU compositing puro */
+  /* GPU compositing: only transform + opacity */
   opacity: 0;
   transform: scale(0.93) translateY(10px);
   transition:
-    opacity 0.28s cubic-bezier(0.16, 1, 0.3, 1),
-    transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
-  will-change: transform, opacity;
+    opacity 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .modalVisible {
@@ -73,25 +65,23 @@
   border-radius: 50%;
   border: 1px solid rgba(255, 255, 255, 0.1);
   background: rgba(255, 255, 255, 0.06);
-  color: var(--text-secondary);
+  color: rgba(255, 255, 255, 0.6);
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  /* Opacidad en pseudo-elemento para hover sin repaint de background */
-  position: absolute;
+  /* Hover via opacity of ::before — no background repaint */
   isolation: isolate;
-  transition: opacity 0.15s ease;
 }
 
-/* Hover via pseudo-elemento: evita repaint de background */
 .closeBtn::before {
   content: "";
   position: absolute;
   inset: 0;
   border-radius: inherit;
-  background: rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.14);
   opacity: 0;
+  z-index: -1;
   transition: opacity 0.15s ease;
 }
 
@@ -100,7 +90,7 @@
 }
 
 .closeBtn:hover {
-  color: var(--text-primary);
+  color: #fff;
 }
 
 /* ── Album preview ── */
@@ -127,17 +117,15 @@
   z-index: 1;
 }
 
-/* Glow: estático, no anima — sin costo de repaint continuo */
+/* Glow is purely decorative, static (no animation) */
 .coverGlow {
   position: absolute;
-  inset: -8px;
-  border-radius: 18px;
-  opacity: 0.45;
-  filter: blur(20px);
+  inset: -10px;
+  border-radius: 20px;
+  opacity: 0.4;
+  filter: blur(18px);
   z-index: 0;
-  /* Promover a capa propia para que no afecte compositing del resto */
-  will-change: transform;
-  transform: translateZ(0);
+  pointer-events: none;
 }
 
 .albumInfo {
@@ -184,8 +172,7 @@
 /* ── Divider ── */
 .divider {
   height: 1px;
-  background: rgba(255, 255, 255, 0.06);
-  margin: 0 -4px;
+  background: rgba(255, 255, 255, 0.07);
 }
 
 /* ── Social section ── */
@@ -218,7 +205,7 @@
   text-decoration: none;
   flex: 1;
   min-width: 60px;
-  /* Solo transform — GPU puro */
+  /* Only transform — pure GPU compositing */
   transition: transform 0.18s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
@@ -226,19 +213,9 @@
   transform: translateY(-3px);
 }
 
-/* Hover effect vía pseudo-elemento: cambia opacity, no background — evita repaint */
+/* On hover: reveal the colored ::before behind the icon */
 .socialBtn:hover .socialIcon::before {
   opacity: 1;
-}
-
-.socialBtn:hover .socialIcon {
-  /* Solo box-shadow via pseudo-elemento; color queda en pseudo */
-  color: #fff;
-}
-
-/* Glow del hover: pseudo-elemento pre-renderizado con la sombra */
-.socialBtn:hover .socialIconGlow {
-  opacity: 0.6;
 }
 
 .socialIcon {
@@ -251,13 +228,13 @@
   align-items: center;
   justify-content: center;
   color: var(--text-primary);
-  position: relative;
+  /* Required for z-index: -1 on ::before to work within this context */
   isolation: isolate;
-  /* Eliminar transición de background y box-shadow — son costosas */
-  transition: color 0.18s ease;
+  position: relative;
+  /* No background/border/box-shadow transition — those cause paint */
 }
 
-/* Pseudo-elemento con el color de fondo de la red — anima opacity, no background */
+/* Colored fill: sits BEHIND the icon SVG via z-index: -1 */
 .socialIcon::before {
   content: "";
   position: absolute;
@@ -265,21 +242,8 @@
   border-radius: inherit;
   background: var(--network-color);
   opacity: 0;
+  z-index: -1; /* Behind the SVG — fixes the icon-coverage bug */
   transition: opacity 0.18s ease;
-}
-
-/* Glow separado como elemento div para aislarlo del stacking context del icono */
-.socialIconGlow {
-  position: absolute;
-  inset: -4px;
-  border-radius: 18px;
-  background: var(--network-color);
-  opacity: 0;
-  filter: blur(12px);
-  z-index: -1;
-  transition: opacity 0.18s ease;
-  /* Capa propia para no mezclar con el contenido del icono */
-  will-change: opacity;
 }
 
 .socialName {
@@ -318,13 +282,12 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  /* Solo border-color — no fuerza layout */
   transition: border-color 0.15s ease, color 0.15s ease;
   min-width: 0;
 }
 
 .urlInput:focus {
-  border-color: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.25);
   color: var(--text-primary);
 }
 
@@ -340,15 +303,15 @@
   font-weight: 700;
   font-family: var(--font-display);
   flex-shrink: 0;
-  /* Solo transform — GPU puro */
+  background: #fff;
+  color: #0a0a0f;
+  /* Only transform animates — no background transition */
   transition: transform 0.15s ease;
-  background: var(--text-primary);
-  color: var(--bg-deep);
-  position: relative;
   isolation: isolate;
+  position: relative;
 }
 
-/* Hover vía pseudo-elemento para evitar repaint de background */
+/* Green fill via ::before — opacity flip instead of background transition */
 .copyBtn::before {
   content: "";
   position: absolute;
@@ -356,6 +319,7 @@
   border-radius: inherit;
   background: var(--primary);
   opacity: 0;
+  z-index: -1;
   transition: opacity 0.15s ease;
 }
 
@@ -365,16 +329,11 @@
 
 .copyBtn:hover {
   transform: translateY(-1px);
+  color: #000;
 }
 
 .copyBtn:active {
   transform: scale(0.97);
-}
-
-/* El svg y texto deben estar sobre el pseudo-elemento */
-.copyBtn > * {
-  position: relative;
-  z-index: 1;
 }
 
 .copyBtnCopied {
@@ -385,7 +344,7 @@
 /* ── Responsive ── */
 @media (max-width: 480px) {
   .modal {
-    padding: 22px 18px;
+    padding: 20px 16px;
     border-radius: 16px;
   }
 
@@ -409,14 +368,12 @@
   }
 }
 
-/* ── Respeto por prefers-reduced-motion ── */
+/* ── prefers-reduced-motion ── */
 @media (prefers-reduced-motion: reduce) {
   .backdrop,
   .modal,
   .socialBtn,
-  .socialIcon,
   .socialIcon::before,
-  .socialIconGlow,
   .closeBtn::before,
   .copyBtn,
   .copyBtn::before {

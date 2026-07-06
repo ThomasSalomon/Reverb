@@ -238,7 +238,6 @@ export default function ShareModal({
                 style={{ "--network-color": network.color } as React.CSSProperties}
               >
                 <span className={styles.socialIcon}>
-                  <span className={styles.socialIconGlow} />
                   {network.icon}
                 </span>
                 <span className={styles.socialName}>{network.name}</span>
