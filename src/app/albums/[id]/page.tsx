@@ -14,16 +14,16 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     
     if (!item) {
       return {
-        title: "Álbum no encontrado - MusicBox",
+        title: "Álbum no encontrado - ReVerb",
       };
     }
     
     return {
-      title: `${item.title} por ${item.artist} - MusicBox`,
-      description: `Descubre y escucha el álbum ${item.title} de ${item.artist} en MusicBox.`,
+      title: `${item.title} por ${item.artist} - ReVerb`,
+      description: `Descubre y escucha el álbum ${item.title} de ${item.artist} en ReVerb.`,
       openGraph: {
         title: `${item.title} - ${item.artist}`,
-        description: `Escucha ${item.title} de ${item.artist} en MusicBox.`,
+        description: `Escucha ${item.title} de ${item.artist} en ReVerb.`,
         images: [
           {
             url: item.coverUrl,
@@ -37,13 +37,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       twitter: {
         card: "summary_large_image",
         title: `${item.title} - ${item.artist}`,
-        description: `Escucha ${item.title} de ${item.artist} en MusicBox.`,
+        description: `Escucha ${item.title} de ${item.artist} en ReVerb.`,
         images: [item.coverUrl],
       }
     };
   } catch (error) {
     return {
-      title: "MusicBox",
+      title: "ReVerb",
     };
   }
 }

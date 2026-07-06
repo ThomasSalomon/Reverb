@@ -171,7 +171,7 @@ export default function ShareModal({
     if (e.target === e.currentTarget) onClose();
   };
 
-  const shareText = `Escucha "${album.title}" de ${album.artist} en MusicBox`;
+  const shareText = `Escucha "${album.title}" de ${album.artist} en ReVerb`;
 
   if (!isOpen) return null;
 
