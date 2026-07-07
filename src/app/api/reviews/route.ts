@@ -205,21 +205,31 @@ export async function POST(req: Request) {
       );
     }
 
-    // Transaction to upsert review and rating together for integrity
+    // --- SECURITY 007: Rate Limiting ---
+    // Limit to 20 reviews per user per day to prevent DoS via SQLite flooding
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    
+    const recentReviewsCount = await prisma.review.count({
+      where: {
+        userId,
+        createdAt: {
+          gte: yesterday,
+        },
+      },
+    });
+
+    if (recentReviewsCount >= 20) {
+      return NextResponse.json(
+        { error: "Rate limit exceeded: Has alcanzado el límite de 20 reseñas por día." },
+        { status: 429 }
+      );
+    }
+
+    // Since we now allow multiple reviews per album (Diary Logs), we use create instead of upsert
     const [review, rating] = await prisma.$transaction([
-      prisma.review.upsert({
-        where: {
-          userId_musicItemId: {
-            userId,
-            musicItemId,
-          },
-        },
-        update: {
-          content,
-          ratingValue: numericRating,
-          tags: validTags,
-        },
-        create: {
+      prisma.review.create({
+        data: {
           userId,
           musicItemId,
           content,
@@ -227,17 +237,8 @@ export async function POST(req: Request) {
           tags: validTags,
         },
       }),
-      prisma.rating.upsert({
-        where: {
-          userId_musicItemId: {
-            userId,
-            musicItemId,
-          },
-        },
-        update: {
-          value: numericRating,
-        },
-        create: {
+      prisma.rating.create({
+        data: {
           userId,
           musicItemId,
           value: numericRating,

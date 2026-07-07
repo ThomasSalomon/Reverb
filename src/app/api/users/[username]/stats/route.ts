@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/services/db";
 
-export const dynamic = "force-dynamic";
+// Cache stats for 1 hour to prevent DoS from heavy aggregation queries
+export const revalidate = 3600;
 
 export async function GET(
   req: Request,

@@ -32,10 +32,24 @@ export async function POST(req: Request) {
       );
     }
 
+    const listsCount = await prisma.list.count({
+      where: { userId: authUser.userId },
+    });
+
+    if (listsCount >= 50) {
+      return NextResponse.json(
+        { error: "Has alcanzado el límite máximo de 50 listas." },
+        { status: 403 }
+      );
+    }
+
+    const sanitizedTitle = title.trim().substring(0, 100).replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    const sanitizedDesc = description ? description.trim().substring(0, 500).replace(/</g, "&lt;").replace(/>/g, "&gt;") : null;
+
     const newList = await prisma.list.create({
       data: {
-        title: title.trim().substring(0, 100),
-        description: description ? description.trim().substring(0, 500) : null,
+        title: sanitizedTitle,
+        description: sanitizedDesc,
         isPublic: typeof isPublic === "boolean" ? isPublic : true,
         userId: authUser.userId,
       },

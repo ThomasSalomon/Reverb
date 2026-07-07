@@ -68,7 +68,7 @@ model Review {
   likes       ReviewLike[]
   comments    Comment[]
 
-  @@unique([userId, musicItemId]) // user can only write one review per item
+  @@index([userId, musicItemId])
 }
 
 model Rating {
@@ -81,7 +81,7 @@ model Rating {
   musicItem   MusicItem @relation(fields: [musicItemId], references: [id], onDelete: Cascade)
   musicItemId String
 
-  @@unique([userId, musicItemId]) // user can only rate once per item
+  @@index([userId, musicItemId])
 }
 
 model Follow {
@@ -168,7 +168,7 @@ model DiaryLog {
   musicItemId String
   listenCount Int       @default(1)
 
-  @@unique([userId, musicItemId])
+  @@index([userId, musicItemId])
   @@index([userId, listenedAt])
 }
 

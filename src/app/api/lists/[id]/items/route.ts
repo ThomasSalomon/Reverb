@@ -86,6 +86,13 @@ export async function POST(
     // Count current items to calculate order index
     const count = await prisma.listItem.count({ where: { listId } });
 
+    if (count >= 100) {
+      return NextResponse.json(
+        { error: "La lista ha alcanzado el límite máximo de 100 álbumes." },
+        { status: 403 }
+      );
+    }
+
     const newListItem = await prisma.listItem.create({
       data: {
         listId,
