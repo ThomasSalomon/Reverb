@@ -100,3 +100,140 @@
   font-weight: 700;
   font-size: 1.1rem;
 }
+
+/* Tabs */
+.tabsContainer {
+  margin-bottom: 30px;
+}
+
+.tabs {
+  display: flex;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border);
+  padding: 6px;
+  border-radius: 12px;
+  width: fit-content;
+  gap: 4px;
+}
+
+.tab {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  padding: 10px 24px;
+  font-size: 1rem;
+  font-weight: 600;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.tab:hover {
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.activeTab {
+  background: var(--primary);
+  color: #000;
+}
+
+.activeTab:hover {
+  background: var(--primary);
+  color: #000;
+}
+
+/* Albums */
+.albumsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 24px;
+}
+
+.albumCard {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.albumMeta {
+  display: flex;
+  flex-direction: column;
+}
+
+.albumTitle {
+  font-weight: 700;
+  font-size: 1.1rem;
+  color: var(--text-primary);
+  text-decoration: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.albumTitle:hover {
+  color: var(--primary);
+}
+
+.albumArtist {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  text-decoration: none;
+  transition: color var(--transition-fast);
+}
+
+.albumArtist:hover {
+  color: var(--text-primary);
+  text-decoration: underline;
+}
+
+/* Artists */
+.artistsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 24px;
+}
+
+.artistCard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  text-decoration: none;
+  transition: transform var(--transition-fast);
+}
+
+.artistCard:hover {
+  transform: translateY(-5px);
+}
+
+.artistImageContainer {
+  width: 160px;
+  height: 160px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 4px solid var(--border);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.artistCard:hover .artistImageContainer {
+  border-color: var(--primary);
+  box-shadow: 0 10px 30px rgba(16, 185, 129, 0.2);
+}
+
+.artistImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.artistName {
+  color: var(--text-primary);
+  font-weight: 700;
+  font-size: 1.1rem;
+  text-align: center;
+}
+
+.artistCard:hover .artistName {
+  color: var(--primary);
+}

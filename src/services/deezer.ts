@@ -151,6 +151,54 @@ export const DeezerService = {
     }
   },
 
+  async getPopularArtists(): Promise<any[]> {
+    try {
+      const response = await fetch("https://api.deezer.com/chart/0/artists", {
+        cache: "no-store",
+      });
+      if (!response.ok) {
+        throw new Error(`Deezer API chart error: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      if (!data.data || !Array.isArray(data.data)) return [];
+
+      return data.data.map((item: any) => ({
+        id: String(item.id),
+        name: item.name,
+        pictureUrl: item.picture_medium || item.picture || "/covers/placeholder.png",
+      }));
+    } catch (error) {
+      console.error("Error in DeezerService.getPopularArtists:", error);
+      return [];
+    }
+  },
+
+  async searchArtists(query: string): Promise<any[]> {
+    if (!query || query.trim() === "") return [];
+
+    try {
+      const response = await fetch(`https://api.deezer.com/search/artist?q=${encodeURIComponent(query)}`, {
+        cache: "no-store",
+      });
+      if (!response.ok) {
+        throw new Error(`Deezer API search error: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      if (!data.data || !Array.isArray(data.data)) return [];
+
+      return data.data.map((item: any) => ({
+        id: String(item.id),
+        name: item.name,
+        pictureUrl: item.picture_medium || item.picture || "/covers/placeholder.png",
+      }));
+    } catch (error) {
+      console.error("Error in DeezerService.searchArtists:", error);
+      return [];
+    }
+  },
+
   async getArtist(idOrName: string): Promise<DeezerArtistDetail | null> {
     if (!idOrName || idOrName.trim() === "") return null;
 

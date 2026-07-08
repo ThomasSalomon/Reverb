@@ -1,0 +1,28 @@
+import { NextResponse } from "next/server";
+import { DeezerService } from "@/services/deezer";
+
+export const dynamic = "force-dynamic";
+
+export async function GET(req: Request) {
+  try {
+    const { searchParams } = new URL(req.url);
+    const query = searchParams.get("q");
+
+    if (query) {
+      const results = await DeezerService.searchArtists(query).catch((err) => {
+        console.error("searchArtists failed:", err);
+        return [];
+      });
+      return NextResponse.json(results);
+    }
+
+    const items = await DeezerService.getPopularArtists().catch((err) => {
+      console.error("getPopularArtists failed:", err);
+      return [];
+    });
+    return NextResponse.json(items);
+  } catch (error) {
+    console.error("Artist API fetch error:", error);
+    return NextResponse.json([]);
+  }
+}
