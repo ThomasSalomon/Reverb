@@ -115,9 +115,16 @@
   color: var(--text-secondary);
 }
 
-.artistSub span {
+.artistSub a {
   font-weight: 600;
   color: var(--text-primary);
+  text-decoration: none;
+  transition: color var(--transition-fast);
+}
+
+.artistSub a:hover {
+  color: var(--primary);
+  text-decoration: underline;
 }
 
 .tracksCard {

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { JetBrains_Mono, Rajdhani } from "next/font/google";
 import Navbar from "@/components/Navbar/Navbar";
+import Footer from "@/components/Footer/Footer";
 import ToastListener from "@/components/Toast/ToastListener";
 import { NextIntlClientProvider } from 'next-intl';
 import { getMessages } from 'next-intl/server';
@@ -65,6 +66,7 @@ export default async function RootLayout({
         <NextIntlClientProvider messages={messages}>
           <Navbar />
           {children}
+          <Footer />
           <ToastListener />
         </NextIntlClientProvider>
       </body>

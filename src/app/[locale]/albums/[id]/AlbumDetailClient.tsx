@@ -295,7 +295,7 @@ export default function AlbumDetailClient({ id }: { id: string }) {
           <header className={styles.header}>
             <h1 className={styles.title}>{album.title}</h1>
             <p className={styles.artistSub}>
-              por <span>{album.artist}</span> • {album.releaseYear}
+              por <Link href={`/artists/${encodeURIComponent(album.artist)}`}>{album.artist}</Link> • {album.releaseYear}
             </p>
             
             <div className={styles.actionsBar} style={{ display: "flex", gap: "12px", marginTop: "16px", flexWrap: "wrap" }}>
