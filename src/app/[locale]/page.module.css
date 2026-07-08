@@ -103,6 +103,13 @@
 .albumArtist {
   color: var(--text-secondary);
   font-size: 0.9rem;
+  text-decoration: none;
+  transition: color var(--transition-fast);
+}
+
+.albumArtist:hover {
+  color: var(--text-primary);
+  text-decoration: underline;
 }
 
 .ratingStats {

@@ -153,7 +153,9 @@ export default function HomePage() {
                     <Link href={`/albums/${item.id}`} className={styles.albumTitle}>
                       {item.title}
                     </Link>
-                    <span className={styles.albumArtist}>{item.artist}</span>
+                    <Link href={`/artists/${encodeURIComponent(item.artist)}`} className={styles.albumArtist}>
+                      {item.artist}
+                    </Link>
                     <div className={styles.ratingStats}>
                       <RatingStars value={item.stats.averageRating} size={14} />
                       <span className={styles.statsCount}>({item.stats.totalRatings})</span>
