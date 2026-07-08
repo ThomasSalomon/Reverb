@@ -190,7 +190,7 @@
   }
 }
 
-@media (max-width: 640px) {
+@media (max-width: 768px) {
   .container {
     padding: 0 16px;
     display: flex;
@@ -206,30 +206,16 @@
     height: 24px;
   }
   .links {
-    gap: 12px;
-  }
-  .link {
-    font-size: 0.85rem;
-  }
-  .authButtons {
-    gap: 12px;
-  }
-  .loginLink {
-    font-size: 0.85rem;
-  }
-  .username {
     display: none;
   }
+  .loginLink, .registerBtn, .profileLink, .logoutBtn {
+    display: none !important;
+  }
+  .authButtons {
+    gap: 8px;
+  }
   .userSection {
-    gap: 12px;
-  }
-  .logoutBtn {
-    padding: 6px 12px;
-    font-size: 0.8rem;
-  }
-  .registerBtn {
-    padding: 6px 12px !important;
-    font-size: 0.8rem !important;
+    gap: 12px !important;
   }
 }
 
