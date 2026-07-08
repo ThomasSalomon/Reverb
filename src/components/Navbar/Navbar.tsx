@@ -49,7 +49,7 @@ export default function Navbar() {
       <div className={styles.container}>
         <Link href="/" className={styles.logo}>
           <img src="/logo.png" alt="RTM Logo" className={styles.logoIcon} />
-          Ride The <span>Music</span>
+          <span>Ride The <span className={styles.highlight}>Music</span></span>
         </Link>
 
         <div className={styles.links}>
