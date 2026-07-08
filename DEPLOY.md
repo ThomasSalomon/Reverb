@@ -1,6 +1,6 @@
-# Guía de Despliegue de Reverb
+# Guía de Despliegue de Ride The Music
 
-Esta guía contiene los pasos necesarios para clonar, configurar e iniciar la aplicación **Reverb** en otra computadora desde cero.
+Esta guía contiene los pasos necesarios para clonar, configurar e iniciar la aplicación **Ride The Music (RTM)** en otra computadora desde cero.
 
 ---
 

@@ -61,7 +61,7 @@ export default function RegisterPage() {
     <main className={styles.main}>
       <div className={`${styles.authCard} glass`}>
         <h2 className={styles.title}>Crear Cuenta</h2>
-        <p className={styles.subtitle}>Únete hoy a la comunidad de Reverb.</p>
+        <p className={styles.subtitle}>Únete hoy a la comunidad de Ride The Music.</p>
 
         <form onSubmit={handleSubmit} className={styles.form}>
           <div className={styles.inputGroup}>

@@ -65,9 +65,11 @@
               transform 160ms cubic-bezier(0.23, 1, 0.32, 1);
 }
 
-.closeBtn:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: #fff;
+@media (hover: hover) and (pointer: fine) {
+  .closeBtn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+  }
 }
 
 .closeBtn:active {
@@ -192,9 +194,11 @@
   color: #d4d4d8;
 }
 
-.cancelBtn:hover {
-  background: rgba(255, 255, 255, 0.05);
-  color: #fff;
+@media (hover: hover) and (pointer: fine) {
+  .cancelBtn:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: #fff;
+  }
 }
 
 .cancelBtn:active {
@@ -208,10 +212,12 @@
   box-shadow: 0 4px 12px rgba(16, 185, 129, 0.25);
 }
 
-.saveBtn:hover:not(:disabled) {
-  filter: brightness(1.1);
-  transform: translateY(-1px);
-  box-shadow: 0 6px 16px rgba(16, 185, 129, 0.3);
+@media (hover: hover) and (pointer: fine) {
+  .saveBtn:hover:not(:disabled) {
+    filter: brightness(1.1);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(16, 185, 129, 0.3);
+  }
 }
 
 .saveBtn:active:not(:disabled) {
@@ -229,9 +235,11 @@
   color: #ef4444;
 }
 
-.deleteBtn:hover:not(:disabled) {
-  background: rgba(239, 68, 68, 0.15);
-  border-color: rgba(239, 68, 68, 0.3);
+@media (hover: hover) and (pointer: fine) {
+  .deleteBtn:hover:not(:disabled) {
+    background: rgba(239, 68, 68, 0.15);
+    border-color: rgba(239, 68, 68, 0.3);
+  }
 }
 
 .deleteBtn:active:not(:disabled) {
@@ -324,10 +332,12 @@
   outline: none;
 }
 
-.zoomBtn:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: #fff;
-  border-color: rgba(255, 255, 255, 0.15);
+@media (hover: hover) and (pointer: fine) {
+  .zoomBtn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+    border-color: rgba(255, 255, 255, 0.15);
+  }
 }
 
 .zoomBtn:active {
@@ -400,9 +410,11 @@
   outline: none;
 }
 
-.cropperCancelBtn:hover {
-  background: rgba(255, 255, 255, 0.05);
-  color: #fff;
+@media (hover: hover) and (pointer: fine) {
+  .cropperCancelBtn:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: #fff;
+  }
 }
 
 .cropperCancelBtn:active {
@@ -424,9 +436,11 @@
   outline: none;
 }
 
-.cropperSaveBtn:hover {
-  filter: brightness(1.1);
-  transform: translateY(-1px);
+@media (hover: hover) and (pointer: fine) {
+  .cropperSaveBtn:hover {
+    filter: brightness(1.1);
+    transform: translateY(-1px);
+  }
 }
 
 .cropperSaveBtn:active {

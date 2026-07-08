@@ -40,23 +40,27 @@ export async function POST(req: Request) {
       );
     }
 
-    // Upsert rating
-    const rating = await prisma.rating.upsert({
+    let rating = await prisma.rating.findFirst({
       where: {
-        userId_musicItemId: {
-          userId,
-          musicItemId,
-        },
-      },
-      update: {
-        value: numericValue,
-      },
-      create: {
         userId,
         musicItemId,
-        value: numericValue,
       },
     });
+
+    if (rating) {
+      rating = await prisma.rating.update({
+        where: { id: rating.id },
+        data: { value: numericValue },
+      });
+    } else {
+      rating = await prisma.rating.create({
+        data: {
+          userId,
+          musicItemId,
+          value: numericValue,
+        },
+      });
+    }
 
     return NextResponse.json({
       message: "Calificación guardada con éxito",

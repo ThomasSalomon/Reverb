@@ -1,19 +1,20 @@
 import type { Metadata } from "next";
-import { Inter, Plus_Jakarta_Sans } from "next/font/google";
+import { JetBrains_Mono, Rajdhani } from "next/font/google";
 import Navbar from "@/components/Navbar/Navbar";
 import ToastListener from "@/components/Toast/ToastListener";
 import { NextIntlClientProvider } from 'next-intl';
 import { getMessages } from 'next-intl/server';
 import "../globals.css";
 
-const inter = Inter({ 
+const jetbrainsMono = JetBrains_Mono({ 
   subsets: ["latin"],
-  variable: "--font-inter" 
+  variable: "--font-mono" 
 });
 
-const plusJakartaSans = Plus_Jakarta_Sans({ 
+const rajdhani = Rajdhani({ 
+  weight: ['400', '500', '600', '700'],
   subsets: ["latin"],
-  variable: "--font-plus-jakarta" 
+  variable: "--font-display" 
 });
 
 const siteUrl = process.env.VERCEL_URL
@@ -22,19 +23,19 @@ const siteUrl = process.env.VERCEL_URL
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
-  title: "Reverb | Califica, Reseña y Descubre Música",
+  title: "Ride The Music (RTM) | Califica, Reseña y Descubre Música",
   description: "Una plataforma premium para amantes de la música. Califica álbumes, escribe reseñas y comparte tu pasión musical.",
   openGraph: {
-    title: "Reverb | Califica, Reseña y Descubre Música",
+    title: "Ride The Music (RTM) | Califica, Reseña y Descubre Música",
     description: "Una plataforma premium para amantes de la música. Califica álbumes, escribe reseñas y comparte tu pasión musical.",
     url: siteUrl,
-    siteName: "Reverb",
+    siteName: "Ride The Music",
     images: [
       {
         url: "/logo.png",
         width: 1200,
         height: 630,
-        alt: "Reverb - Plataforma de música",
+        alt: "Ride The Music - Plataforma de música",
       },
     ],
     locale: "es_ES",
@@ -42,7 +43,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Reverb | Califica, Reseña y Descubre Música",
+    title: "Ride The Music (RTM) | Califica, Reseña y Descubre Música",
     description: "Una plataforma premium para amantes de la música. Califica álbumes, escribe reseñas y comparte tu pasión musical.",
     images: ["/logo.png"],
   },
@@ -60,7 +61,7 @@ export default async function RootLayout({
 
   return (
     <html lang={locale}>
-      <body className={`${inter.variable} ${plusJakartaSans.variable}`}>
+      <body className={`${jetbrainsMono.variable} ${rajdhani.variable}`}>
         <NextIntlClientProvider messages={messages}>
           <Navbar />
           {children}

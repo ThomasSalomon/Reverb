@@ -44,13 +44,14 @@ export async function POST(req: Request) {
 
     const loggedDate = listenedAt ? new Date(listenedAt) : new Date();
 
-    const existingLog = await prisma.diaryLog.findUnique({
+    const existingLog = await prisma.diaryLog.findFirst({
       where: {
-        userId_musicItemId: {
-          userId: authUser.userId,
-          musicItemId,
-        },
+        userId: authUser.userId,
+        musicItemId,
       },
+      orderBy: {
+        listenedAt: "desc"
+      }
     });
 
     let resultLog;

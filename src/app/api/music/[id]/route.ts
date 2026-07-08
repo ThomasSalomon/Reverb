@@ -41,34 +41,28 @@ export async function GET(
     let enrichedReviews = item.reviews || [];
     try {
       if (currentUserId) {
-        const record = await prisma.favoriteTrack.findUnique({
+        const record = await prisma.favoriteTrack.findFirst({
           where: {
-            userId_musicItemId: {
-              userId: currentUserId,
-              musicItemId: id,
-            },
+            userId: currentUserId,
+            musicItemId: id,
           },
           select: { trackTitle: true },
         });
         favoriteTrack = record?.trackTitle || null;
 
-        const listenLaterRecord = await prisma.listenLater.findUnique({
+        const listenLaterRecord = await prisma.listenLater.findFirst({
           where: {
-            userId_musicItemId: {
-              userId: currentUserId,
-              musicItemId: id,
-            },
+            userId: currentUserId,
+            musicItemId: id,
           },
           select: { userId: true },
         });
         isListenLater = !!listenLaterRecord;
 
-        const ratingRecord = await prisma.rating.findUnique({
+        const ratingRecord = await prisma.rating.findFirst({
           where: {
-            userId_musicItemId: {
-              userId: currentUserId,
-              musicItemId: id,
-            },
+            userId: currentUserId,
+            musicItemId: id,
           },
           select: { value: true },
         });

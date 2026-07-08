@@ -48,8 +48,8 @@ export default function Navbar() {
     <nav className={styles.navbar}>
       <div className={styles.container}>
         <Link href="/" className={styles.logo}>
-          <img src="/logo.png" alt="Reverb Logo" className={styles.logoIcon} />
-          Re<span>verb</span>
+          <img src="/logo.png" alt="RTM Logo" className={styles.logoIcon} />
+          Ride The <span>Music</span>
         </Link>
 
         <div className={styles.links}>

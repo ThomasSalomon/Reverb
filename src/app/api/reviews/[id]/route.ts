@@ -123,12 +123,10 @@ export async function PATCH(
       });
 
       if (numericRating !== undefined) {
-        await tx.rating.update({
+        await tx.rating.updateMany({
           where: {
-            userId_musicItemId: {
-              userId,
-              musicItemId,
-            },
+            userId,
+            musicItemId,
           },
           data: {
             value: numericRating,
@@ -139,12 +137,10 @@ export async function PATCH(
       if (favoriteTrack !== undefined) {
         if (favoriteTrack === null || favoriteTrack.trim() === "") {
           try {
-            await tx.favoriteTrack.delete({
+            await tx.favoriteTrack.deleteMany({
               where: {
-                userId_musicItemId: {
-                  userId,
-                  musicItemId,
-                },
+                userId,
+                musicItemId,
               },
             });
           } catch (e: any) {
@@ -152,22 +148,27 @@ export async function PATCH(
             if (e.code !== "P2025") throw e;
           }
         } else {
-          await tx.favoriteTrack.upsert({
+          const existingFav = await tx.favoriteTrack.findFirst({
             where: {
-              userId_musicItemId: {
-                userId,
-                musicItemId,
-              },
-            },
-            create: {
               userId,
               musicItemId,
-              trackTitle: favoriteTrack.trim(),
-            },
-            update: {
-              trackTitle: favoriteTrack.trim(),
             },
           });
+          
+          if (existingFav) {
+            await tx.favoriteTrack.update({
+              where: { id: existingFav.id },
+              data: { trackTitle: favoriteTrack.trim() },
+            });
+          } else {
+            await tx.favoriteTrack.create({
+              data: {
+                userId,
+                musicItemId,
+                trackTitle: favoriteTrack.trim(),
+              },
+            });
+          }
         }
       }
 

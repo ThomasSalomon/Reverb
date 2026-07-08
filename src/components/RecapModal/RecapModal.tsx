@@ -73,7 +73,7 @@ export default function RecapModal({ username, onClose }: RecapModalProps) {
               <div className={styles.bgYear} aria-hidden="true">{data.year}</div>
 
               {/* Year badge */}
-              <div className={styles.yearBadge}>REVERB RECAP</div>
+              <div className={styles.yearBadge}>RTM RECAP</div>
 
               <h2 className={styles.title}>Frecuencias de {data.year}</h2>
               <p className={styles.subtitle}>Tu año en música, decodificado.</p>

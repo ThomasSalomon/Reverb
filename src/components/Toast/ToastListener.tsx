@@ -12,7 +12,7 @@ interface ToastMessage {
 export function showToast(message: string, type: "success" | "error" | "info" = "success") {
   if (typeof window !== "undefined") {
     window.dispatchEvent(
-      new CustomEvent("reverb-toast", {
+      new CustomEvent("rtm-toast", {
         detail: { message, type },
       })
     );
@@ -36,9 +36,9 @@ export default function ToastListener() {
       }, 4000);
     };
 
-    window.addEventListener("reverb-toast", handleToastEvent);
+    window.addEventListener("rtm-toast", handleToastEvent);
     return () => {
-      window.removeEventListener("reverb-toast", handleToastEvent);
+      window.removeEventListener("rtm-toast", handleToastEvent);
     };
   }, []);
 

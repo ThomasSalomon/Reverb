@@ -28,12 +28,10 @@ export async function DELETE(
     }
 
     try {
-      await prisma.listenLater.delete({
+      await prisma.listenLater.deleteMany({
         where: {
-          userId_musicItemId: {
-            userId: authUser.userId,
-            musicItemId,
-          },
+          userId: authUser.userId,
+          musicItemId,
         },
       });
     } catch (e: any) {

@@ -8,6 +8,7 @@ import RatingStars from "@/components/RatingStars/RatingStars";
 import ReviewCard from "@/components/ReviewCard/ReviewCard";
 import ReviewForm from "@/components/ReviewForm/ReviewForm";
 import ShareModal from "@/components/ShareModal/ShareModal";
+import AddToListModal from "@/components/AddToListModal/AddToListModal";
 import styles from "./page.module.css";
 import { showToast } from "@/components/Toast/ToastListener";
 import { useLazyIframe } from "@/hooks/useLazyIframe";
@@ -67,6 +68,7 @@ export default function AlbumDetailClient({ id }: { id: string }) {
   const [currentUserRating, setCurrentUserRating] = useState<number | null>(null);
   const [isDiaryOpen, setIsDiaryOpen] = useState(false);
   const [isShareOpen, setIsShareOpen] = useState(false);
+  const [isListModalOpen, setIsListModalOpen] = useState(false);
   const [diaryRating, setDiaryRating] = useState("5");
   const [diaryNotes, setDiaryNotes] = useState("");
 
@@ -373,10 +375,40 @@ export default function AlbumDetailClient({ id }: { id: string }) {
                   >
                     <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+                        <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
                       </svg>
-                      Registrar escucha
+                      Añadir a Diario
+                    </div>
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (!user) router.push("/login");
+                      else setIsListModalOpen(true);
+                    }}
+                    className={styles.actionBtn}
+                    style={{
+                      background: "transparent",
+                      color: "var(--text-secondary)",
+                      border: "1px solid var(--border)",
+                      padding: "8px 16px",
+                      borderRadius: "8px",
+                      cursor: "pointer",
+                      fontWeight: 600,
+                      fontSize: "0.85rem",
+                      transition: "all var(--transition-fast)"
+                    }}
+                  >
+                    <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <line x1="8" y1="6" x2="21" y2="6"></line>
+                        <line x1="8" y1="12" x2="21" y2="12"></line>
+                        <line x1="8" y1="18" x2="21" y2="18"></line>
+                        <line x1="3" y1="6" x2="3.01" y2="6"></line>
+                        <line x1="3" y1="12" x2="3.01" y2="12"></line>
+                        <line x1="3" y1="18" x2="3.01" y2="18"></line>
+                      </svg>
+                      Añadir a Lista
                     </div>
                   </button>
                   <div style={{
@@ -636,7 +668,16 @@ export default function AlbumDetailClient({ id }: { id: string }) {
             releaseYear: album.releaseYear,
             coverUrl: album.coverUrl,
           }}
-          shareUrl={typeof window !== "undefined" ? window.location.href : `https://reverb-ivory.vercel.app/albums/${id}`}
+          shareUrl={typeof window !== "undefined" ? window.location.href : `https://ridethemusic.vercel.app/albums/${id}`}
+        />
+      )}
+
+      {user && (
+        <AddToListModal
+          isOpen={isListModalOpen}
+          onClose={() => setIsListModalOpen(false)}
+          musicItemId={album.id}
+          username={user.username}
         />
       )}
     </main>

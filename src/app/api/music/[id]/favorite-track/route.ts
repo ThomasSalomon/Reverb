@@ -50,22 +50,27 @@ export async function POST(
     }
 
     // 4. Save Favorite Track (upsert)
-    await prisma.favoriteTrack.upsert({
+    const existing = await prisma.favoriteTrack.findFirst({
       where: {
-        userId_musicItemId: {
-          userId: authUser.userId,
-          musicItemId,
-        },
-      },
-      create: {
         userId: authUser.userId,
         musicItemId,
-        trackTitle,
-      },
-      update: {
-        trackTitle,
       },
     });
+
+    if (existing) {
+      await prisma.favoriteTrack.update({
+        where: { id: existing.id },
+        data: { trackTitle },
+      });
+    } else {
+      await prisma.favoriteTrack.create({
+        data: {
+          userId: authUser.userId,
+          musicItemId,
+          trackTitle,
+        },
+      });
+    }
 
     return NextResponse.json({
       message: "Canción favorita guardada con éxito",
@@ -95,12 +100,10 @@ export async function DELETE(
 
     // 2. Delete Favorite Track
     try {
-      await prisma.favoriteTrack.delete({
+      await prisma.favoriteTrack.deleteMany({
         where: {
-          userId_musicItemId: {
-            userId: authUser.userId,
-            musicItemId,
-          },
+          userId: authUser.userId,
+          musicItemId,
         },
       });
     } catch (e: any) {
