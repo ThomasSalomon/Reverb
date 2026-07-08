@@ -1,12 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Image from "next/image";
 import Link from "next/link";
+
 import { motion, useScroll, useTransform } from "framer-motion";
 import styles from "./page.module.css";
 import Cover3D from "@/components/Cover3D/Cover3D";
-import Navbar from "@/components/Navbar/Navbar";
 
 interface ArtistData {
   artist: {
@@ -74,7 +73,6 @@ export default function ArtistDetailClient({
   if (loading) {
     return (
       <div className={styles.container}>
-        <Navbar />
         <div style={{ padding: "100px", textAlign: "center", color: "#a1a1aa" }}>
           Cargando artista...
         </div>
@@ -85,7 +83,6 @@ export default function ArtistDetailClient({
   if (!data) {
     return (
       <div className={styles.container}>
-        <Navbar />
         <div style={{ padding: "100px", textAlign: "center", color: "#ef4444" }}>
           Artista no encontrado
         </div>
@@ -95,16 +92,14 @@ export default function ArtistDetailClient({
 
   return (
     <div className={styles.container}>
-      <Navbar />
 
       <div className={styles.hero}>
         <motion.div className={styles.heroBackground} style={{ y }}>
-          <Image
+          <img
             src={data.artist.pictureXlUrl}
             alt={data.artist.name}
-            fill
             className={styles.heroImage}
-            priority
+            style={{ width: "100%", height: "100%" }}
           />
         </motion.div>
         <div className={styles.heroOverlay} />
@@ -149,11 +144,11 @@ export default function ArtistDetailClient({
                 {data.related.map((artist) => (
                   <Link href={`/artists/${artist.id}`} key={artist.id} className={styles.relatedCard}>
                     <div className={styles.relatedImageContainer}>
-                      <Image
+                      <img
                         src={artist.pictureUrl}
                         alt={artist.name}
-                        fill
                         className={styles.relatedImage}
+                        style={{ width: "100%", height: "100%", objectFit: "cover" }}
                       />
                     </div>
                     <span className={styles.relatedName}>{artist.name}</span>
