@@ -80,7 +80,7 @@ export default function AlbumDetailClient({ id }: { id: string }) {
 
   const fetchAlbumDetails = useCallback(async () => {
     try {
-      const res = await fetch(`/api/music/${id}`, { cache: "no-store" });
+      const res = await fetch(`/api/music/${id}?t=${Date.now()}`, { cache: "no-store" });
       if (!res.ok) {
         throw new Error("Álbum no encontrado");
       }

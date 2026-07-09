@@ -41,9 +41,21 @@ export default function RatingStars({
     setHoverValue(null);
   };
 
-  const handleClick = () => {
-    if (!interactive || !onChange || hoverValue === null) return;
-    onChange(hoverValue);
+  const handleClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!interactive || !onChange) return;
+    
+    const container = e.currentTarget;
+    const rect = container.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+
+    // Calculate rating based on click horizontal position
+    let rating = (x / rect.width) * 5;
+    // Round to nearest 0.5
+    rating = Math.ceil(rating * 2) / 2;
+    // Bound the values
+    rating = Math.max(1, Math.min(5, rating));
+
+    onChange(rating);
   };
 
   const renderStar = (starIndex: number) => {
