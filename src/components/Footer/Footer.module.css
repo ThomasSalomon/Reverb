@@ -12,6 +12,12 @@
   text-align: center;
 }
 
+@media (max-width: 768px) {
+  .footer {
+    padding-bottom: calc(32px + 64px + env(safe-area-inset-bottom));
+  }
+}
+
 .content {
   display: flex;
   flex-direction: column;
