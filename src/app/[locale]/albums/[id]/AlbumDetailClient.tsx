@@ -12,6 +12,7 @@ import AddToListModal from "@/components/AddToListModal/AddToListModal";
 import styles from "./page.module.css";
 import { showToast } from "@/components/Toast/ToastListener";
 import MobileRatingSheet from "@/components/MobileRatingSheet/MobileRatingSheet";
+import SliderRating from "@/components/SliderRating/SliderRating";
 import { useLazyIframe } from "@/hooks/useLazyIframe";
 
 interface Track {
@@ -431,11 +432,14 @@ export default function AlbumDetailClient({ id }: { id: string }) {
                         size={20} 
                       />
                     </div>
-                    <div className={styles.mobileRating} onClick={() => setIsMobileSheetOpen(true)}>
-                      <span className={styles.mobileRatingText}>Toca para calificar</span>
-                      <RatingStars 
-                        value={currentUserRating || 0} 
-                        interactive={false} 
+                    <div className={styles.mobileRating}>
+                      <span className={styles.mobileRatingText}>
+                        {currentUserRating ? `Tu Calificación: ${currentUserRating}` : "Calificar este Álbum"}
+                      </span>
+                      <SliderRating 
+                        value={currentUserRating || 0.5} 
+                        onChange={(val) => setCurrentUserRating(val)}
+                        onChangeComplete={handleQuickRate}
                         size={28} 
                       />
                     </div>

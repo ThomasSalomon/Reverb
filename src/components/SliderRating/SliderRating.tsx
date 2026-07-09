@@ -5,10 +5,11 @@ import styles from "./SliderRating.module.css";
 interface SliderRatingProps {
   value: number;
   onChange: (value: number) => void;
+  onChangeComplete?: (value: number) => void;
   size?: number;
 }
 
-export default function SliderRating({ value, onChange, size = 32 }: SliderRatingProps) {
+export default function SliderRating({ value, onChange, onChangeComplete, size = 32 }: SliderRatingProps) {
   const [localValue, setLocalValue] = useState(value);
 
   // Sync with external value if it changes
@@ -20,6 +21,12 @@ export default function SliderRating({ value, onChange, size = 32 }: SliderRatin
     const newVal = parseFloat(e.target.value);
     setLocalValue(newVal);
     onChange(newVal);
+  };
+
+  const handleDragEnd = () => {
+    if (onChangeComplete) {
+      onChangeComplete(localValue);
+    }
   };
 
   return (
@@ -37,6 +44,8 @@ export default function SliderRating({ value, onChange, size = 32 }: SliderRatin
           step="0.5" 
           value={localValue || 0.5} 
           onChange={handleChange} 
+          onMouseUp={handleDragEnd}
+          onTouchEnd={handleDragEnd}
           className={styles.slider} 
           style={{
             // Fill background before thumb dynamically
