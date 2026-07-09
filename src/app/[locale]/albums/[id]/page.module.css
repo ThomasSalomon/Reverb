@@ -327,5 +327,44 @@
     padding: 6px 8px;
     font-size: 0.9rem;
   }
+  }
 }
 
+.desktopRating {
+  display: block;
+}
+
+.mobileRating {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .desktopRating {
+    display: none;
+  }
+  
+  .mobileRating {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    padding: 12px 24px;
+    margin-top: 4px;
+    width: 100%;
+    transition: background 0.2s;
+  }
+
+  .mobileRating:active {
+    background: rgba(255, 255, 255, 0.06);
+  }
+
+  .mobileRatingText {
+    font-size: 0.85rem;
+    color: var(--primary);
+    font-weight: 600;
+  }
+}
