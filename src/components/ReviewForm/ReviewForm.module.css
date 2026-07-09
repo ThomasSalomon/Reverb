@@ -105,3 +105,29 @@
   border-color: var(--primary);
   color: var(--primary);
 }
+
+.desktopRating {
+  display: block;
+}
+
+.mobileRating {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .desktopRating {
+    display: none;
+  }
+  
+  .mobileRating {
+    display: block;
+    width: 100%;
+    margin-top: 8px;
+  }
+  
+  .ratingSection {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+}

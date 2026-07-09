@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import styles from "./MobileRatingSheet.module.css";
-import RatingStars from "../RatingStars/RatingStars";
+import SliderRating from "../SliderRating/SliderRating";
 
 interface MobileRatingSheetProps {
   isOpen: boolean;
@@ -43,11 +43,13 @@ export default function MobileRatingSheet({
 
   const handleRate = (value: number) => {
     setLocalRating(value);
-    onRate(value);
-    // Auto close after a short delay for a satisfying UX
-    setTimeout(() => {
-      handleClose();
-    }, 400);
+  };
+
+  const handleSave = () => {
+    if (localRating !== null) {
+      onRate(localRating);
+    }
+    handleClose();
   };
 
   if (!isOpen && !isAnimatingOut) return null;
@@ -64,17 +66,21 @@ export default function MobileRatingSheet({
         <p className={styles.subtitle}>{albumTitle}</p>
         
         <div className={styles.starsWrapper}>
-          <RatingStars 
-            value={localRating || 0} 
-            interactive={true} 
+          <SliderRating 
+            value={localRating || 0.5} 
             onChange={handleRate} 
-            size={48} 
+            size={36} 
           />
         </div>
         
-        <button className={styles.cancelBtn} onClick={handleClose}>
-          Cancelar
-        </button>
+        <div className={styles.actions}>
+          <button className={styles.cancelBtn} onClick={handleClose}>
+            Cancelar
+          </button>
+          <button className="neon-btn" onClick={handleSave} style={{ padding: "12px 24px", width: "100%" }}>
+            Guardar
+          </button>
+        </div>
       </div>
     </div>
   );

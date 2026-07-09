@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import RatingStars from "../RatingStars/RatingStars";
+import SliderRating from "../SliderRating/SliderRating";
 import styles from "./ReviewForm.module.css";
 
 interface ReviewFormProps {
@@ -101,7 +102,12 @@ export default function ReviewForm({
       
       <div className={styles.ratingSection}>
         <span className={styles.label}>Tu Calificación:</span>
-        <RatingStars value={localRating} onChange={handleRatingChange} interactive={true} size={28} />
+        <div className={styles.desktopRating}>
+          <RatingStars value={localRating} onChange={handleRatingChange} interactive={true} size={28} />
+        </div>
+        <div className={styles.mobileRating}>
+          <SliderRating value={localRating || 0.5} onChange={handleRatingChange} size={24} />
+        </div>
       </div>
 
       <div className={styles.tagsSection}>
