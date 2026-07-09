@@ -422,7 +422,7 @@ export default function AlbumDetailClient({ id }: { id: string }) {
                     borderRadius: "8px",
                     border: "1px solid var(--border)",
                   }}>
-                    <div className={styles.desktopRating} style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                    <div className={styles.desktopRating}>
                       <span style={{ fontSize: "0.85rem", color: "var(--text-secondary)", fontWeight: 600 }}>Calificar:</span>
                       <RatingStars 
                         value={currentUserRating || 0} 
