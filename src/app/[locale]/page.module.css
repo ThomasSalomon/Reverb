@@ -235,19 +235,18 @@
     display: flex;
     flex-wrap: nowrap;
     overflow-x: auto;
-    scroll-snap-type: x mandatory;
     gap: 16px;
     margin: 0 -16px;
     padding: 0 16px 16px;
     scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
   }
   .albumsGrid::-webkit-scrollbar {
     display: none;
   }
   .albumCard {
     flex: 0 0 auto;
-    width: 150px;
-    scroll-snap-align: start;
+    width: 140px;
   }
 }
 
