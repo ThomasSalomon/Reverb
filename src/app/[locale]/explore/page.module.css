@@ -104,6 +104,9 @@
 /* Tabs */
 .tabsContainer {
   margin-bottom: 30px;
+  display: flex;
+  justify-content: center;
+  width: 100%;
 }
 
 .tabs {
@@ -113,7 +116,10 @@
   padding: 6px;
   border-radius: 12px;
   width: fit-content;
+  max-width: 100%;
   gap: 4px;
+  overflow-x: auto;
+  scrollbar-width: none;
 }
 
 .tab {
@@ -126,6 +132,7 @@
   border-radius: 8px;
   cursor: pointer;
   transition: all var(--transition-fast);
+  white-space: nowrap;
 }
 
 .tab:hover {
@@ -141,6 +148,17 @@
 .activeTab:hover {
   background: var(--primary);
   color: #000;
+}
+
+@media (max-width: 768px) {
+  .tabs {
+    width: 100%;
+  }
+  .tab {
+    flex: 1;
+    padding: 10px 8px;
+    font-size: 0.9rem;
+  }
 }
 
 /* Albums */
