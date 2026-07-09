@@ -158,7 +158,7 @@ export const MusicService = {
     return this._enrichStats(item);
   },
 
-  async searchItems(query: string) {
+  async searchItems(query: string, index: number = 0, limit: number = 50) {
     if (!query || query.trim() === "") {
       return this.getAllItems();
     }
@@ -166,7 +166,7 @@ export const MusicService = {
     // 1. Fetch from Deezer API in real-time
     let deezerResults: DeezerAlbumSearchItem[] = [];
     try {
-      deezerResults = await DeezerService.searchAlbums(query);
+      deezerResults = await DeezerService.searchAlbums(query, index, limit);
     } catch (err) {
       console.error("Deezer searchAlbums failed (may be blocked on this server):", err);
     }

@@ -18,39 +18,50 @@ export default function ExploreTabs() {
   
   const [loading, setLoading] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
+  const [page, setPage] = useState(0);
+  const [hasMore, setHasMore] = useState(false);
 
   useEffect(() => {
+    setPage(0);
     const timer = setTimeout(() => {
-      fetchData(activeTab, searchQuery);
+      fetchData(activeTab, searchQuery, 0);
     }, 300);
     return () => clearTimeout(timer);
   }, [searchQuery, activeTab]);
 
-  const fetchData = async (tab: Tab, query: string) => {
+  const fetchData = async (tab: Tab, query: string, pageIndex: number) => {
     try {
       setLoading(true);
       const isQueryEmpty = query.trim().length === 0;
       setIsSearching(!isQueryEmpty);
 
+      const limit = 50;
+      const index = pageIndex * limit;
+      const queryParams = `index=${index}&limit=${limit}`;
+
       if (tab === "users") {
-        const res = await fetch(`/api/users/search?q=${encodeURIComponent(query)}`, { cache: "no-store" });
+        const url = `/api/users/search?q=${encodeURIComponent(query)}&${queryParams}`;
+        const res = await fetch(url, { cache: "no-store" });
         if (res.ok) {
           const data = await res.json();
-          setUsers(data);
+          setUsers(pageIndex === 0 ? data : (prev) => [...prev, ...data]);
+          setHasMore(data.length === limit);
         }
       } else if (tab === "albums") {
-        const url = isQueryEmpty ? "/api/music" : `/api/music?q=${encodeURIComponent(query)}`;
+        const url = isQueryEmpty ? `/api/music?${queryParams}` : `/api/music?q=${encodeURIComponent(query)}&${queryParams}`;
         const res = await fetch(url, { cache: "no-store" });
         if (res.ok) {
           const data = await res.json();
-          setAlbums(data);
+          setAlbums(pageIndex === 0 ? data : (prev) => [...prev, ...data]);
+          setHasMore(data.length === limit);
         }
       } else if (tab === "artists") {
-        const url = isQueryEmpty ? "/api/artists/search" : `/api/artists/search?q=${encodeURIComponent(query)}`;
+        const url = isQueryEmpty ? `/api/artists/search?${queryParams}` : `/api/artists/search?q=${encodeURIComponent(query)}&${queryParams}`;
         const res = await fetch(url, { cache: "no-store" });
         if (res.ok) {
           const data = await res.json();
-          setArtists(data);
+          setArtists(pageIndex === 0 ? data : (prev) => [...prev, ...data]);
+          setHasMore(data.length === limit);
         }
       }
     } catch (e) {
@@ -58,6 +69,12 @@ export default function ExploreTabs() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const loadMore = () => {
+    const nextPage = page + 1;
+    setPage(nextPage);
+    fetchData(activeTab, searchQuery, nextPage);
   };
 
   const renderPlaceholder = () => {
@@ -190,6 +207,27 @@ export default function ExploreTabs() {
                     <span className={styles.artistName}>{artist.name}</span>
                   </Link>
                 ))}
+              </div>
+            )}
+            {hasMore && (
+              <div style={{ display: "flex", justifyContent: "center", marginTop: "40px", marginBottom: "20px" }}>
+                <button 
+                  onClick={loadMore}
+                  disabled={loading}
+                  style={{
+                    background: "var(--primary)",
+                    color: "#000",
+                    border: "none",
+                    borderRadius: "24px",
+                    padding: "12px 24px",
+                    fontWeight: 600,
+                    cursor: loading ? "not-allowed" : "pointer",
+                    opacity: loading ? 0.7 : 1,
+                    transition: "opacity 0.2s"
+                  }}
+                >
+                  {loading ? "Cargando..." : "Cargar Más"}
+                </button>
               </div>
             )}
           </>

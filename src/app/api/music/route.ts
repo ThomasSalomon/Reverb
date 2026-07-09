@@ -7,9 +7,11 @@ export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
     const query = searchParams.get("q");
+    const index = parseInt(searchParams.get("index") || "0", 10);
+    const limit = parseInt(searchParams.get("limit") || "50", 10);
 
     if (query) {
-      const results = await MusicService.searchItems(query).catch((err) => {
+      const results = await MusicService.searchItems(query, index, limit).catch((err) => {
         console.error("searchItems failed:", err);
         return [];
       });

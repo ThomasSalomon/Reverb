@@ -53,12 +53,12 @@ function formatDuration(seconds: number): string {
 }
 
 export const DeezerService = {
-  async searchAlbums(query: string): Promise<DeezerAlbumSearchItem[]> {
+  async searchAlbums(query: string, index: number = 0, limit: number = 50): Promise<DeezerAlbumSearchItem[]> {
     if (!query || query.trim() === "") return [];
 
     try {
       const response = await fetch(
-        `https://api.deezer.com/search/album?q=${encodeURIComponent(query)}`,
+        `https://api.deezer.com/search/album?q=${encodeURIComponent(query)}&index=${index}&limit=${limit}`,
         { cache: "no-store" }
       );
       if (!response.ok) {
@@ -174,11 +174,11 @@ export const DeezerService = {
     }
   },
 
-  async searchArtists(query: string): Promise<any[]> {
+  async searchArtists(query: string, index: number = 0, limit: number = 50): Promise<any[]> {
     if (!query || query.trim() === "") return [];
 
     try {
-      const response = await fetch(`https://api.deezer.com/search/artist?q=${encodeURIComponent(query)}`, {
+      const response = await fetch(`https://api.deezer.com/search/artist?q=${encodeURIComponent(query)}&index=${index}&limit=${limit}`, {
         cache: "no-store",
       });
       if (!response.ok) {

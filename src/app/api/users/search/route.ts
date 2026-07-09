@@ -7,11 +7,14 @@ export async function GET(req: Request) {
   try {
     const url = new URL(req.url);
     const query = url.searchParams.get("q") || "";
+    const index = parseInt(url.searchParams.get("index") || "0", 10);
+    const limit = parseInt(url.searchParams.get("limit") || "50", 10);
 
     if (!query) {
       // If no query, return top users by follower count
       const topUsers = await prisma.user.findMany({
-        take: 10,
+        skip: index,
+        take: limit,
         orderBy: [
           {
             followers: {
@@ -43,7 +46,8 @@ export async function GET(req: Request) {
           contains: query,
         },
       },
-      take: 20,
+      skip: index,
+      take: limit,
       select: {
         id: true,
         username: true,
