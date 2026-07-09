@@ -11,6 +11,7 @@ import ShareModal from "@/components/ShareModal/ShareModal";
 import AddToListModal from "@/components/AddToListModal/AddToListModal";
 import styles from "./page.module.css";
 import { showToast } from "@/components/Toast/ToastListener";
+import MobileRatingSheet from "@/components/MobileRatingSheet/MobileRatingSheet";
 import { useLazyIframe } from "@/hooks/useLazyIframe";
 
 interface Track {
@@ -71,6 +72,7 @@ export default function AlbumDetailClient({ id }: { id: string }) {
   const [isListModalOpen, setIsListModalOpen] = useState(false);
   const [diaryRating, setDiaryRating] = useState("5");
   const [diaryNotes, setDiaryNotes] = useState("");
+  const [isMobileSheetOpen, setIsMobileSheetOpen] = useState(false);
 
   // Lazy-load the Deezer iframe only when it enters the viewport
   const deezerSrc = album
@@ -418,15 +420,25 @@ export default function AlbumDetailClient({ id }: { id: string }) {
                     background: "rgba(255, 255, 255, 0.03)", 
                     padding: "8px 16px", 
                     borderRadius: "8px",
-                    border: "1px solid var(--border)"
+                    border: "1px solid var(--border)",
                   }}>
-                    <span style={{ fontSize: "0.85rem", color: "var(--text-secondary)", fontWeight: 600 }}>Calificar:</span>
-                    <RatingStars 
-                      value={currentUserRating || 0} 
-                      onChange={handleQuickRate} 
-                      interactive={true} 
-                      size={20} 
-                    />
+                    <div className={styles.desktopRating} style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                      <span style={{ fontSize: "0.85rem", color: "var(--text-secondary)", fontWeight: 600 }}>Calificar:</span>
+                      <RatingStars 
+                        value={currentUserRating || 0} 
+                        onChange={handleQuickRate} 
+                        interactive={true} 
+                        size={20} 
+                      />
+                    </div>
+                    <div className={styles.mobileRating} onClick={() => setIsMobileSheetOpen(true)}>
+                      <span className={styles.mobileRatingText}>Toca para calificar</span>
+                      <RatingStars 
+                        value={currentUserRating || 0} 
+                        interactive={false} 
+                        size={28} 
+                      />
+                    </div>
                   </div>
                 </>
               )}
@@ -680,6 +692,14 @@ export default function AlbumDetailClient({ id }: { id: string }) {
           username={user.username}
         />
       )}
+
+      <MobileRatingSheet
+        isOpen={isMobileSheetOpen}
+        onClose={() => setIsMobileSheetOpen(false)}
+        albumTitle={album.title}
+        currentRating={currentUserRating}
+        onRate={handleQuickRate}
+      />
     </main>
   );
 }
