@@ -226,25 +226,53 @@ export async function POST(req: Request) {
       );
     }
 
-    // Since we now allow multiple reviews per album (Diary Logs), we use create instead of upsert
-    const [review, rating] = await prisma.$transaction([
-      prisma.review.create({
-        data: {
-          userId,
-          musicItemId,
-          content,
-          ratingValue: numericRating,
-          tags: validTags,
-        },
-      }),
-      prisma.rating.create({
-        data: {
-          userId,
-          musicItemId,
-          value: numericRating,
-        },
-      }),
-    ]);
+    // Handle rating: create or update
+    let existingRating = await prisma.rating.findFirst({
+      where: {
+        userId,
+        musicItemId,
+      },
+    });
+
+    let review;
+    let rating;
+
+    if (existingRating) {
+      [review, rating] = await prisma.$transaction([
+        prisma.review.create({
+          data: {
+            userId,
+            musicItemId,
+            content,
+            ratingValue: numericRating,
+            tags: validTags,
+          },
+        }),
+        prisma.rating.update({
+          where: { id: existingRating.id },
+          data: { value: numericRating },
+        }),
+      ]);
+    } else {
+      [review, rating] = await prisma.$transaction([
+        prisma.review.create({
+          data: {
+            userId,
+            musicItemId,
+            content,
+            ratingValue: numericRating,
+            tags: validTags,
+          },
+        }),
+        prisma.rating.create({
+          data: {
+            userId,
+            musicItemId,
+            value: numericRating,
+          },
+        }),
+      ]);
+    }
 
     // Check if it's the user's first review to award "FIRST_REVIEW" badge
     const reviewsCount = await prisma.review.count({
