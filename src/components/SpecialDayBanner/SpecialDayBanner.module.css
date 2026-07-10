@@ -1,0 +1,111 @@
+.bannerContainer {
+  width: 100%;
+  padding: 3rem 2rem;
+  margin-bottom: 2rem;
+  min-height: 160px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #18181b, #09090b);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  overflow: hidden;
+  position: relative;
+  transition: transform 300ms cubic-bezier(0.23, 1, 0.32, 1), border-color 300ms ease;
+  transform-origin: center;
+}
+
+.artistBackground {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 65%; /* Only takes up the right portion, preserving aspect ratio more than full width */
+  height: 100%;
+  object-fit: cover;
+  object-position: center 20%; /* Pushes the focus up towards the face */
+  opacity: 0;
+  transition: opacity 0.5s ease;
+  z-index: 0;
+  mask-image: linear-gradient(to right, rgba(0,0,0,0) 0%, rgba(0,0,0,1) 50%);
+  -webkit-mask-image: linear-gradient(to right, rgba(0,0,0,0) 0%, rgba(0,0,0,1) 50%);
+}
+
+.bannerContainer:hover .artistBackground {
+  opacity: 0.8;
+}
+
+.bannerContainer:hover {
+  border-color: rgba(255, 255, 255, 0.2);
+  transform: scale(1.01);
+}
+
+.bannerContainer:active {
+  transform: scale(0.98);
+}
+
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  position: relative;
+  z-index: 2;
+  max-width: 60%; /* Ensure text doesn't overlap too much with the image on large screens */
+}
+
+.title {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #fff;
+  margin: 0;
+  letter-spacing: -0.5px;
+}
+
+.subtitle {
+  font-size: 1rem;
+  color: rgba(255, 255, 255, 0.7);
+  margin: 0;
+}
+
+.actionButton {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 20px;
+  padding: 0.5rem 1rem;
+  color: #fff;
+  font-weight: 600;
+  font-size: 0.9rem;
+  transition: background 200ms ease, transform 160ms ease-out;
+  pointer-events: none;
+  position: relative;
+  z-index: 2;
+  width: fit-content;
+  margin-top: 0.5rem;
+}
+
+.bannerContainer:hover .actionButton {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.shimmer {
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 50%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.05),
+    transparent
+  );
+  animation: shimmer 3s infinite;
+  pointer-events: none;
+  z-index: 1;
+}
+
+@keyframes shimmer {
+  100% {
+    left: 200%;
+  }
+}

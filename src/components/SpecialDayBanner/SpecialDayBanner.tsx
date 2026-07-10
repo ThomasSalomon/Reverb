@@ -1,0 +1,72 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import styles from "./SpecialDayBanner.module.css";
+import SpecialPlaylistModal from "../SpecialPlaylistModal/SpecialPlaylistModal";
+
+export default function SpecialDayBanner() {
+  const [eventData, setEventData] = useState<any>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  useEffect(() => {
+    async function fetchEvent() {
+      try {
+        const res = await fetch("/api/events/today");
+        if (res.status === 200) {
+          const data = await res.json();
+          setEventData(data);
+        }
+      } catch (err) {
+        console.error("Failed to fetch special event", err);
+      }
+    }
+    fetchEvent();
+  }, []);
+
+  if (!eventData) return null;
+
+  return (
+    <div style={{ position: "relative", zIndex: 1, display: "contents" }}>
+      <motion.div
+        className={styles.bannerContainer}
+        onClick={() => setIsModalOpen(true)}
+        initial={{ opacity: 0, y: -20, scale: 0.95 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={{
+          duration: 0.5,
+          ease: [0.23, 1, 0.32, 1], // Custom strong ease-out
+        }}
+      >
+        {eventData.artistPicture && (
+          <img 
+            src={eventData.artistPicture} 
+            alt={eventData.artistName} 
+            className={styles.artistBackground} 
+          />
+        )}
+        <div className={styles.shimmer} />
+        <div className={styles.content}>
+          <h2 className={styles.title}>
+            Un día como hoy, recordando a {eventData.artistName}
+          </h2>
+          <p className={styles.subtitle}>
+            {eventData.description || `Hoy conmemoramos el legado de ${eventData.artistName}. Escuchá sus más grandes éxitos con nosotros.`}
+          </p>
+          <button className={styles.actionButton} tabIndex={-1}>
+            Ver Tributo
+          </button>
+        </div>
+      </motion.div>
+
+      <AnimatePresence>
+        {isModalOpen && (
+          <SpecialPlaylistModal
+            artistName={eventData.artistName}
+            onClose={() => setIsModalOpen(false)}
+          />
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}

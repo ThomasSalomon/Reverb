@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl";
 import Cover3D from "@/components/Cover3D/Cover3D";
 import RatingStars from "@/components/RatingStars/RatingStars";
 import ReviewCard from "@/components/ReviewCard/ReviewCard";
+import SpecialDayBanner from "@/components/SpecialDayBanner/SpecialDayBanner";
 import styles from "./page.module.css";
 
 interface MusicItem {
@@ -134,6 +135,10 @@ export default function HomePage() {
           />
         </div>
       </section>
+
+      <div style={{ maxWidth: '1200px', margin: '0 auto', width: '100%', padding: '0 1rem' }}>
+        <SpecialDayBanner />
+      </div>
 
       <div className={styles.contentGrid}>
         <section className={styles.musicSection}>

@@ -220,3 +220,16 @@ model EarnedBadge {
   @@unique([userId, badgeId])
   @@index([userId])
 }
+
+model MusicEvent {
+  id            String   @id @default(uuid())
+  dateMonth     Int      // 1-12
+  dateDay       Int      // 1-31
+  artistName    String
+  artistId      String   // ID del artista en la API de Deezer para poder buscar su música
+  eventType     String   // Ej. "DEATH", "BIRTH", "ALBUM_RELEASE"
+  description   String?  // Texto adicional (opcional)
+  createdAt     DateTime @default(now())
+
+  @@index([dateMonth, dateDay])
+}
