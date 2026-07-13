@@ -70,55 +70,59 @@ export default function Navbar() {
   };
 
   return (
-    <nav className={`${styles.navbar} ${isVisible ? "" : styles.navbarHidden}`}>
-      <div className={styles.container}>
-        <Link href="/" className={styles.logo}>
-          <img src="/logo.png" alt="RTM Logo" className={styles.logoIcon} />
-          <span>Ride The <span className={styles.highlight}>Music</span></span>
-        </Link>
-
-        <div className={styles.links}>
-          <Link href="/explore" className={styles.link}>
-            {t('explore')}
+    <>
+      <nav className={`${styles.navbar} ${isVisible ? "" : styles.navbarHidden}`}>
+        <div className={styles.container}>
+          <Link href="/" className={styles.logo}>
+            <img src="/logo.png" alt="RTM Logo" className={styles.logoIcon} />
+            <span>Ride The <span className={styles.highlight}>Music</span></span>
           </Link>
-        </div>
 
-        <div className={styles.auth}>
-          {user ? (
-            <div className={styles.userSection} style={{ display: "flex", alignItems: "center", gap: "16px" }}>
-              <LanguageSelector />
-              <NotificationsDropdown />
-              <Link href={`/users/${user.username}`} className={styles.profileLink}>
-                <Avatar
-                  username={user.username}
-                  profileColor={user.profileColor}
-                  profileImage={user.profileImage}
-                  size={30}
-                  className={styles.miniAvatar}
-                  style={{ border: "none", display: "inline-flex" }}
-                />
-                <span className={styles.username}>@{user.username}</span>
-              </Link>
-              <button onClick={handleLogout} className={styles.logoutBtn}>
-                {t('logout')}
-              </button>
-            </div>
-          ) : (
-            <div className={styles.authButtons}>
-              <LanguageSelector />
-              <Link href="/login" className={styles.loginLink}>
-                {t('login')}
-              </Link>
-              <Link
-                href="/register"
-                className={`neon-btn ${styles.registerBtn}`}
-              >
-                {t('register')}
-              </Link>
-            </div>
-          )}
+          <div className={styles.links}>
+            <Link href="/explore" className={styles.link}>
+              {t('explore')}
+            </Link>
+          </div>
+
+          <div className={styles.auth}>
+            {user ? (
+              <div className={styles.userSection} style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+                <LanguageSelector />
+                <NotificationsDropdown />
+                <Link href={`/users/${user.username}`} className={styles.profileLink}>
+                  <Avatar
+                    username={user.username}
+                    profileColor={user.profileColor}
+                    profileImage={user.profileImage}
+                    size={30}
+                    className={styles.miniAvatar}
+                    style={{ border: "none", display: "inline-flex" }}
+                  />
+                  <span className={styles.username}>@{user.username}</span>
+                </Link>
+                <button onClick={handleLogout} className={styles.logoutBtn}>
+                  {t('logout')}
+                </button>
+              </div>
+            ) : (
+              <div className={styles.authButtons}>
+                <LanguageSelector />
+                <Link href="/login" className={styles.loginLink}>
+                  {t('login')}
+                </Link>
+                <Link
+                  href="/register"
+                  className={`neon-btn ${styles.registerBtn}`}
+                >
+                  {t('register')}
+                </Link>
+              </div>
+            )}
+          </div>
         </div>
-      </div>
-    </nav>
+      </nav>
+      {/* Spacer to compensate for fixed navbar height */}
+      <div style={{ height: "70px", flexShrink: 0 }} />
+    </>
   );
 }
