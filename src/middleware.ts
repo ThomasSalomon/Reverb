@@ -12,7 +12,27 @@ export async function middleware(request: NextRequest) {
   // 1. Define if the route is an API route (ignore i18n routing here)
   const isApiRoute = pathname.startsWith("/api");
   
-  // 2. Apply next-intl middleware for non-API routes
+  // 2. Geographic Language Detection for non-API routes
+  if (!isApiRoute) {
+    const hasLocaleCookie = request.cookies.has("NEXT_LOCALE");
+    if (!hasLocaleCookie) {
+      const country = request.geo?.country || request.headers.get("x-vercel-ip-country");
+      if (country) {
+        if (country === "BR") {
+          request.headers.set("accept-language", "pt");
+        } else {
+          const spanishCountries = ["AR", "BO", "CL", "CO", "CR", "CU", "DO", "EC", "SV", "GQ", "GT", "HN", "MX", "NI", "PA", "PY", "PE", "PR", "ES", "UY", "VE"];
+          if (spanishCountries.includes(country)) {
+            request.headers.set("accept-language", "es");
+          } else {
+            request.headers.set("accept-language", "en");
+          }
+        }
+      }
+    }
+  }
+
+  // 3. Apply next-intl middleware for non-API routes
   let response = isApiRoute ? NextResponse.next() : intlMiddleware(request);
 
   // 3. Auth Logic Validation
