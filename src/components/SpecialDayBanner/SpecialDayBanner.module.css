@@ -109,3 +109,12 @@
     left: 200%;
   }
 }
+
+@media (hover: none) {
+  .artistBackground {
+    opacity: 0.8;
+  }
+  .actionButton {
+    background: rgba(255, 255, 255, 0.2);
+  }
+}

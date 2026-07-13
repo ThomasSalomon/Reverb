@@ -18,6 +18,8 @@ interface User {
 export default function Navbar() {
   const t = useTranslations("Navbar");
   const [user, setUser] = useState<User | null>(null);
+  const [isVisible, setIsVisible] = useState(true);
+  const [lastScrollY, setLastScrollY] = useState(0);
 
   useEffect(() => {
     async function checkUser() {
@@ -34,6 +36,25 @@ export default function Navbar() {
     checkUser();
   }, []);
 
+  useEffect(() => {
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY;
+      
+      // If we scroll down past 50px, hide the navbar
+      if (currentScrollY > lastScrollY && currentScrollY > 50) {
+        setIsVisible(false);
+      } else {
+        // If we scroll up, show the navbar
+        setIsVisible(true);
+      }
+      
+      setLastScrollY(currentScrollY);
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, [lastScrollY]);
+
   const handleLogout = async () => {
     try {
       await fetch("/api/auth/logout", { method: "POST" });
@@ -45,7 +66,7 @@ export default function Navbar() {
   };
 
   return (
-    <nav className={styles.navbar}>
+    <nav className={`${styles.navbar} ${isVisible ? "" : styles.navbarHidden}`}>
       <div className={styles.container}>
         <Link href="/" className={styles.logo}>
           <img src="/logo.png" alt="RTM Logo" className={styles.logoIcon} />

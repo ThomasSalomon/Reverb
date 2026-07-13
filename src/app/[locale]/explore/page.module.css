@@ -255,3 +255,14 @@
 .artistCard:hover .artistName {
   color: var(--primary);
 }
+
+@media (max-width: 500px) {
+  .artistsGrid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+  }
+  .artistImageContainer {
+    width: 120px;
+    height: 120px;
+  }
+}
