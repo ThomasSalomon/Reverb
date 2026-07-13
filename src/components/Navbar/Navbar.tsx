@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Link } from "@/i18n/routing";
 import { useTranslations } from "next-intl";
 import styles from "./Navbar.module.css";
@@ -19,7 +19,7 @@ export default function Navbar() {
   const t = useTranslations("Navbar");
   const [user, setUser] = useState<User | null>(null);
   const [isVisible, setIsVisible] = useState(true);
-  const [lastScrollY, setLastScrollY] = useState(0);
+  const lastScrollY = useRef(0);
 
   useEffect(() => {
     async function checkUser() {
@@ -37,23 +37,27 @@ export default function Navbar() {
   }, []);
 
   useEffect(() => {
+    // Set initial scroll position
+    lastScrollY.current = window.scrollY;
+
     const handleScroll = () => {
       const currentScrollY = window.scrollY;
       
       // If we scroll down past 50px, hide the navbar
-      if (currentScrollY > lastScrollY && currentScrollY > 50) {
+      if (currentScrollY > lastScrollY.current && currentScrollY > 50) {
         setIsVisible(false);
-      } else {
-        // If we scroll up, show the navbar
+      } 
+      // If we scroll up, show the navbar
+      else if (currentScrollY < lastScrollY.current) {
         setIsVisible(true);
       }
       
-      setLastScrollY(currentScrollY);
+      lastScrollY.current = currentScrollY;
     };
 
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
-  }, [lastScrollY]);
+  }, []);
 
   const handleLogout = async () => {
     try {
