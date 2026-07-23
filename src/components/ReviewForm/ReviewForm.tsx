@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import RatingStars from "../RatingStars/RatingStars";
 import SliderRating from "../SliderRating/SliderRating";
 import styles from "./ReviewForm.module.css";
+import { useTranslations } from "next-intl";
 
 interface ReviewFormProps {
   musicItemId: string;
@@ -20,6 +21,7 @@ export default function ReviewForm({
   onRatingChange,
   onSuccess,
 }: ReviewFormProps) {
+  const t = useTranslations("Review");
   const [content, setContent] = useState(initialContent);
   const [localRating, setLocalRating] = useState(rating);
 
@@ -39,8 +41,16 @@ export default function ReviewForm({
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
 
   const AVAILABLE_TAGS = [
-    "Épico", "Relajante", "Melancólico", "Enérgico", "Oscuro",
-    "Experimental", "Clásico", "Innovador", "Nostálgico", "Divertido"
+    { value: "Épico", label: "tagEpic" },
+    { value: "Relajante", label: "tagRelaxing" },
+    { value: "Melancólico", label: "tagMelancholic" },
+    { value: "Enérgico", label: "tagEnergetic" },
+    { value: "Oscuro", label: "tagDark" },
+    { value: "Experimental", label: "tagExperimental" },
+    { value: "Clásico", label: "tagClassic" },
+    { value: "Innovador", label: "tagInnovative" },
+    { value: "Nostálgico", label: "tagNostalgic" },
+    { value: "Divertido", label: "tagFun" }
   ];
 
   const toggleTag = (tag: string) => {
@@ -54,11 +64,11 @@ export default function ReviewForm({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (localRating === 0) {
-      setError("Por favor, selecciona una calificación de estrellas");
+      setError(t("ratingRequired"));
       return;
     }
     if (!content.trim()) {
-      setError("Por favor, escribe el contenido de la reseña");
+      setError(t("contentRequired"));
       return;
     }
 
@@ -80,17 +90,16 @@ export default function ReviewForm({
         }),
       });
 
-      const data = await res.json();
       if (!res.ok) {
-        throw new Error(data.error || "Algo salió mal");
+        throw new Error(t("publishError"));
       }
 
-      setSuccessMsg("¡Reseña publicada con éxito!");
+      setSuccessMsg(t("published"));
       if (onSuccess) {
         onSuccess();
       }
     } catch (e: any) {
-      setError(e.message || "Error al publicar la reseña");
+      setError(e.message || t("publishError"));
     } finally {
       setLoading(false);
     }
@@ -98,10 +107,10 @@ export default function ReviewForm({
 
   return (
     <form onSubmit={handleSubmit} className={styles.form}>
-      <h3 className={styles.title}>Escribe tu Reseña</h3>
+      <h3 className={styles.title}>{t("write")}</h3>
       
       <div className={styles.ratingSection}>
-        <span className={styles.label}>Tu Calificación:</span>
+        <span className={styles.label}>{t("yourRating")}:</span>
         <div className={styles.desktopRating}>
           <RatingStars value={localRating} onChange={handleRatingChange} interactive={true} size={28} />
         </div>
@@ -111,15 +120,15 @@ export default function ReviewForm({
       </div>
 
       <div className={styles.tagsSection}>
-        <span className={styles.label}>Tags / Mood (Max 5):</span>
+        <span className={styles.label}>{t("tags")}:</span>
         <div className={styles.tagsContainer}>
           {AVAILABLE_TAGS.map(tag => (
             <div 
-              key={tag}
-              onClick={() => toggleTag(tag)}
-              className={`${styles.tagPill} ${selectedTags.includes(tag) ? styles.tagPillActive : ""}`}
+              key={tag.value}
+              onClick={() => toggleTag(tag.value)}
+              className={`${styles.tagPill} ${selectedTags.includes(tag.value) ? styles.tagPillActive : ""}`}
             >
-              {tag}
+              {t(tag.label)}
             </div>
           ))}
         </div>
@@ -129,7 +138,7 @@ export default function ReviewForm({
         <textarea
           value={content}
           onChange={(e) => setContent(e.target.value)}
-          placeholder="¿Qué opinas de este álbum? Cuenta los detalles..."
+          placeholder={t("contentPlaceholder")}
           rows={5}
           className={styles.textarea}
           disabled={loading}
@@ -140,7 +149,7 @@ export default function ReviewForm({
       {successMsg && <div className={styles.successMsg}>{successMsg}</div>}
 
       <button type="submit" className="neon-btn" disabled={loading}>
-        {loading ? "Publicando..." : "Publicar Reseña"}
+        {loading ? t("publishing") : t("publish")}
       </button>
     </form>
   );

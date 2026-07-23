@@ -1,8 +1,9 @@
 "use client";
 
 import { useTransition } from "react";
-import { useLocale } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { useRouter, usePathname } from "@/i18n/routing";
+import { useSearchParams } from "next/navigation";
 import styles from "./LanguageSelector.module.css";
 
 export default function LanguageSelector() {
@@ -10,12 +11,14 @@ export default function LanguageSelector() {
   const locale = useLocale();
   const router = useRouter();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const t = useTranslations("Language");
 
   const handleLanguageChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const nextLocale = e.target.value;
     startTransition(() => {
-      // Replaces the current path with the new locale
-      router.replace(pathname, { locale: nextLocale });
+      const query = searchParams.toString();
+      router.replace(query ? `${pathname}?${query}` : pathname, { locale: nextLocale });
     });
   };
 
@@ -27,11 +30,11 @@ export default function LanguageSelector() {
         onChange={handleLanguageChange} 
         disabled={isPending}
         className={`${styles.select} ${styles.desktopSelect}`}
-        aria-label="Seleccionar idioma"
+        aria-label={t("label")}
       >
-        <option value="es">Español</option>
-        <option value="en">English</option>
-        <option value="pt">Português</option>
+        <option value="es">{t("spanish")}</option>
+        <option value="en">{t("english")}</option>
+        <option value="pt">{t("portuguese")}</option>
       </select>
 
       {/* Selector para Móviles (Abreviado) */}
@@ -40,7 +43,7 @@ export default function LanguageSelector() {
         onChange={handleLanguageChange} 
         disabled={isPending}
         className={`${styles.select} ${styles.mobileSelect}`}
-        aria-label="Seleccionar idioma"
+        aria-label={t("label")}
       >
         <option value="es">ES</option>
         <option value="en">EN</option>

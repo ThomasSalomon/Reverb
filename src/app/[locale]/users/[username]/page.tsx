@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { useParams, useRouter } from "next/navigation";
-import Link from "next/link";
+import { useParams } from "next/navigation";
+import { Link, useRouter } from "@/i18n/routing";
 import ReviewCard from "@/components/ReviewCard/ReviewCard";
 import RatingStars from "@/components/RatingStars/RatingStars";
 import styles from "./page.module.css";
@@ -12,6 +12,7 @@ import EditFavoritesModal from "@/components/EditFavoritesModal/EditFavoritesMod
 import AccountSettingsModal from "@/components/AccountSettingsModal/AccountSettingsModal";
 import Avatar from "@/components/Avatar/Avatar";
 import RecapModal from "@/components/RecapModal/RecapModal";
+import { useLocale, useTranslations } from "next-intl";
 
 interface FavoriteAlbumRelation {
   slot: number;
@@ -58,6 +59,9 @@ const COLOR_MAP: Record<string, { bg: string; text: string; shadow: string; bord
 };
 
 export default function UserProfilePage() {
+  const t = useTranslations("Profile");
+  const common = useTranslations("Common");
+  const locale = useLocale();
   const { username } = useParams() as { username: string };
   const router = useRouter();
 
@@ -205,12 +209,13 @@ export default function UserProfilePage() {
         setNewListDesc("");
         setNewListPublic(true);
         await fetchLists();
+        showToast(t("listCreated"), "success");
       } else {
-        const data = await res.json();
-        showToast(data.error || "Error al crear lista", "error");
+        showToast(t("createListError"), "error");
       }
     } catch (e) {
       console.error(e);
+      showToast(common("connectionError"), "error");
     }
   };
 
@@ -245,16 +250,15 @@ export default function UserProfilePage() {
       });
       if (res.ok) {
         setIsEditingList(false);
-        showToast("Lista actualizada correctamente", "success");
+        showToast(t("listUpdated"), "success");
         await handleSelectList(selectedList.id);
         await fetchLists();
       } else {
-        const data = await res.json();
-        showToast(data.error || "Error al actualizar lista", "error");
+        showToast(t("operationError"), "error");
       }
     } catch (error) {
       console.error(error);
-      showToast("Error de conexión", "error");
+      showToast(common("connectionError"), "error");
     }
   };
 
@@ -266,18 +270,17 @@ export default function UserProfilePage() {
     try {
       const res = await fetch(`/api/lists/${listId}`, { method: "DELETE" });
       if (res.ok) {
-        showToast("Colección eliminada con éxito", "success");
+        showToast(t("listDeleted"), "success");
         setSelectedList(null);
         await fetchLists();
       } else {
-        const data = await res.json();
-        showToast(data.error || "Error al eliminar lista", "error");
+        showToast(t("operationError"), "error");
       }
     } catch (e) {
       console.error(e);
-      showToast("Error de conexión", "error");
+      showToast(common("connectionError"), "error");
     }
-  }, [fetchLists]);
+  }, [common, fetchLists, t]);
 
   const handleAddItemToList = useCallback(async (album: DeezerSearchResult) => {
     if (!selectedList) return;
@@ -288,19 +291,18 @@ export default function UserProfilePage() {
         body: JSON.stringify({ musicItemId: album.id }),
       });
       if (res.ok) {
-        showToast("Álbum añadido a la lista", "success");
+        showToast(t("albumAdded"), "success");
         setListItemQuery("");
         setListSearchResults([]);
         await handleSelectList(selectedList.id);
         await fetchLists();
       } else {
-        const data = await res.json();
-        showToast(data.error || "Error al añadir ítem", "error");
+        showToast(t("addToListError"), "error");
       }
     } catch (e) {
       console.error(e);
     }
-  }, [selectedList, fetchLists, handleSelectList]);
+  }, [selectedList, fetchLists, handleSelectList, t]);
 
   const handleRemoveItemFromList = useCallback(async (musicItemId: string) => {
     if (!selectedList) return;
@@ -309,14 +311,14 @@ export default function UserProfilePage() {
         method: "DELETE",
       });
       if (res.ok) {
-        showToast("Álbum removido de la lista", "success");
+        showToast(t("albumRemoved"), "success");
         await handleSelectList(selectedList.id);
         await fetchLists();
       }
     } catch (e) {
       console.error(e);
     }
-  }, [selectedList, fetchLists, handleSelectList]);
+  }, [selectedList, fetchLists, handleSelectList, t]);
 
   const handleRemoveFromListenLater = useCallback(async (musicItemId: string) => {
     try {
@@ -324,22 +326,21 @@ export default function UserProfilePage() {
         method: "DELETE",
       });
       if (res.ok) {
-        showToast("Eliminado de escuchar después", "success");
+        showToast(t("listenLaterRemoved"), "success");
         setListenLaterItems(prev => prev.filter(item => item.musicItemId !== musicItemId));
       } else {
-        const data = await res.json();
-        showToast(data.error || "Error al eliminar de la lista", "error");
+        showToast(t("operationError"), "error");
       }
     } catch (e) {
       console.error(e);
-      showToast("Error de conexión", "error");
+      showToast(common("connectionError"), "error");
     }
-  }, []);
+  }, [common, t]);
 
   const handleCreateDiaryLog = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!diarySelectedAlbum) {
-      showToast("Selecciona un álbum primero", "error");
+      showToast(t("selectAlbum"), "error");
       return;
     }
     try {
@@ -353,7 +354,7 @@ export default function UserProfilePage() {
         }),
       });
       if (res.ok) {
-        showToast("Escucha registrada en tu bitácora", "success");
+        showToast(t("diarySaved"), "success");
         setIsDiaryModalOpen(false);
         setDiaryNotes("");
         setDiaryRating("5");
@@ -362,8 +363,7 @@ export default function UserProfilePage() {
         setDiarySearchResults([]);
         await fetchDiary();
       } else {
-        const data = await res.json();
-        showToast(data.error || "Error al guardar bitácora", "error");
+        showToast(t("operationError"), "error");
       }
     } catch (e) {
       console.error(e);
@@ -422,9 +422,9 @@ export default function UserProfilePage() {
       const profileRes = await fetch(`/api/users/${username}`, { cache: "no-store" });
       if (!profileRes.ok) {
         if (profileRes.status === 404) {
-          throw new Error("Usuario no encontrado");
+          throw new Error(t("profileNotFound"));
         }
-        throw new Error("Error al obtener la información del perfil");
+        throw new Error(t("loadError"));
       }
       const profileData = await profileRes.json();
       setProfile(profileData.profile);
@@ -438,9 +438,9 @@ export default function UserProfilePage() {
         setReviews(reviewsData);
       }
     } catch (e: any) {
-      setError(e.message || "Ocurrió un error");
+      setError(e.message || common("error"));
     }
-  }, [username]);
+  }, [common, t, username]);
 
   useEffect(() => {
     async function init() {
@@ -458,13 +458,13 @@ export default function UserProfilePage() {
 
         await fetchProfileData();
       } catch (e: any) {
-        setError(e.message || "Error de red");
+        setError(e.message || t("networkError"));
       } finally {
         setLoading(false);
       }
     }
     init();
-  }, [username, fetchProfileData]);
+  }, [username, fetchProfileData, t]);
 
   // Initializing edit state when modal opens
   const openEditModal = () => {
@@ -502,7 +502,7 @@ export default function UserProfilePage() {
   if (loading) {
     return (
       <div className="container" style={{ textAlign: "center", padding: "100px 0" }}>
-        <div className="loader">Cargando perfil...</div>
+        <div className="loader">{t("loading")}</div>
       </div>
     );
   }
@@ -512,13 +512,13 @@ export default function UserProfilePage() {
       <div className={styles.profilePage}>
         <div className="card" style={{ padding: "40px", textAlign: "center" }}>
           <h2 style={{ marginBottom: "16px", color: "var(--text-primary)" }}>
-            {error || "Usuario no encontrado"}
+             {error || t("profileNotFound")}
           </h2>
           <p style={{ color: "--text-secondary", marginBottom: "24px" }}>
-            El perfil que buscas no existe o ha ocurrido un problema.
+             {t("profileNotFoundDescription")}
           </p>
           <Link href="/" className="neon-btn" style={{ display: "inline-block" }}>
-            Volver al Inicio
+             {common("backToHome")}
           </Link>
         </div>
       </div>
@@ -556,7 +556,7 @@ export default function UserProfilePage() {
             <div className={styles.userMeta}>
               <h1 className={styles.username}>@{profile.username}</h1>
               <div style={{ display: "flex", gap: "8px", alignItems: "center", marginTop: "4px", flexWrap: "wrap" }}>
-                <span className={styles.joinDate}>Miembro desde {joinYear}</span>
+                <span className={styles.joinDate}>{t("memberSince", { date: joinYear })}</span>
                 {profile.favoriteGenre && (
                   <span className={styles.genreTag}>
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -577,8 +577,8 @@ export default function UserProfilePage() {
                 <button 
                   onClick={() => setIsAccountSettingsOpen(true)} 
                   className={styles.iconBtn}
-                  aria-label="Configuración de Cuenta"
-                  title="Configuración de Cuenta"
+                  aria-label={t("accountSettings")}
+                  title={t("accountSettings")}
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <circle cx="12" cy="12" r="3"></circle>
@@ -586,7 +586,7 @@ export default function UserProfilePage() {
                   </svg>
                 </button>
                 <button onClick={openEditModal} className={`${styles.actionBtn} ${styles.editBtn}`}>
-                  Editar Perfil
+                  {t("editProfile")}
                 </button>
               </div>
             ) : (
@@ -596,7 +596,7 @@ export default function UserProfilePage() {
                   isFollowing ? styles.unfollowBtn : styles.followBtn
                 }`}
               >
-                {isFollowing ? "Siguiendo" : "Seguir"}
+                {isFollowing ? t("following") : t("follow")}
               </button>
             )}
           </div>
@@ -604,14 +604,12 @@ export default function UserProfilePage() {
 
         {/* Bio */}
         <div className={styles.bioSection}>
-          <h4 className={styles.bioTitle}>Biografía</h4>
+          <h4 className={styles.bioTitle}>{t("biography")}</h4>
           {profile.bio ? (
             <p className={styles.bioText}>{profile.bio}</p>
           ) : (
             <p className={styles.bioPlaceholder}>
-              {isOwnProfile
-                ? "Aún no has agregado una biografía. Presiona Editar Perfil para contarle a la comunidad sobre ti."
-                : "Este usuario no ha agregado una biografía."}
+              {isOwnProfile ? t("emptyOwnBio") : t("emptyPublicBio")}
             </p>
           )}
         </div>
@@ -620,15 +618,15 @@ export default function UserProfilePage() {
         <div className={styles.statsRow}>
           <div className={styles.statItem}>
             <span className={styles.statVal}>{stats?.reviewsCount || 0}</span>
-            <span className={styles.statLabel}>Reseñas</span>
+            <span className={styles.statLabel}>{t("reviews")}</span>
           </div>
           <div className={styles.statItem}>
             <span className={styles.statVal}>{stats?.followersCount || 0}</span>
-            <span className={styles.statLabel}>Seguidores</span>
+            <span className={styles.statLabel}>{t("followers")}</span>
           </div>
           <div className={styles.statItem}>
             <span className={styles.statVal}>{stats?.followingCount || 0}</span>
-            <span className={styles.statLabel}>Siguiendo</span>
+            <span className={styles.statLabel}>{t("following")}</span>
           </div>
         </div>
 
@@ -639,7 +637,7 @@ export default function UserProfilePage() {
               <div 
                 key={badge.badgeId} 
                 className={styles.badgeCard}
-                title={`Obtenido el ${new Date(badge.createdAt).toLocaleDateString()}`}
+                title={t("badgeEarned", { date: new Date(badge.createdAt).toLocaleDateString(locale) })}
                 style={{
                   display: "flex",
                   alignItems: "center",
@@ -658,7 +656,7 @@ export default function UserProfilePage() {
                   {/* Add more badge mappings here later */}
                 </span>
                 <span>
-                  {badge.badgeId === "FIRST_REVIEW" && "Crítico en Ascenso"}
+                  {badge.badgeId === "FIRST_REVIEW" && t("firstReviewBadge")}
                 </span>
               </div>
             ))}
@@ -674,7 +672,7 @@ export default function UserProfilePage() {
               <circle cx="12" cy="12" r="10" />
               <circle cx="12" cy="12" r="3" />
             </svg>
-            RTM Recap {new Date().getFullYear()}
+            {t("recap")} {new Date().getFullYear()}
           </button>
         </div>
       </header>
@@ -685,39 +683,39 @@ export default function UserProfilePage() {
           onClick={() => { setActiveTab("reviews"); setSelectedList(null); }}
           className={`${styles.tabBtn} ${activeTab === "reviews" ? styles.tabBtnActive : ""}`}
         >
-          Reseñas
+          {t("reviews")}
         </button>
         <button
           onClick={() => { setActiveTab("lists"); setSelectedList(null); }}
           className={`${styles.tabBtn} ${activeTab === "lists" ? styles.tabBtnActive : ""}`}
         >
-          Listas
+          {t("lists")}
         </button>
         <button
           onClick={() => { setActiveTab("diary"); setSelectedList(null); }}
           className={`${styles.tabBtn} ${activeTab === "diary" ? styles.tabBtnActive : ""}`}
         >
-          Bitácora
+          {t("diary")}
         </button>
         <button
           onClick={() => { setActiveTab("stats"); setSelectedList(null); }}
           className={`${styles.tabBtn} ${activeTab === "stats" ? styles.tabBtnActive : ""}`}
         >
-          Estadísticas
+          {t("statistics")}
         </button>
         {isOwnProfile && (
           <button
             onClick={() => { setActiveTab("listen-later"); setSelectedList(null); }}
             className={`${styles.tabBtn} ${activeTab === "listen-later" ? styles.tabBtnActive : ""}`}
           >
-            Escuchar Después
+            {t("listenLater")}
           </button>
         )}
       </div>
 
       {loadingTab ? (
         <div style={{ textAlign: "center", padding: "40px 0", color: "var(--text-secondary)" }}>
-          Cargando datos de pestaña...
+          {t("tabLoading")}
         </div>
       ) : (
         <>
@@ -725,7 +723,7 @@ export default function UserProfilePage() {
             <main className={styles.profileContent}>
               {/* Left Side: Reviews */}
               <div>
-                <h3 className={styles.sectionTitle}>Reseñas Recientes</h3>
+                <h3 className={styles.sectionTitle}>{t("recentReviews")}</h3>
                 <div className={styles.reviewsList}>
                   {reviews.length > 0 ? (
                     reviews.map((review) => (
@@ -733,9 +731,7 @@ export default function UserProfilePage() {
                     ))
                   ) : (
                     <div className={styles.noReviews}>
-                      {isOwnProfile
-                        ? "Aún no has escrito ninguna reseña. ¡Busca un álbum en la página de inicio y comparte tu calificación!"
-                        : "Este usuario aún no ha publicado ninguna reseña."}
+                      {isOwnProfile ? t("noOwnReviews") : t("noPublicReviews")}
                     </div>
                   )}
                 </div>
@@ -744,7 +740,7 @@ export default function UserProfilePage() {
               {/* Right Side: Favorite Album Slots */}
               <aside>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
-                  <h3 className={styles.sectionTitle} style={{ margin: 0 }}>Álbumes Favoritos</h3>
+                  <h3 className={styles.sectionTitle} style={{ margin: 0 }}>{t("favoriteAlbums")}</h3>
                   {isOwnProfile && (
                     <button 
                       onClick={() => setIsFavoritesOpen(true)}
@@ -779,7 +775,7 @@ export default function UserProfilePage() {
                         <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
                         <path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4Z"></path>
                       </svg>
-                      Editar
+                      {common("edit")}
                     </button>
                   )}
                 </div>
@@ -815,17 +811,17 @@ export default function UserProfilePage() {
                                         })
                                       });
                                       if (res.ok) {
-                                        showToast("Álbum removido de favoritos", "success");
+                                         showToast(t("favoriteRemoved"), "success");
                                         await fetchProfileData();
                                       } else {
-                                        showToast("Error al remover álbum", "error");
+                                         showToast(t("operationError"), "error");
                                       }
                                     } catch (err) {
-                                      showToast("Error de conexión", "error");
+                                       showToast(common("connectionError"), "error");
                                     }
                                   }}
                                   className={styles.deleteOverlay}
-                                  title="Quitar de favoritos"
+                                  title={t("removeFavorite")}
                                 >
                                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#f43f5e" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ transition: "transform 0.2s" }} onMouseOver={(e) => e.currentTarget.style.transform = "scale(1.15)"} onMouseOut={(e) => e.currentTarget.style.transform = "scale(1)"}>
                                     <line x1="18" y1="6" x2="6" y2="18"></line>
@@ -871,11 +867,11 @@ export default function UserProfilePage() {
                               e.currentTarget.style.transform = "scale(1)";
                             }}
                           >
-                            <span style={{ fontSize: "1rem", fontWeight: "bold" }}>+</span> Añadir favorito
+                            <span style={{ fontSize: "1rem", fontWeight: "bold" }}>+</span> {t("addFavorite")}
                           </button>
                         ) : (
                           <div style={{ flexGrow: 1, height: "50px", display: "flex", alignItems: "center", justifyContent: "center", border: "1px dashed var(--border)", borderRadius: "8px", color: "var(--text-muted)", fontSize: "0.75rem" }}>
-                             Ranura vacía
+                             {t("emptyFavoriteSlot")}
                           </div>
                         )}
                       </div>
@@ -894,7 +890,7 @@ export default function UserProfilePage() {
                   {isEditingList ? (
                     <form onSubmit={handleEditListSubmit} style={{ display: "flex", flexDirection: "column", gap: "16px", marginBottom: "16px" }}>
                       <div className={styles.formGroup}>
-                        <label className={styles.formLabel}>Título de la Lista</label>
+                        <label className={styles.formLabel}>{t("listTitle")}</label>
                         <input
                           type="text"
                           className={styles.formInput}
@@ -905,7 +901,7 @@ export default function UserProfilePage() {
                         />
                       </div>
                       <div className={styles.formGroup}>
-                        <label className={styles.formLabel}>Descripción (opcional)</label>
+                        <label className={styles.formLabel}>{t("listDescription")} ({common("optional")})</label>
                         <textarea
                           className={styles.formInput}
                           value={editListDesc}
@@ -922,24 +918,29 @@ export default function UserProfilePage() {
                           onChange={(e) => setEditListPublic(e.target.checked)}
                           className={styles.checkbox}
                         />
-                        <label htmlFor="edit-list-public" className={styles.checkboxLabel}>Hacer esta lista pública</label>
+                        <label htmlFor="edit-list-public" className={styles.checkboxLabel}>{t("publicList")}</label>
                       </div>
                       <div style={{ display: "flex", gap: "12px", justifyContent: "flex-end" }}>
-                        <button type="button" onClick={() => setIsEditingList(false)} className="secondary-btn">Cancelar</button>
-                        <button type="submit" className="neon-btn">Guardar Cambios</button>
+                        <button type="button" onClick={() => setIsEditingList(false)} className="secondary-btn">{common("cancel")}</button>
+                        <button type="submit" className="neon-btn">{t("saveChanges")}</button>
                       </div>
                     </form>
                   ) : (
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "16px", flexWrap: "wrap", gap: "16px" }}>
                       <div>
                         <button onClick={() => setSelectedList(null)} className="secondary-btn" style={{ marginBottom: "12px", display: "inline-block", fontSize: "0.85rem", padding: "6px 12px" }}>
-                          ← Volver a listas
+                          ← {t("backToLists")}
                         </button>
                         <h2 className={styles.listTitle} style={{ fontSize: "2rem" }}>{selectedList.title}</h2>
                         {selectedList.description && (
                           <p style={{ color: "var(--text-secondary)", marginTop: "8px", fontSize: "0.95rem" }}>{selectedList.description}</p>
                         )}
-                        <span className={styles.listMeta}>Creada por @{selectedList.user.username} • {selectedList.items.length} álbumes • {selectedList.isPublic ? "Pública" : "Privada"}</span>
+                        <span className={styles.listMeta}>
+                          {t("createdBy", { username: selectedList.user.username })} • {t("listSummary", {
+                            albums: t("albumsCount", { count: selectedList.items.length }),
+                            visibility: selectedList.isPublic ? t("public") : t("private")
+                          })}
+                        </span>
                       </div>
                       {isOwnProfile && (
                         <div style={{ display: "flex", gap: "10px" }}>
@@ -952,10 +953,10 @@ export default function UserProfilePage() {
                             }} 
                             className="secondary-btn"
                           >
-                            Editar Info
+                            {t("editList")}
                           </button>
                           <button onClick={() => handleDeleteList(selectedList.id)} className="secondary-btn" style={{ borderColor: "rgba(244, 63, 94, 0.4)", color: "#f43f5e" }}>
-                            Eliminar Lista
+                            {t("deleteList")}
                           </button>
                         </div>
                       )}
@@ -965,16 +966,16 @@ export default function UserProfilePage() {
                   {/* Add Album Input */}
                   {isOwnProfile && (
                     <div style={{ margin: "24px 0", borderTop: "1px solid var(--border)", paddingTop: "20px" }}>
-                      <h4 style={{ color: "var(--text-primary)", marginBottom: "10px", fontSize: "0.95rem" }}>Añadir Álbum a esta lista:</h4>
+                      <h4 style={{ color: "var(--text-primary)", marginBottom: "10px", fontSize: "0.95rem" }}>{t("addAlbum")}:</h4>
                       <div className={styles.formGroup} style={{ position: "relative" }}>
                         <input
                           type="text"
                           className={styles.formInput}
-                          placeholder="Buscar álbum para añadir..."
+                          placeholder={t("searchAlbumPlaceholder")}
                           value={listItemQuery}
                           onChange={(e) => setListItemQuery(e.target.value)}
                         />
-                        {listSearching && <div className={styles.searchingText} style={{ position: "absolute", right: "12px", top: "12px" }}>Buscando...</div>}
+                        {listSearching && <div className={styles.searchingText} style={{ position: "absolute", right: "12px", top: "12px" }}>{common("searching")}</div>}
                         
                         {listSearchResults.length > 0 && (
                           <div className={styles.searchResultsDropdown} style={{ position: "absolute", width: "100%", zIndex: 10, background: "#0c0d12", border: "1px solid var(--border)", borderRadius: "8px", marginTop: "4px" }}>
@@ -1017,7 +1018,7 @@ export default function UserProfilePage() {
                               onClick={() => handleRemoveItemFromList(item.musicItemId)}
                               className="secondary-btn"
                               style={{ padding: "4px 8px", fontSize: "0.75rem", borderColor: "rgba(255, 255, 255, 0.1)" }}
-                              title="Remover de la lista"
+                              title={t("removeFromList")}
                             >
                               &times;
                             </button>
@@ -1025,7 +1026,7 @@ export default function UserProfilePage() {
                         </div>
                       ))
                     ) : (
-                      <p style={{ color: "var(--text-muted)", gridColumn: "1/-1", textAlign: "center", padding: "20px" }}>Esta lista está vacía.</p>
+                      <p style={{ color: "var(--text-muted)", gridColumn: "1/-1", textAlign: "center", padding: "20px" }}>{t("emptyList")}</p>
                     )}
                   </div>
                 </div>
@@ -1033,10 +1034,10 @@ export default function UserProfilePage() {
                 /* Grid view of user's lists */
                 <div>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
-                    <h3 className={styles.sectionTitle}>Colecciones de listas</h3>
+                    <h3 className={styles.sectionTitle}>{t("listCollections")}</h3>
                     {isOwnProfile && (
                       <button onClick={() => setIsCreateListOpen(true)} className="neon-btn">
-                        Crear Nueva Lista
+                        {t("createNewList")}
                       </button>
                     )}
                   </div>
@@ -1053,7 +1054,10 @@ export default function UserProfilePage() {
                           <div>
                             <h4 className={styles.listTitle}>{list.title}</h4>
                             <p className={styles.listMeta} style={{ marginTop: "4px" }}>
-                              {list.isPublic ? "Publica" : "Privada"} • {list.items?.length || 0} álbumes
+                              {t("listSummary", {
+                                albums: t("albumsCount", { count: list.items?.length || 0 }),
+                                visibility: list.isPublic ? t("public") : t("private")
+                              })}
                             </p>
                           </div>
                           <div className={styles.coversStack}>
@@ -1062,13 +1066,13 @@ export default function UserProfilePage() {
                                 <img
                                   key={idx}
                                   src={item.musicItem.coverUrl}
-                                  alt="Cover"
+                                  alt={item.musicItem.title}
                                   className={styles.stackCover}
                                   style={{ transform: `translateX(-${idx * 10}px)` }}
                                 />
                               ))
                             ) : (
-                              <span style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>Lista vacía</span>
+                              <span style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>{t("emptyList")}</span>
                             )}
                           </div>
                         </div>
@@ -1076,7 +1080,7 @@ export default function UserProfilePage() {
                     </div>
                   ) : (
                     <div className={styles.noReviews} style={{ textAlign: "center", padding: "40px" }}>
-                      No hay listas creadas por este usuario aún.
+                      {t("noLists")}
                     </div>
                   )}
                 </div>
@@ -1087,10 +1091,10 @@ export default function UserProfilePage() {
           {activeTab === "diary" && (
             <div style={{ width: "100%" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
-                <h3 className={styles.sectionTitle}>Diario de Escucha</h3>
+                <h3 className={styles.sectionTitle}>{t("diary")}</h3>
                 {isOwnProfile && (
                   <button onClick={() => setIsDiaryModalOpen(true)} className="neon-btn">
-                    Registrar en Bitácora
+                    {t("diaryTitle")}
                   </button>
                 )}
               </div>
@@ -1098,7 +1102,7 @@ export default function UserProfilePage() {
               {diaryLogs.length > 0 ? (
                 <div className={styles.diaryTimeline}>
                   {diaryLogs.map((log) => {
-                    const formattedLogDate = new Date(log.listenedAt).toLocaleDateString("es-ES", {
+                    const formattedLogDate = new Date(log.listenedAt).toLocaleDateString(locale, {
                       day: "numeric",
                       month: "short",
                       year: "numeric"
@@ -1125,7 +1129,7 @@ export default function UserProfilePage() {
                           )}
                           <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                             {log.listenCount > 1 && (
-                              <span className={styles.listenCountBadge} title={`Escuchado ${log.listenCount} veces`}>
+                              <span className={styles.listenCountBadge} title={t("listenCount", { count: log.listenCount })}>
                                 🎧 ×{log.listenCount}
                               </span>
                             )}
@@ -1138,7 +1142,7 @@ export default function UserProfilePage() {
                 </div>
               ) : (
                 <div className={styles.noReviews} style={{ textAlign: "center", padding: "40px" }}>
-                  Aún no se han registrado escuchas en la bitácora.
+                  {t("noDiary")}
                 </div>
               )}
             </div>
@@ -1146,14 +1150,16 @@ export default function UserProfilePage() {
 
           {activeTab === "stats" && (
             <div style={{ width: "100%" }}>
-              <h3 className={styles.sectionTitle} style={{ marginBottom: "20px" }}>Métricas y Estadísticas</h3>
+              <h3 className={styles.sectionTitle} style={{ marginBottom: "20px" }}>{t("statistics")}</h3>
               
               {statsData ? (
                 <div className={styles.statsDashboard}>
                   {/* Rating Distribution Histogram */}
                   <div className={`${styles.chartCard} card glass`}>
-                    <h4 style={{ fontSize: "1.1rem", fontWeight: 700, color: "var(--text-primary)" }}>Distribución de Puntuaciones</h4>
-                    <span style={{ fontSize: "0.8rem", color: "var(--text-secondary)" }}>Promedio: {statsData.averageRating.toFixed(2)} ★ ({statsData.totalRatings} valoraciones)</span>
+                    <h4 style={{ fontSize: "1.1rem", fontWeight: 700, color: "var(--text-primary)" }}>{t("scoreDistribution")}</h4>
+                    <span style={{ fontSize: "0.8rem", color: "var(--text-secondary)" }}>
+                      {t("average", { value: statsData.averageRating.toFixed(2) })} ★ ({t("ratingsCount", { count: statsData.totalRatings })})
+                    </span>
                     
                     <div className={styles.distributionChart}>
                       {Object.entries(statsData.ratingDistribution)
@@ -1176,8 +1182,8 @@ export default function UserProfilePage() {
 
                   {/* Top Artists list */}
                   <div className={`${styles.artistsCard} card glass`}>
-                    <h4 style={{ fontSize: "1.1rem", fontWeight: 700, color: "var(--text-primary)" }}>Artistas más Reseñados</h4>
-                    <span style={{ fontSize: "0.8rem", color: "var(--text-secondary)" }}>Tus mayores reseñas por creador</span>
+                    <h4 style={{ fontSize: "1.1rem", fontWeight: 700, color: "var(--text-primary)" }}>{t("topArtists")}</h4>
+                    <span style={{ fontSize: "0.8rem", color: "var(--text-secondary)" }}>{t("topArtistsSubtitle")}</span>
                     
                     <div className={styles.artistList}>
                       {statsData.topArtists.length > 0 ? (
@@ -1185,18 +1191,18 @@ export default function UserProfilePage() {
                           <div key={idx} className={styles.artistRow}>
                             <span className={styles.artistName}>{idx + 1}. {artist.name}</span>
                             <span className={styles.artistReviewsCount}>
-                              <span>{artist.count}</span> {artist.count === 1 ? "reseña" : "reseñas"}
+                              {t("reviewsCount", { count: artist.count })}
                             </span>
                           </div>
                         ))
                       ) : (
-                        <p style={{ color: "var(--text-muted)", fontSize: "0.9rem", textAlign: "center", padding: "20px" }}>No hay suficientes datos.</p>
+                        <p style={{ color: "var(--text-muted)", fontSize: "0.9rem", textAlign: "center", padding: "20px" }}>{t("noData")}</p>
                       )}
                     </div>
                   </div>
                 </div>
               ) : (
-                <div style={{ textAlign: "center", padding: "20px" }}>No hay estadísticas disponibles.</div>
+                <div style={{ textAlign: "center", padding: "20px" }}>{t("noStatistics")}</div>
               )}
             </div>
           )}
@@ -1204,7 +1210,7 @@ export default function UserProfilePage() {
           {activeTab === "listen-later" && (
             <div style={{ width: "100%" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
-                <h3 className={styles.sectionTitle}>Escuchar Después</h3>
+                <h3 className={styles.sectionTitle}>{t("listenLater")}</h3>
               </div>
 
               {listenLaterItems.length > 0 ? (
@@ -1241,7 +1247,7 @@ export default function UserProfilePage() {
                           onClick={() => handleRemoveFromListenLater(item.musicItemId)}
                           className="secondary-btn"
                           style={{ padding: "4px 8px", fontSize: "0.75rem", borderColor: "rgba(255, 255, 255, 0.1)" }}
-                          title="Remover de escuchar después"
+                          title={t("removeListenLater")}
                         >
                           &times;
                         </button>
@@ -1251,7 +1257,7 @@ export default function UserProfilePage() {
                 </div>
               ) : (
                 <div className={styles.noReviews} style={{ textAlign: "center", padding: "40px" }}>
-                  No tienes álbumes guardados para escuchar después.
+                  {t("listenLaterEmpty")}
                 </div>
               )}
             </div>
@@ -1285,34 +1291,34 @@ export default function UserProfilePage() {
         <div className={styles.modalOverlay}>
           <div className={styles.modalContent}>
             <div className={styles.modalHeader}>
-              <h3 className={styles.modalTitle}>Crear Nueva Colección</h3>
-              <button onClick={() => setIsCreateListOpen(false)} className={styles.closeBtn}>
+              <h3 className={styles.modalTitle}>{t("createCollection")}</h3>
+              <button onClick={() => setIsCreateListOpen(false)} className={styles.closeBtn} aria-label={common("close")}>
                 &times;
               </button>
             </div>
 
             <form onSubmit={handleCreateList} style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
               <div className={styles.formGroup}>
-                <label className={styles.formLabel}>Título de la Lista</label>
+                <label className={styles.formLabel}>{t("listTitle")}</label>
                 <input
                   type="text"
                   required
                   className={styles.formInput}
                   value={newListTitle}
                   onChange={(e) => setNewListTitle(e.target.value)}
-                  placeholder="Ej: Favoritos de Jazz, Joyas Ocultas..."
+                  placeholder={t("newListTitlePlaceholder")}
                 />
               </div>
 
               <div className={styles.formGroup}>
-                <label className={styles.formLabel}>Descripción (Opcional)</label>
+                <label className={styles.formLabel}>{t("listDescription")} ({common("optional")})</label>
                 <textarea
                   className={styles.formInput}
                   rows={3}
                   maxLength={500}
                   value={newListDesc}
                   onChange={(e) => setNewListDesc(e.target.value)}
-                  placeholder="Describe de qué trata esta lista musical..."
+                  placeholder={t("newListDescriptionPlaceholder")}
                   style={{ resize: "none" }}
                 />
               </div>
@@ -1326,16 +1332,16 @@ export default function UserProfilePage() {
                   style={{ width: "auto", cursor: "pointer" }}
                 />
                 <label htmlFor="newListPublic" style={{ cursor: "pointer", fontSize: "0.9rem", color: "var(--text-primary)" }}>
-                  Hacer esta lista pública en mi perfil
+                  {t("publicList")}
                 </label>
               </div>
 
               <div className={styles.modalFooter}>
                 <button type="button" onClick={() => setIsCreateListOpen(false)} className={styles.cancelBtn}>
-                  Cancelar
+                  {common("cancel")}
                 </button>
                 <button type="submit" className={styles.saveBtn}>
-                  Crear Lista
+                  {t("createList")}
                 </button>
               </div>
             </form>
@@ -1348,8 +1354,8 @@ export default function UserProfilePage() {
         <div className={styles.modalOverlay}>
           <div className={styles.modalContent}>
             <div className={styles.modalHeader}>
-              <h3 className={styles.modalTitle}>Registrar en Bitácora</h3>
-              <button onClick={() => setIsDiaryModalOpen(false)} className={styles.closeBtn}>
+              <h3 className={styles.modalTitle}>{t("diaryTitle")}</h3>
+              <button onClick={() => setIsDiaryModalOpen(false)} className={styles.closeBtn} aria-label={common("close")}>
                 &times;
               </button>
             </div>
@@ -1357,7 +1363,7 @@ export default function UserProfilePage() {
             <form onSubmit={handleCreateDiaryLog} style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
               {/* Search Album to Add */}
               <div className={styles.formGroup} style={{ position: "relative" }}>
-                <label className={styles.formLabel}>Buscar Álbum</label>
+                <label className={styles.formLabel}>{t("searchAlbum")}</label>
                 {diarySelectedAlbum ? (
                   <div style={{ display: "flex", alignItems: "center", gap: "10px", padding: "10px", background: "rgba(255,255,255,0.03)", borderRadius: "6px", border: "1px solid var(--border)" }}>
                     <img src={diarySelectedAlbum.coverUrl} alt={diarySelectedAlbum.title} style={{ width: "40px", height: "40px", borderRadius: "4px" }} />
@@ -1366,7 +1372,7 @@ export default function UserProfilePage() {
                       <div style={{ color: "var(--text-secondary)", fontSize: "0.75rem" }}>{diarySelectedAlbum.artist}</div>
                     </div>
                     <button type="button" onClick={() => setDiarySelectedAlbum(null)} className="secondary-btn" style={{ padding: "2px 6px", fontSize: "0.75rem" }}>
-                      Cambiar
+                      {t("change")}
                     </button>
                   </div>
                 ) : (
@@ -1374,11 +1380,11 @@ export default function UserProfilePage() {
                     <input
                       type="text"
                       className={styles.formInput}
-                      placeholder="Escribe título del álbum..."
+                      placeholder={t("albumTitlePlaceholder")}
                       value={diarySearchQuery}
                       onChange={(e) => setDiarySearchQuery(e.target.value)}
                     />
-                    {diarySearching && <div className={styles.searchingText} style={{ position: "absolute", right: "12px", top: "36px" }}>Buscando...</div>}
+                    {diarySearching && <div className={styles.searchingText} style={{ position: "absolute", right: "12px", top: "36px" }}>{common("searching")}</div>}
                     
                     {diarySearchResults.length > 0 && (
                       <div className={styles.searchResultsDropdown} style={{ position: "absolute", width: "100%", zIndex: 10, background: "#0c0d12", border: "1px solid var(--border)", borderRadius: "8px", marginTop: "4px", top: "68px" }}>
@@ -1404,7 +1410,7 @@ export default function UserProfilePage() {
 
               {/* Rating */}
               <div className={styles.formGroup}>
-                <label className={styles.formLabel}>Calificación (Estrellas)</label>
+                <label className={styles.formLabel}>{t("rating")}</label>
                 <select
                   className={styles.formInput}
                   value={diaryRating}
@@ -1425,24 +1431,24 @@ export default function UserProfilePage() {
 
               {/* Quick Notes */}
               <div className={styles.formGroup}>
-                <label className={styles.formLabel}>Notas rápidas / Comentarios (Opcional)</label>
+                <label className={styles.formLabel}>{t("quickNotes")} ({common("optional")})</label>
                 <textarea
                   className={styles.formInput}
                   rows={3}
                   maxLength={500}
                   value={diaryNotes}
                   onChange={(e) => setDiaryNotes(e.target.value)}
-                  placeholder="Apuntes rápidos sobre esta escucha..."
+                  placeholder={t("quickNotes")}
                   style={{ resize: "none" }}
                 />
               </div>
 
               <div className={styles.modalFooter}>
                 <button type="button" onClick={() => setIsDiaryModalOpen(false)} className={styles.cancelBtn}>
-                  Cancelar
+                  {common("cancel")}
                 </button>
                 <button type="submit" className={styles.saveBtn}>
-                  Registrar
+                  {common("save")}
                 </button>
               </div>
             </form>
@@ -1480,10 +1486,10 @@ export default function UserProfilePage() {
             }}
           >
             <h4 style={{ fontSize: "1.1rem", fontWeight: 700, color: "var(--text-primary)", fontFamily: "var(--font-display)" }}>
-              ¿Eliminar colección?
+              {t("deleteCollectionTitle")}
             </h4>
             <p style={{ fontSize: "0.85rem", color: "var(--text-secondary)", lineHeight: 1.5 }}>
-              Esta acción borrará permanentemente la lista y todos sus elementos vinculados.
+              {t("deleteCollectionDescription")}
             </p>
             <div style={{ display: "flex", justifyContent: "flex-end", gap: "12px", marginTop: "8px" }}>
               <button
@@ -1499,7 +1505,7 @@ export default function UserProfilePage() {
                   fontSize: "0.85rem"
                 }}
               >
-                Cancelar
+                {common("cancel")}
               </button>
               <button
                 onClick={() => {
@@ -1517,7 +1523,7 @@ export default function UserProfilePage() {
                   fontSize: "0.85rem"
                 }}
               >
-                Eliminar
+                {common("delete")}
               </button>
             </div>
           </div>

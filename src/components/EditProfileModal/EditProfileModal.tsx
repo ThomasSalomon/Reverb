@@ -6,6 +6,7 @@ import localStyles from "../../app/[locale]/users/[username]/page.module.css";
 import { showToast } from "@/components/Toast/ToastListener";
 import { useBodyScrollLock } from "@/hooks/useBodyScrollLock";
 import ImageCropper from "./ImageCropper";
+import { useTranslations } from "next-intl";
 
 interface FavoriteAlbumRelation {
   slot: number;
@@ -45,6 +46,8 @@ const COLOR_MAP: Record<string, { value: string }> = {
 };
 
 export default function EditProfileModal({ isOpen, onClose, profile, onSave }: EditProfileModalProps) {
+  const t = useTranslations("Profile");
+  const common = useTranslations("Common");
   const [editBio, setEditBio] = useState("");
   const [editGenre, setEditGenre] = useState("");
   const [editColor, setEditColor] = useState("emerald");
@@ -69,7 +72,7 @@ export default function EditProfileModal({ isOpen, onClose, profile, onSave }: E
 
     // 007-security-auditor & Optimizer: File size check (2MB)
     if (file.size > 2 * 1024 * 1024) {
-      showToast("La imagen supera el límite de tamaño de 2MB.", "error");
+      showToast(t("imageTooLarge"), "error");
       e.target.value = "";
       return;
     }
@@ -99,18 +102,17 @@ export default function EditProfileModal({ isOpen, onClose, profile, onSave }: E
         })
       });
 
-      const data = await res.json();
       if (!res.ok) {
-        showToast(data.error || "Error al actualizar perfil", "error");
+        showToast(t("profileUpdateError"), "error");
         return;
       }
 
-      showToast("Perfil actualizado correctamente", "success");
+      showToast(t("profileUpdated"), "success");
       await onSave();
       onClose();
     } catch (e) {
       console.error("Save profile error:", e);
-      showToast("Error de conexión", "error");
+      showToast(common("connectionError"), "error");
     } finally {
       setSaving(false);
     }
@@ -124,9 +126,9 @@ export default function EditProfileModal({ isOpen, onClose, profile, onSave }: E
       <div className={styles.modalContent}>
         <div className={styles.modalHeader}>
           <h3 className={styles.modalTitle}>
-            {cropImageSrc ? "Recortar Foto" : "Editar Perfil"}
+            {cropImageSrc ? t("cropPhoto") : t("editProfile")}
           </h3>
-          <button onClick={onClose} className={styles.closeBtn}>
+          <button onClick={onClose} className={styles.closeBtn} aria-label={common("close")}>
             &times;
           </button>
         </div>
@@ -145,7 +147,7 @@ export default function EditProfileModal({ isOpen, onClose, profile, onSave }: E
           <form onSubmit={handleSubmit} className={styles.formContainer}>
             {/* Foto de Perfil Picker */}
             <div className={styles.formGroup}>
-              <label className={styles.formLabel}>Foto de Perfil</label>
+              <label className={styles.formLabel}>{t("profilePhoto")}</label>
               <div style={{ display: "flex", gap: "14px", marginBottom: "12px", alignItems: "center", flexWrap: "wrap" }}>
                 {/* Default Text Initials Fallback */}
                 <div 
@@ -166,7 +168,7 @@ export default function EditProfileModal({ isOpen, onClose, profile, onSave }: E
                     cursor: "pointer",
                     transition: "all 0.2s"
                   }}
-                  title="Iniciales del perfil"
+                  title={t("profileInitials")}
                 >
                   {profile.username.substring(0, 2).toUpperCase()}
                 </div>
@@ -180,7 +182,7 @@ export default function EditProfileModal({ isOpen, onClose, profile, onSave }: E
                     <img
                       key={num}
                       src={presetUrl}
-                      alt={`Preset ${num}`}
+                      alt={t("avatarPreset", { number: num })}
                       onClick={() => setEditImage(presetUrl)}
                       style={{
                         width: "50px",
@@ -201,7 +203,7 @@ export default function EditProfileModal({ isOpen, onClose, profile, onSave }: E
                   <div style={{ position: "relative" }}>
                     <img
                       src={editImage}
-                      alt="Foto de perfil cargada"
+                      alt={t("uploadedProfilePhoto")}
                       onClick={() => setEditImage(editImage)}
                       style={{
                         width: "50px",
@@ -233,7 +235,7 @@ export default function EditProfileModal({ isOpen, onClose, profile, onSave }: E
                         cursor: "pointer",
                         fontWeight: "bold"
                       }}
-                      title="Eliminar foto cargada"
+                      title={t("removeUploadedPhoto")}
                     >
                       &times;
                     </button>
@@ -271,7 +273,7 @@ export default function EditProfileModal({ isOpen, onClose, profile, onSave }: E
                     <polyline points="17 8 12 3 7 8"></polyline>
                     <line x1="12" y1="3" x2="12" y2="15"></line>
                   </svg>
-                  Subir imagen desde ordenador
+                  {t("uploadImage")}
                   <input
                     type="file"
                     accept="image/*"
@@ -284,36 +286,36 @@ export default function EditProfileModal({ isOpen, onClose, profile, onSave }: E
 
             {/* Bio */}
             <div className={styles.formGroup}>
-              <label className={styles.formLabel}>Biografía</label>
+              <label className={styles.formLabel}>{t("biography")}</label>
               <textarea
                 className={styles.formInput}
                 rows={4}
                 maxLength={500}
                 value={editBio}
                 onChange={(e) => setEditBio(e.target.value)}
-                placeholder="Cuéntanos sobre tus gustos musicales..."
+                placeholder={t("bioPlaceholder")}
                 style={{ resize: "none" }}
               />
               <span style={{ fontSize: "0.75rem", color: "var(--text-secondary)", textAlign: "right" }}>
-                {editBio.length}/500 caracteres
+                {t("characterCount", { count: editBio.length, max: 500 })}
               </span>
             </div>
 
             {/* Genre */}
             <div className={styles.formGroup}>
-              <label className={styles.formLabel}>Género Favorito</label>
+              <label className={styles.formLabel}>{t("favoriteGenre")}</label>
               <input
                 type="text"
                 className={styles.formInput}
                 value={editGenre}
                 onChange={(e) => setEditGenre(e.target.value)}
-                placeholder="Ej: Heavy Metal, Synthpop, Jazz..."
+                placeholder={t("genrePlaceholder")}
               />
             </div>
 
             {/* Color Preset Selector */}
             <div className={styles.formGroup}>
-              <label className={styles.formLabel}>Color de Perfil</label>
+              <label className={styles.formLabel}>{t("profileColor")}</label>
               <div className={localStyles.colorPicker}>
                 {Object.keys(COLOR_MAP).map((colorKey) => {
                   const colorData = COLOR_MAP[colorKey];
@@ -335,10 +337,10 @@ export default function EditProfileModal({ isOpen, onClose, profile, onSave }: E
             {/* Footer */}
             <div className={styles.modalFooter}>
               <button type="button" onClick={onClose} className={styles.cancelBtn} disabled={saving}>
-                Cancelar
+                {common("cancel")}
               </button>
               <button type="submit" className={styles.saveBtn} disabled={saving}>
-                {saving ? "Guardando..." : "Guardar Cambios"}
+                {saving ? t("changingPassword") : common("saveChanges")}
               </button>
             </div>
           </form>

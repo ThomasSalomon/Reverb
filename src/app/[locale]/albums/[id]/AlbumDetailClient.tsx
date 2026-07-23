@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { Link, useRouter } from "@/i18n/routing";
+import { useLocale, useTranslations } from "next-intl";
 import Cover3D from "@/components/Cover3D/Cover3D";
 import RatingStars from "@/components/RatingStars/RatingStars";
 import ReviewCard from "@/components/ReviewCard/ReviewCard";
@@ -61,6 +61,9 @@ interface User {
 
 export default function AlbumDetailClient({ id }: { id: string }) {
   const router = useRouter();
+  const t = useTranslations("Album");
+  const common = useTranslations("Common");
+  const locale = useLocale();
   const [album, setAlbum] = useState<MusicItemDetail | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
@@ -85,7 +88,7 @@ export default function AlbumDetailClient({ id }: { id: string }) {
     try {
       const res = await fetch(`/api/music/${id}?t=${Date.now()}`, { cache: "no-store" });
       if (!res.ok) {
-        throw new Error("Álbum no encontrado");
+        throw new Error(t("notFound"));
       }
       const data = await res.json();
       setAlbum(data);
@@ -93,9 +96,9 @@ export default function AlbumDetailClient({ id }: { id: string }) {
       setIsListenLater(data.isListenLater || false);
       setCurrentUserRating(data.currentUserRating || null);
     } catch (e: any) {
-      setError(e.message || "Error al cargar el álbum");
+      setError(t("notFound"));
     }
-  }, [id]);
+  }, [id, t]);
 
   const handleListenLaterToggle = async () => {
     if (!user) {
@@ -115,17 +118,17 @@ export default function AlbumDetailClient({ id }: { id: string }) {
 
       if (res.ok) {
         setIsListenLater(!isListenLater);
-        showToast(isListenLater ? "Eliminado de Deseos" : "Añadido a Deseos", "success");
+        showToast(isListenLater ? t("removedLater") : t("addedLater"), "success");
       }
     } catch (e) {
       console.error(e);
-      showToast("Error de conexión", "error");
+      showToast(common("connectionError"), "error");
     }
   };
 
   const handleQuickRate = async (value: number) => {
     if (!user) {
-      showToast("Inicia sesión para calificar", "error");
+      showToast(t("loginToRate"), "error");
       return;
     }
     try {
@@ -137,15 +140,15 @@ export default function AlbumDetailClient({ id }: { id: string }) {
 
       if (res.ok) {
         setCurrentUserRating(value);
-        showToast("Calificación guardada", "success");
+        showToast(t("ratingSaved"), "success");
         await fetchAlbumDetails();
       } else {
         const data = await res.json();
-        showToast(data.error || "Error al guardar calificación", "error");
+        showToast(common("connectionError"), "error");
       }
     } catch (e) {
       console.error(e);
-      showToast("Error de conexión", "error");
+      showToast(common("connectionError"), "error");
     }
   };
 
@@ -165,10 +168,10 @@ export default function AlbumDetailClient({ id }: { id: string }) {
         setIsDiaryOpen(false);
         setDiaryNotes("");
         setDiaryRating("5");
-        showToast("Escucha registrada con éxito en tu bitácora", "success");
+        showToast(t("savedToDiary"), "success");
       } else {
         const data = await res.json();
-        showToast(data.error || "Error al guardar en bitácora", "error");
+        showToast(common("connectionError"), "error");
       }
     } catch (e) {
       console.error(e);
@@ -224,15 +227,15 @@ export default function AlbumDetailClient({ id }: { id: string }) {
   }, [id, fetchAlbumDetails]);
 
   if (loading) {
-    return <div className={styles.loadingContainer}>Cargando información del álbum...</div>;
+    return <div className={styles.loadingContainer}>{t("loading")}</div>;
   }
 
   if (error || !album) {
     return (
       <div className={styles.errorContainer}>
-        <h2>{error || "Álbum no encontrado"}</h2>
+        <h2>{error || t("notFound")}</h2>
         <Link href="/" className="secondary-btn" style={{ marginTop: "20px", display: "inline-block" }}>
-          Volver al Inicio
+          {common("backToHome")}
         </Link>
       </div>
     );
@@ -251,12 +254,8 @@ export default function AlbumDetailClient({ id }: { id: string }) {
               <RatingStars value={album.stats.averageRating} size={16} />
             </div>
             <div className={styles.statsMeta}>
-              <div>
-                <span>{album.stats.totalRatings}</span> Calificaciones
-              </div>
-              <div>
-                <span>{album.stats.totalReviews}</span> Reseñas
-              </div>
+              <div>{t("ratingsCount", { count: album.stats.totalRatings })}</div>
+              <div>{t("reviewsCount", { count: album.stats.totalReviews })}</div>
             </div>
           </div>
 
@@ -268,7 +267,7 @@ export default function AlbumDetailClient({ id }: { id: string }) {
           >
             {deezerActiveSrc ? (
               <iframe
-                title="Deezer Album Player"
+                title={t("playerTitle")}
                 src={deezerActiveSrc}
                 width="100%"
                 height="350"
@@ -287,7 +286,7 @@ export default function AlbumDetailClient({ id }: { id: string }) {
                 color: "var(--text-muted)",
                 fontSize: "0.85rem"
               }}>
-                Cargando reproductor…
+                {t("loadingPlayer")}
               </div>
             )}
           </div>
@@ -298,7 +297,7 @@ export default function AlbumDetailClient({ id }: { id: string }) {
           <header className={styles.header}>
             <h1 className={styles.title}>{album.title}</h1>
             <p className={styles.artistSub}>
-              por <Link href={`/artists/${encodeURIComponent(album.artist)}`}>{album.artist}</Link> • {album.releaseYear}
+              {t("byArtist")} <Link href={`/artists/${encodeURIComponent(album.artist)}`}>{album.artist}</Link> • {album.releaseYear}
             </p>
             
             <div className={styles.actionsBar} style={{ display: "flex", gap: "12px", marginTop: "16px", flexWrap: "wrap" }}>
@@ -325,7 +324,7 @@ export default function AlbumDetailClient({ id }: { id: string }) {
                     <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
                     <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
                   </svg>
-                  Compartir
+                  {t("share")}
                 </div>
               </button>
 
@@ -358,7 +357,7 @@ export default function AlbumDetailClient({ id }: { id: string }) {
                           <polyline points="12 6 12 12 16 14"></polyline>
                         </svg>
                       )}
-                      {isListenLater ? "Guardado en Deseos" : "Escuchar más tarde"}
+                      {isListenLater ? t("savedLater") : t("listenLater")}
                     </div>
                   </button>
                   <button
@@ -381,7 +380,7 @@ export default function AlbumDetailClient({ id }: { id: string }) {
                         <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
                         <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
                       </svg>
-                      Añadir a Diario
+                      {t("addToDiary")}
                     </div>
                   </button>
                   <button
@@ -411,7 +410,7 @@ export default function AlbumDetailClient({ id }: { id: string }) {
                         <line x1="3" y1="12" x2="3.01" y2="12"></line>
                         <line x1="3" y1="18" x2="3.01" y2="18"></line>
                       </svg>
-                      Añadir a Lista
+                      {t("addToList")}
                     </div>
                   </button>
                   <div style={{
@@ -424,7 +423,7 @@ export default function AlbumDetailClient({ id }: { id: string }) {
                     border: "1px solid var(--border)",
                   }}>
                     <div className={styles.desktopRating}>
-                      <span style={{ fontSize: "0.85rem", color: "var(--text-secondary)", fontWeight: 600 }}>Calificar:</span>
+                      <span style={{ fontSize: "0.85rem", color: "var(--text-secondary)", fontWeight: 600 }}>{t("rate")}:</span>
                       <RatingStars 
                         value={currentUserRating || 0} 
                         onChange={handleQuickRate} 
@@ -434,7 +433,7 @@ export default function AlbumDetailClient({ id }: { id: string }) {
                     </div>
                     <div className={styles.mobileRating}>
                       <span className={styles.mobileRatingText}>
-                        {currentUserRating ? `Tu Calificación: ${currentUserRating}` : "Calificar este Álbum"}
+                        {currentUserRating ? t("yourRating", {rating: currentUserRating}) : t("rateAlbum")}
                       </span>
                       <SliderRating 
                         value={currentUserRating || 0.5} 
@@ -450,7 +449,7 @@ export default function AlbumDetailClient({ id }: { id: string }) {
           </header>
 
           <section className={`${styles.tracksCard} glass`}>
-            <h3 className={styles.cardTitle}>Lista de Canciones</h3>
+            <h3 className={styles.cardTitle}>{t("trackList")}</h3>
             {album.tracks && album.tracks.length > 0 ? (
               <ol className={styles.tracklist}>
                 {album.tracks.map((track, i) => {
@@ -462,7 +461,7 @@ export default function AlbumDetailClient({ id }: { id: string }) {
                           <button
                             onClick={() => handleFavoriteTrackClick(track.title)}
                             className={styles.favTrackBtn}
-                            title={isFavorite ? "Quitar de favoritas" : "Marcar como favorita"}
+                            title={isFavorite ? t("unfavoriteTrack") : t("favoriteTrack")}
                           >
                             {isFavorite ? (
                               <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" className={styles.heartIconActive}>
@@ -486,7 +485,7 @@ export default function AlbumDetailClient({ id }: { id: string }) {
                 })}
               </ol>
             ) : (
-              <p className={styles.noTracks}>No hay canciones listadas para este álbum.</p>
+              <p className={styles.noTracks}>{t("noTracks")}</p>
             )}
           </section>
 
@@ -500,23 +499,23 @@ export default function AlbumDetailClient({ id }: { id: string }) {
               />
             ) : (
               <div className={`${styles.authPrompt} glass`}>
-                <p>¿Quieres calificar y reseñar este álbum?</p>
+                <p>{t("ratePrompt")}</p>
                 <Link
                   href="/login"
                   className="neon-btn"
                   style={{ marginTop: "12px", display: "inline-block" }}
                 >
-                  Inicia Sesión
+                  {t("loginToRate")}
                 </Link>
               </div>
             )}
           </section>
 
           <section className={styles.reviewsListSection}>
-            <h3 className={styles.sectionHeading}>Reseñas de la comunidad</h3>
+            <h3 className={styles.sectionHeading}>{t("communityReviews")}</h3>
             {album.reviews.length === 0 ? (
               <p className={styles.noReviews}>
-                Aún no hay reseñas para este álbum. ¡Comparte tus pensamientos!
+                {t("noReviews")}
               </p>
             ) : (
               <div className={styles.reviewsStack}>
@@ -561,10 +560,11 @@ export default function AlbumDetailClient({ id }: { id: string }) {
           >
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <h3 style={{ fontSize: "1.25rem", fontWeight: 700, color: "var(--text-primary)", fontFamily: "var(--font-display)" }}>
-                Registrar en Bitácora
+                {t("diaryTitle")}
               </h3>
               <button
                 onClick={() => setIsDiaryOpen(false)}
+                aria-label={common("close")}
                 style={{
                   background: "none",
                   border: "none",
@@ -589,7 +589,7 @@ export default function AlbumDetailClient({ id }: { id: string }) {
               {/* Rating */}
               <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
                 <label style={{ fontSize: "0.8rem", textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--text-secondary)", fontWeight: 700 }}>
-                  Calificación (Estrellas)
+                  {t("ratingLabel")}
                 </label>
                 <select
                   value={diaryRating}
@@ -619,14 +619,14 @@ export default function AlbumDetailClient({ id }: { id: string }) {
               {/* Notes */}
               <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
                 <label style={{ fontSize: "0.8rem", textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--text-secondary)", fontWeight: 700 }}>
-                  Notas rápidas / Comentarios (Opcional)
+                  {t("notesLabel")}
                 </label>
                 <textarea
                   rows={3}
                   maxLength={500}
                   value={diaryNotes}
                   onChange={(e) => setDiaryNotes(e.target.value)}
-                  placeholder="Apuntes rápidos sobre esta escucha..."
+                  placeholder={t("notesPlaceholder")}
                   style={{
                     background: "rgba(0, 0, 0, 0.2)",
                     border: "1px solid var(--border)",
@@ -655,7 +655,7 @@ export default function AlbumDetailClient({ id }: { id: string }) {
                     fontSize: "0.9rem"
                   }}
                 >
-                  Cancelar
+                  {common("cancel")}
                 </button>
                 <button
                   type="submit"
@@ -665,7 +665,7 @@ export default function AlbumDetailClient({ id }: { id: string }) {
                     fontSize: "0.9rem"
                   }}
                 >
-                  Registrar
+                  {common("save")}
                 </button>
               </div>
             </form>
@@ -684,7 +684,7 @@ export default function AlbumDetailClient({ id }: { id: string }) {
             releaseYear: album.releaseYear,
             coverUrl: album.coverUrl,
           }}
-          shareUrl={typeof window !== "undefined" ? window.location.href : `https://ridethemusic.vercel.app/albums/${id}`}
+          shareUrl={typeof window !== "undefined" ? window.location.href : `https://ridethemusic.vercel.app/${locale}/albums/${id}`}
         />
       )}
 

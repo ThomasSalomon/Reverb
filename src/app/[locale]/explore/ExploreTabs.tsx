@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import Link from "next/link";
+import { Link } from "@/i18n/routing";
+import { useTranslations } from "next-intl";
 import styles from "./page.module.css";
 import Avatar from "@/components/Avatar/Avatar";
 import Cover3D from "@/components/Cover3D/Cover3D";
@@ -9,6 +10,8 @@ import Cover3D from "@/components/Cover3D/Cover3D";
 type Tab = "albums" | "artists" | "users";
 
 export default function ExploreTabs() {
+  const t = useTranslations("Explore");
+  const common = useTranslations("Common");
   const [activeTab, setActiveTab] = useState<Tab>("artists");
   const [searchQuery, setSearchQuery] = useState("");
   
@@ -78,23 +81,23 @@ export default function ExploreTabs() {
   };
 
   const renderPlaceholder = () => {
-    if (activeTab === "albums") return "Buscar álbumes...";
-    if (activeTab === "artists") return "Buscar artistas...";
-    return "Buscar usuarios...";
+    if (activeTab === "albums") return t("searchAlbums");
+    if (activeTab === "artists") return t("searchArtists");
+    return t("searchUsers");
   };
 
   const renderSectionTitle = () => {
-    if (isSearching) return "Resultados de búsqueda";
-    if (activeTab === "albums") return "Álbumes Populares";
-    if (activeTab === "artists") return "Artistas Populares";
-    return "Usuarios Populares";
+    if (isSearching) return t("searchResults");
+    if (activeTab === "albums") return t("popularAlbums");
+    if (activeTab === "artists") return t("popularArtists");
+    return t("popularUsers");
   };
 
   return (
     <div className={styles.container}>
       <div className={styles.header}>
-        <h1 className={styles.title}>Explorar</h1>
-        <p className={styles.subtitle}>Descubre nuevos artistas, álbumes y usuarios.</p>
+        <h1 className={styles.title}>{t("title")}</h1>
+        <p className={styles.subtitle}>{t("subtitle")}</p>
       </div>
 
       <div className={styles.tabsContainer}>
@@ -103,19 +106,19 @@ export default function ExploreTabs() {
             className={`${styles.tab} ${activeTab === "albums" ? styles.activeTab : ""}`}
             onClick={() => setActiveTab("albums")}
           >
-            Álbumes
+            {t("albums")}
           </button>
           <button
             className={`${styles.tab} ${activeTab === "artists" ? styles.activeTab : ""}`}
             onClick={() => setActiveTab("artists")}
           >
-            Artistas
+            {t("artists")}
           </button>
           <button
             className={`${styles.tab} ${activeTab === "users" ? styles.activeTab : ""}`}
             onClick={() => setActiveTab("users")}
           >
-            Usuarios
+            {t("users")}
           </button>
         </div>
       </div>
@@ -134,11 +137,11 @@ export default function ExploreTabs() {
         <h2 className={styles.sectionTitle}>{renderSectionTitle()}</h2>
         
         {loading ? (
-          <div className="loader" style={{ margin: "40px auto" }}>Cargando...</div>
+          <div className="loader" style={{ margin: "40px auto" }}>{common("loading")}</div>
         ) : (
           <>
             {activeTab === "users" && users.length === 0 && (
-              <div style={{ color: "var(--text-secondary)", marginTop: "20px" }}>No se encontraron usuarios.</div>
+              <div style={{ color: "var(--text-secondary)", marginTop: "20px" }}>{t("noUsers")}</div>
             )}
             {activeTab === "users" && users.length > 0 && (
               <div className={styles.usersGrid}>
@@ -155,11 +158,11 @@ export default function ExploreTabs() {
                     <div className={styles.userStats}>
                       <div className={styles.stat}>
                         <span className={styles.statValue}>{user._count?.followers || 0}</span>
-                        <span>Seguidores</span>
+                        <span>{t("followers")}</span>
                       </div>
                       <div className={styles.stat}>
                         <span className={styles.statValue}>{user._count?.reviews || 0}</span>
-                        <span>Reseñas</span>
+                        <span>{t("reviews")}</span>
                       </div>
                     </div>
                   </Link>
@@ -168,7 +171,7 @@ export default function ExploreTabs() {
             )}
 
             {activeTab === "albums" && albums.length === 0 && (
-              <div style={{ color: "var(--text-secondary)", marginTop: "20px" }}>No se encontraron álbumes.</div>
+              <div style={{ color: "var(--text-secondary)", marginTop: "20px" }}>{t("noAlbums")}</div>
             )}
             {activeTab === "albums" && albums.length > 0 && (
               <div className={styles.albumsGrid}>
@@ -191,7 +194,7 @@ export default function ExploreTabs() {
             )}
 
             {activeTab === "artists" && artists.length === 0 && (
-              <div style={{ color: "var(--text-secondary)", marginTop: "20px" }}>No se encontraron artistas.</div>
+              <div style={{ color: "var(--text-secondary)", marginTop: "20px" }}>{t("noArtists")}</div>
             )}
             {activeTab === "artists" && artists.length > 0 && (
               <div className={styles.artistsGrid}>
@@ -226,7 +229,7 @@ export default function ExploreTabs() {
                     transition: "opacity 0.2s"
                   }}
                 >
-                  {loading ? "Cargando..." : "Cargar Más"}
+                  {loading ? common("loading") : common("loadMore")}
                 </button>
               </div>
             )}

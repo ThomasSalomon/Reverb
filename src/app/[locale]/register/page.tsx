@@ -1,12 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { Link, useRouter } from "@/i18n/routing";
+import { useTranslations } from "next-intl";
 import styles from "../login/page.module.css";
 
 export default function RegisterPage() {
   const router = useRouter();
+  const t = useTranslations("Auth");
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -16,17 +17,17 @@ export default function RegisterPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!username || !email || !password) {
-      setError("Todos los campos son requeridos");
+      setError(t("allFieldsRequired"));
       return;
     }
 
     if (username.length < 3) {
-      setError("El usuario debe tener al menos 3 caracteres");
+      setError(t("usernameMin"));
       return;
     }
 
     if (password.length < 6) {
-      setError("La contraseña debe tener al menos 6 caracteres");
+      setError(t("passwordMin"));
       return;
     }
 
@@ -40,18 +41,14 @@ export default function RegisterPage() {
         body: JSON.stringify({ username, email, password }),
       });
 
-      const data = await res.json();
       if (!res.ok) {
-        throw new Error(data.error || "Algo salió mal");
+        throw new Error(t("registerFailed"));
       }
 
       router.push("/");
       router.refresh();
-      setTimeout(() => {
-        window.location.href = "/";
-      }, 100);
     } catch (e: any) {
-      setError(e.message || "Error al registrarse");
+      setError(e.message || t("registerFailed"));
     } finally {
       setLoading(false);
     }
@@ -60,41 +57,41 @@ export default function RegisterPage() {
   return (
     <main className={styles.main}>
       <div className={`${styles.authCard} glass`}>
-        <h2 className={styles.title}>Crear Cuenta</h2>
-        <p className={styles.subtitle}>Únete hoy a la comunidad de Ride The Music.</p>
+        <h2 className={styles.title}>{t("registerTitle")}</h2>
+        <p className={styles.subtitle}>{t("registerSubtitle")}</p>
 
         <form onSubmit={handleSubmit} className={styles.form}>
           <div className={styles.inputGroup}>
-            <label className={styles.label}>Nombre de Usuario</label>
+            <label className={styles.label}>{t("username")}</label>
             <input
               type="text"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              placeholder="tu_usuario"
+              placeholder={t("usernamePlaceholder")}
               className="input-field"
               disabled={loading}
             />
           </div>
 
           <div className={styles.inputGroup}>
-            <label className={styles.label}>Correo Electrónico</label>
+            <label className={styles.label}>{t("email")}</label>
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="tu@email.com"
+              placeholder={t("emailPlaceholder")}
               className="input-field"
               disabled={loading}
             />
           </div>
 
           <div className={styles.inputGroup}>
-            <label className={styles.label}>Contraseña</label>
+            <label className={styles.label}>{t("password")}</label>
             <input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="•••••••• (mínimo 6 caracteres)"
+              placeholder={t("passwordPlaceholder")}
               className="input-field"
               disabled={loading}
             />
@@ -103,12 +100,12 @@ export default function RegisterPage() {
           {error && <div className={styles.errorMsg}>{error}</div>}
 
           <button type="submit" className="neon-btn" disabled={loading}>
-            {loading ? "Registrando..." : "Registrarse"}
+            {loading ? t("registering") : t("register")}
           </button>
         </form>
 
         <p className={styles.footerText}>
-          ¿Ya tienes una cuenta? <Link href="/login">Inicia sesión</Link>
+          {t("hasAccount")} <Link href="/login">{t("signIn")}</Link>
         </p>
       </div>
     </main>

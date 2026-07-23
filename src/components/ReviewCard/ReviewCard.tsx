@@ -1,11 +1,12 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
-import Link from "next/link";
+import { Link } from "@/i18n/routing";
 import RatingStars from "../RatingStars/RatingStars";
 import styles from "./ReviewCard.module.css";
 import { showToast } from "@/components/Toast/ToastListener";
 import Avatar from "@/components/Avatar/Avatar";
+import { useLocale, useTranslations } from "next-intl";
 
 import sharedStyles from "../SharedModal.module.css";
 
@@ -50,6 +51,9 @@ const COLOR_MAP: Record<string, string> = {
 };
 
 const ReviewCard = React.memo(function ReviewCard({ review, showMusicDetails = false, onDeleted, onUpdated }: ReviewCardProps) {
+  const t = useTranslations("Review");
+  const common = useTranslations("Common");
+  const locale = useLocale();
   // Local display states (allows real-time updates without reload)
   const [content, setContent] = useState(review.content);
   const [ratingValue, setRatingValue] = useState(review.ratingValue);
@@ -86,8 +90,16 @@ const ReviewCard = React.memo(function ReviewCard({ review, showMusicDetails = f
   const [savingEdit, setSavingEdit] = useState(false);
 
   const AVAILABLE_TAGS = [
-    "Épico", "Relajante", "Melancólico", "Enérgico", "Oscuro",
-    "Experimental", "Clásico", "Innovador", "Nostálgico", "Divertido"
+    { value: "Épico", label: "tagEpic" },
+    { value: "Relajante", label: "tagRelaxing" },
+    { value: "Melancólico", label: "tagMelancholic" },
+    { value: "Enérgico", label: "tagEnergetic" },
+    { value: "Oscuro", label: "tagDark" },
+    { value: "Experimental", label: "tagExperimental" },
+    { value: "Clásico", label: "tagClassic" },
+    { value: "Innovador", label: "tagInnovative" },
+    { value: "Nostálgico", label: "tagNostalgic" },
+    { value: "Divertido", label: "tagFun" }
   ];
 
   const toggleEditTag = (tag: string) => {
@@ -105,7 +117,9 @@ const ReviewCard = React.memo(function ReviewCard({ review, showMusicDetails = f
         const res = await fetch("/api/auth/me", { cache: "no-store" });
         if (res.ok) {
           const data = await res.json();
-          setCurrentUser({ userId: data.user.id, username: data.user.username });
+          if (data.user) {
+            setCurrentUser({ userId: data.user.id, username: data.user.username });
+          }
         }
       } catch (err) {
         console.error("Auth check error:", err);
@@ -114,7 +128,7 @@ const ReviewCard = React.memo(function ReviewCard({ review, showMusicDetails = f
     checkAuth();
   }, []);
 
-  const formattedDate = new Date(review.createdAt).toLocaleDateString("es-ES", {
+  const formattedDate = new Date(review.createdAt).toLocaleDateString(locale, {
     day: "numeric",
     month: "short",
     year: "numeric",
@@ -136,7 +150,7 @@ const ReviewCard = React.memo(function ReviewCard({ review, showMusicDetails = f
   // Toggle Like
   const handleLikeToggle = async () => {
     if (!currentUser) {
-      showToast("Inicia sesión para darle me gusta a esta reseña", "error");
+      showToast(t("loginToLike"), "error");
       return;
     }
 
@@ -192,7 +206,7 @@ const ReviewCard = React.memo(function ReviewCard({ review, showMusicDetails = f
         await fetchComments();
       } else {
         const data = await res.json();
-        showToast(data.error || "Error al publicar comentario", "error");
+        showToast(t("postCommentError"), "error");
       }
     } catch (error) {
       console.error("Post comment error:", error);
@@ -210,15 +224,15 @@ const ReviewCard = React.memo(function ReviewCard({ review, showMusicDetails = f
       });
 
       if (res.ok) {
-        showToast("Comentario eliminado", "success");
+        showToast(t("commentDeleted"), "success");
         await fetchComments();
       } else {
         const data = await res.json();
-        showToast(data.error || "Error al eliminar comentario", "error");
+        showToast(t("commentDeleteError"), "error");
       }
     } catch (error) {
       console.error("Delete comment error:", error);
-      showToast("Error de conexión", "error");
+      showToast(common("connectionError"), "error");
     }
   };
 
@@ -229,7 +243,7 @@ const ReviewCard = React.memo(function ReviewCard({ review, showMusicDetails = f
       });
 
       if (res.ok) {
-        showToast("Reseña eliminada", "success");
+        showToast(t("reviewDeleted"), "success");
         if (onDeleted) {
           onDeleted(review.id);
         } else {
@@ -237,22 +251,22 @@ const ReviewCard = React.memo(function ReviewCard({ review, showMusicDetails = f
         }
       } else {
         const data = await res.json();
-        showToast(data.error || "Error al eliminar la reseña", "error");
+        showToast(t("reviewDeleteError"), "error");
       }
     } catch (error) {
       console.error("Delete review error:", error);
-      showToast("Error de conexión", "error");
+      showToast(common("connectionError"), "error");
     }
   };
 
   const handleSaveEdit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (editRating === 0) {
-      showToast("Por favor, selecciona una calificación de estrellas", "error");
+      showToast(t("ratingRequired"), "error");
       return;
     }
     if (!editContent.trim()) {
-      showToast("Por favor, escribe el contenido de la reseña", "error");
+      showToast(t("contentRequired"), "error");
       return;
     }
 
@@ -273,7 +287,7 @@ const ReviewCard = React.memo(function ReviewCard({ review, showMusicDetails = f
 
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(data.error || "Error al actualizar la reseña");
+        throw new Error(t("reviewUpdateError"));
       }
 
       // Update local display state
@@ -282,7 +296,7 @@ const ReviewCard = React.memo(function ReviewCard({ review, showMusicDetails = f
       setTags(editTags.join(","));
       setFavoriteTrack(editFavoriteTrack.trim() || null);
 
-      showToast("Reseña actualizada con éxito", "success");
+      showToast(t("reviewUpdated"), "success");
       setIsEditing(false);
 
       if (onUpdated) {
@@ -294,7 +308,7 @@ const ReviewCard = React.memo(function ReviewCard({ review, showMusicDetails = f
         });
       }
     } catch (err: any) {
-      showToast(err.message || "Error al actualizar la reseña", "error");
+      showToast(err.message || t("reviewUpdateError"), "error");
     } finally {
       setSavingEdit(false);
     }
@@ -335,18 +349,18 @@ const ReviewCard = React.memo(function ReviewCard({ review, showMusicDetails = f
                         setIsEditing(true);
                       }}
                       className={styles.editReviewBtn}
-                      title="Editar reseña"
+                      title={t("edit")}
                     >
-                      Editar
+                      {t("edit")}
                     </button>
                     <span className={styles.dot}>•</span>
                     <button 
                       onClick={() => setReviewToDelete(review.id)}
                       className={styles.deleteReviewBtn}
-                      title="Eliminar reseña"
-                      aria-label={`Eliminar reseña de ${review.musicItem ? review.musicItem.title : "este elemento"}`}
+                      title={t("delete")}
+                      aria-label={t("deleteReviewLabel", { item: review.musicItem?.title || t("unknownItem") })}
                     >
-                      Eliminar
+                      {t("delete")}
                     </button>
                   </>
                 )}
@@ -382,16 +396,17 @@ const ReviewCard = React.memo(function ReviewCard({ review, showMusicDetails = f
                 <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
               </svg>
             </div>
-            <span className={styles.favLabel}>Canción favorita</span>
+            <span className={styles.favLabel}>{t("favoriteTrack")}</span>
             <span className={styles.favTitle}>{favoriteTrack}</span>
           </div>
         )}
         
         {tags && tags.length > 0 && (
           <div className={styles.tagsContainer}>
-            {tags.split(",").map(tag => (
-              <span key={tag} className={styles.tagPill}>{tag}</span>
-            ))}
+            {tags.split(",").map(tag => {
+              const knownTag = AVAILABLE_TAGS.find((item) => item.value === tag);
+              return <span key={tag} className={styles.tagPill}>{knownTag ? t(knownTag.label) : tag}</span>;
+            })}
           </div>
         )}
 
@@ -405,7 +420,7 @@ const ReviewCard = React.memo(function ReviewCard({ review, showMusicDetails = f
             style={liked ? { "--profile-theme-color": themeColor } as React.CSSProperties : undefined}
           >
             <span>{liked ? "💚" : "🤍"}</span>
-            <span>{likesCount} {likesCount === 1 ? "Me gusta" : "Me gustas"}</span>
+            <span>{t("likesCount", { count: likesCount })}</span>
           </button>
 
           <button 
@@ -413,7 +428,7 @@ const ReviewCard = React.memo(function ReviewCard({ review, showMusicDetails = f
             className={styles.actionBtn}
           >
             <span>💬</span>
-            <span>{commentsCount} {commentsCount === 1 ? "Comentario" : "Comentarios"}</span>
+            <span>{t("commentsCount", { count: commentsCount })}</span>
           </button>
         </div>
       </div>
@@ -424,8 +439,8 @@ const ReviewCard = React.memo(function ReviewCard({ review, showMusicDetails = f
           <div className={styles.drawerOverlay} onClick={() => setCommentsOpen(false)} />
           <div className={styles.commentsDrawer}>
             <div className={styles.drawerHeader}>
-              <span className={styles.drawerTitle}>Comentarios ({commentsCount})</span>
-              <button className={styles.closeBtn} onClick={() => setCommentsOpen(false)}>
+              <span className={styles.drawerTitle}>{t("comments")} ({commentsCount})</span>
+              <button className={styles.closeBtn} onClick={() => setCommentsOpen(false)} aria-label={common("close")}>
                 &times;
               </button>
             </div>
@@ -433,11 +448,11 @@ const ReviewCard = React.memo(function ReviewCard({ review, showMusicDetails = f
             <div className={styles.commentsList}>
               {loadingComments ? (
                 <div style={{ textAlign: "center", color: "var(--text-secondary)", padding: "20px" }}>
-                  Cargando comentarios...
+                  {t("commentsLoading")}
                 </div>
               ) : comments.length > 0 ? (
                 comments.map((comment) => {
-                  const commentDateStr = new Date(comment.createdAt).toLocaleDateString("es-ES", {
+                  const commentDateStr = new Date(comment.createdAt).toLocaleDateString(locale, {
                     day: "numeric",
                     month: "short",
                     year: "numeric"
@@ -472,7 +487,7 @@ const ReviewCard = React.memo(function ReviewCard({ review, showMusicDetails = f
                         <button 
                           onClick={() => handleDeleteComment(comment.id)} 
                           className={styles.deleteCommentBtn}
-                          title="Eliminar comentario"
+                          title={t("deleteComment")}
                         >
                           🗑️
                         </button>
@@ -482,7 +497,7 @@ const ReviewCard = React.memo(function ReviewCard({ review, showMusicDetails = f
                 })
               ) : (
                 <div style={{ textAlign: "center", color: "var(--text-muted)", padding: "40px 20px" }}>
-                  Aún no hay comentarios. ¡Sé el primero en comentar!
+                  {t("commentsEmpty")}
                 </div>
               )}
             </div>
@@ -492,7 +507,7 @@ const ReviewCard = React.memo(function ReviewCard({ review, showMusicDetails = f
               <form onSubmit={handlePostComment} className={styles.commentForm}>
                 <textarea
                   className={styles.commentInput}
-                  placeholder="Escribe un comentario..."
+                  placeholder={t("writeComment")}
                   rows={2}
                   maxLength={300}
                   value={newCommentText}
@@ -503,14 +518,14 @@ const ReviewCard = React.memo(function ReviewCard({ review, showMusicDetails = f
                     {newCommentText.length}/300
                   </span>
                   <button type="submit" className="neon-btn" style={{ padding: "6px 16px", fontSize: "0.85rem" }}>
-                    Comentar
+                    {t("postComment")}
                   </button>
                 </div>
               </form>
             ) : (
               <div style={{ padding: "20px", borderTop: "1px solid var(--border)", textAlign: "center", background: "#08090d" }}>
                 <Link href="/login" style={{ color: "var(--primary)", textDecoration: "none", fontSize: "0.9rem", fontWeight: 700 }}>
-                  Inicia sesión para comentar
+                  {t("loginToComment")}
                 </Link>
               </div>
             )}
@@ -548,10 +563,10 @@ const ReviewCard = React.memo(function ReviewCard({ review, showMusicDetails = f
             }}
           >
             <h4 style={{ fontSize: "1.1rem", fontWeight: 700, color: "var(--text-primary)", fontFamily: "var(--font-display)" }}>
-              ¿Eliminar comentario?
+              {t("deleteCommentTitle")}
             </h4>
             <p style={{ fontSize: "0.85rem", color: "var(--text-secondary)", lineHeight: 1.5 }}>
-              Esta acción no se puede deshacer y borrará permanentemente el comentario.
+              {t("deleteCommentDescription")}
             </p>
             <div style={{ display: "flex", justifyContent: "flex-end", gap: "12px", marginTop: "8px" }}>
               <button
@@ -567,7 +582,7 @@ const ReviewCard = React.memo(function ReviewCard({ review, showMusicDetails = f
                   fontSize: "0.85rem"
                 }}
               >
-                Cancelar
+                {common("cancel")}
               </button>
               <button
                 onClick={() => {
@@ -585,7 +600,7 @@ const ReviewCard = React.memo(function ReviewCard({ review, showMusicDetails = f
                   fontSize: "0.85rem"
                 }}
               >
-                Eliminar
+                {common("delete")}
               </button>
             </div>
           </div>
@@ -622,10 +637,10 @@ const ReviewCard = React.memo(function ReviewCard({ review, showMusicDetails = f
             }}
           >
             <h4 style={{ fontSize: "1.1rem", fontWeight: 700, color: "var(--text-primary)", fontFamily: "var(--font-display)" }}>
-              ¿Eliminar reseña?
+              {t("deleteReviewTitle")}
             </h4>
             <p style={{ fontSize: "0.85rem", color: "var(--text-secondary)", lineHeight: 1.5 }}>
-              Esta acción no se puede deshacer. Tu reseña, likes y comentarios serán borrados permanentemente.
+              {t("deleteReviewDescription")}
             </p>
             <div style={{ display: "flex", justifyContent: "flex-end", gap: "12px", marginTop: "8px" }}>
               <button
@@ -641,7 +656,7 @@ const ReviewCard = React.memo(function ReviewCard({ review, showMusicDetails = f
                   fontSize: "0.85rem"
                 }}
               >
-                Cancelar
+                {common("cancel")}
               </button>
               <button
                 onClick={() => {
@@ -659,7 +674,7 @@ const ReviewCard = React.memo(function ReviewCard({ review, showMusicDetails = f
                   fontSize: "0.85rem"
                 }}
               >
-                Eliminar
+                {common("delete")}
               </button>
             </div>
           </div>
@@ -671,11 +686,11 @@ const ReviewCard = React.memo(function ReviewCard({ review, showMusicDetails = f
         <div className={sharedStyles.modalOverlay}>
           <div className={sharedStyles.modalContent} style={{ maxWidth: "500px" }}>
             <div className={sharedStyles.modalHeader}>
-              <h3 className={sharedStyles.modalTitle}>Editar Reseña</h3>
+              <h3 className={sharedStyles.modalTitle}>{t("edit")}</h3>
               <button 
                 className={sharedStyles.closeBtn} 
                 onClick={() => setIsEditing(false)}
-                aria-label="Cerrar modal"
+                aria-label={t("closeModal")}
               >
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                   <line x1="18" y1="6" x2="6" y2="18"></line>
@@ -687,7 +702,7 @@ const ReviewCard = React.memo(function ReviewCard({ review, showMusicDetails = f
             <form onSubmit={handleSaveEdit} className={sharedStyles.formContainer}>
               {/* Rating Section */}
               <div className={sharedStyles.formGroup}>
-                <label className={sharedStyles.formLabel}>Tu Calificación:</label>
+                <label className={sharedStyles.formLabel}>{t("yourRating")}:</label>
                 <div style={{ display: "flex", alignItems: "center" }}>
                   <RatingStars value={editRating} onChange={setEditRating} interactive={true} size={28} />
                 </div>
@@ -695,15 +710,15 @@ const ReviewCard = React.memo(function ReviewCard({ review, showMusicDetails = f
 
               {/* Tags Section */}
               <div className={sharedStyles.formGroup}>
-                <label className={sharedStyles.formLabel}>Tags / Mood (Máx 5):</label>
+                <label className={sharedStyles.formLabel}>{t("tags")}:</label>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
                   {AVAILABLE_TAGS.map(tag => {
-                    const isActive = editTags.includes(tag);
+                    const isActive = editTags.includes(tag.value);
                     return (
                       <button
-                        key={tag}
+                        key={tag.value}
                         type="button"
-                        onClick={() => toggleEditTag(tag)}
+                        onClick={() => toggleEditTag(tag.value)}
                         style={{
                           background: isActive ? "rgba(0, 229, 117, 0.15)" : "rgba(255, 255, 255, 0.05)",
                           border: `1px solid ${isActive ? "var(--primary)" : "var(--border)"}`,
@@ -717,7 +732,7 @@ const ReviewCard = React.memo(function ReviewCard({ review, showMusicDetails = f
                           userSelect: "none"
                         }}
                       >
-                        {tag}
+                        {t(tag.label)}
                       </button>
                     );
                   })}
@@ -726,11 +741,11 @@ const ReviewCard = React.memo(function ReviewCard({ review, showMusicDetails = f
 
               {/* Content Textarea */}
               <div className={sharedStyles.formGroup}>
-                <label className={sharedStyles.formLabel}>Tu Reseña:</label>
+                <label className={sharedStyles.formLabel}>{t("yourReview")}:</label>
                 <textarea
                   value={editContent}
                   onChange={(e) => setEditContent(e.target.value)}
-                  placeholder="¿Qué opinas de este álbum?..."
+                  placeholder={t("editContentPlaceholder")}
                   rows={5}
                   className={sharedStyles.formInput}
                   style={{ resize: "vertical", fontFamily: "inherit" }}
@@ -740,12 +755,12 @@ const ReviewCard = React.memo(function ReviewCard({ review, showMusicDetails = f
 
               {/* Favorite Track */}
               <div className={sharedStyles.formGroup}>
-                <label className={sharedStyles.formLabel}>Canción favorita (opcional):</label>
+                <label className={sharedStyles.formLabel}>{t("favoriteTrack")} ({common("optional")}):</label>
                 <input
                   type="text"
                   value={editFavoriteTrack}
                   onChange={(e) => setEditFavoriteTrack(e.target.value)}
-                  placeholder="Nombre de la canción..."
+                  placeholder={t("trackPlaceholder")}
                   className={sharedStyles.formInput}
                   disabled={savingEdit}
                 />
@@ -759,14 +774,14 @@ const ReviewCard = React.memo(function ReviewCard({ review, showMusicDetails = f
                   className={sharedStyles.cancelBtn}
                   disabled={savingEdit}
                 >
-                  Cancelar
+                  {common("cancel")}
                 </button>
                 <button
                   type="submit"
                   className={sharedStyles.saveBtn}
                   disabled={savingEdit}
                 >
-                  {savingEdit ? "Guardando..." : "Guardar Cambios"}
+                  {savingEdit ? t("saving") : t("saveChanges")}
                 </button>
               </div>
             </form>

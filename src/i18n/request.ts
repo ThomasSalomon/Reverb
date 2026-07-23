@@ -9,8 +9,15 @@ export default getRequestConfig(async ({requestLocale}) => {
     locale = routing.defaultLocale;
   }
  
+  const messages = (await import(`../../messages/${locale}.json`)).default;
   return {
     locale,
-    messages: (await import(`../../messages/${locale}.json`)).default
+    messages,
+    onError(error) {
+      if (process.env.NODE_ENV !== "production") console.error(error);
+    },
+    getMessageFallback() {
+      return messages.Common.translationUnavailable;
+    }
   };
 });

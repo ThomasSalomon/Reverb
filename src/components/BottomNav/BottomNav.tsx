@@ -43,7 +43,7 @@ export default function BottomNav() {
           <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
           <polyline points="9 22 9 12 15 12 15 22"/>
         </svg>
-        <span>Inicio</span>
+        <span>{t('home')}</span>
       </Link>
       
       <Link href="/explore" className={`${styles.navItem} ${isActive('/explore') ? styles.active : ''}`}>
@@ -51,7 +51,7 @@ export default function BottomNav() {
           <circle cx="11" cy="11" r="8"/>
           <path d="m21 21-4.3-4.3"/>
         </svg>
-        <span>{t('explore') || 'Explorar'}</span>
+        <span>{t('explore')}</span>
       </Link>
 
       {user ? (
@@ -64,7 +64,7 @@ export default function BottomNav() {
             className={styles.miniAvatar}
             style={{ border: "none" }}
           />
-          <span>Perfil</span>
+          <span>{t('profile')}</span>
         </Link>
       ) : (
         <Link href="/login" className={`${styles.navItem} ${isActive('/login') ? styles.active : ''}`}>
@@ -72,7 +72,7 @@ export default function BottomNav() {
             <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/>
             <circle cx="12" cy="7" r="4"/>
           </svg>
-          <span>{t('login') || 'Entrar'}</span>
+          <span>{t('login')}</span>
         </Link>
       )}
     </nav>

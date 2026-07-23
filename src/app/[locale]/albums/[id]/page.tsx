@@ -1,35 +1,37 @@
 import { Metadata } from "next";
 import { MusicService } from "@/services/music";
 import AlbumDetailClient from "./AlbumDetailClient";
+import { getTranslations } from "next-intl/server";
 
 type Props = {
-  params: { id: string };
+  params: { id: string; locale: string };
 };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const { id } = params;
+  const { id, locale } = params;
+  const t = await getTranslations({ locale, namespace: "Metadata" });
   
   try {
     const item = await MusicService.getItemById(id);
     
     if (!item) {
       return {
-        title: "Álbum no encontrado - Ride The Music",
+        title: t("albumNotFound"),
       };
     }
     
     return {
-      title: `${item.title} por ${item.artist} - Ride The Music`,
-      description: `Descubre y escucha el álbum ${item.title} de ${item.artist} en Ride The Music.`,
+      title: t("albumTitle", { title: item.title, artist: item.artist }),
+      description: t("albumDescription", { title: item.title, artist: item.artist }),
       openGraph: {
         title: `${item.title} - ${item.artist}`,
-        description: `Escucha ${item.title} de ${item.artist} en Ride The Music.`,
+        description: t("albumDescription", { title: item.title, artist: item.artist }),
         images: [
           {
             url: item.coverUrl,
             width: 500,
             height: 500,
-            alt: `Portada de ${item.title}`,
+            alt: t("coverAlt", { title: item.title }),
           },
         ],
         type: "music.album",
@@ -37,7 +39,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       twitter: {
         card: "summary_large_image",
         title: `${item.title} - ${item.artist}`,
-        description: `Escucha ${item.title} de ${item.artist} en Ride The Music.`,
+        description: t("albumDescription", { title: item.title, artist: item.artist }),
         images: [item.coverUrl],
       }
     };

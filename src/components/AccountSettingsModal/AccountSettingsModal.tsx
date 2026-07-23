@@ -3,7 +3,8 @@
 import React, { useState } from "react";
 import styles from "../SharedModal.module.css";
 import { showToast } from "@/components/Toast/ToastListener";
-import { useRouter } from "next/navigation";
+import { useRouter } from "@/i18n/routing";
+import { useTranslations } from "next-intl";
 import { useBodyScrollLock } from "@/hooks/useBodyScrollLock";
 
 interface AccountSettingsModalProps {
@@ -14,6 +15,8 @@ interface AccountSettingsModalProps {
 
 export default function AccountSettingsModal({ isOpen, onClose, username }: AccountSettingsModalProps) {
   const router = useRouter();
+  const t = useTranslations("Profile");
+  const common = useTranslations("Common");
   const [activeTab, setActiveTab] = useState<"password" | "delete">("password");
   
   const [currentPassword, setCurrentPassword] = useState("");
@@ -27,7 +30,7 @@ export default function AccountSettingsModal({ isOpen, onClose, username }: Acco
   const handleChangePassword = async (e: React.FormEvent) => {
     e.preventDefault();
     if (newPassword.length < 6) {
-      showToast("La nueva contraseña debe tener al menos 6 caracteres", "error");
+      showToast(t("passwordMin"), "error");
       return;
     }
     
@@ -41,24 +44,22 @@ export default function AccountSettingsModal({ isOpen, onClose, username }: Acco
       
       const data = await res.json();
       if (res.ok) {
-        showToast(data.message || "Contraseña actualizada", "success");
+        showToast(t("passwordUpdated"), "success");
         setCurrentPassword("");
         setNewPassword("");
       } else {
-        showToast(data.error || "Error al actualizar contraseña", "error");
+        showToast(t("passwordUpdateError"), "error");
       }
     } catch (e) {
       console.error(e);
-      showToast("Error de conexión", "error");
+      showToast(common("connectionError"), "error");
     } finally {
       setIsSaving(false);
     }
   };
 
   const handleDeleteAccount = async () => {
-    const confirmDelete = window.confirm(
-      "¿Estás seguro de que deseas eliminar tu cuenta permanentemente? Esta acción borrará todas tus reseñas, listas y comentarios, y no se puede deshacer."
-    );
+    const confirmDelete = window.confirm(t("deleteAccountConfirm"));
     if (!confirmDelete) return;
 
     setIsSaving(true);
@@ -69,16 +70,16 @@ export default function AccountSettingsModal({ isOpen, onClose, username }: Acco
       
       const data = await res.json();
       if (res.ok) {
-        showToast("Cuenta eliminada exitosamente", "success");
+        showToast(t("accountDeleted"), "success");
         // Logout user
         await fetch("/api/auth/logout", { method: "POST" });
-        window.location.href = "/";
+        router.push("/");
       } else {
-        showToast(data.error || "Error al eliminar cuenta", "error");
+        showToast(t("accountDeleteError"), "error");
       }
     } catch (e) {
       console.error(e);
-      showToast("Error de conexión", "error");
+      showToast(common("connectionError"), "error");
     } finally {
       setIsSaving(false);
     }
@@ -88,8 +89,8 @@ export default function AccountSettingsModal({ isOpen, onClose, username }: Acco
     <div className={styles.modalOverlay} onClick={onClose}>
       <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
         <div className={styles.modalHeader}>
-          <h2 className={styles.modalTitle}>Configuración de Cuenta</h2>
-          <button className={styles.closeBtn} onClick={onClose} aria-label="Cerrar modal">&times;</button>
+          <h2 className={styles.modalTitle}>{t("accountSettingsTitle")}</h2>
+          <button className={styles.closeBtn} onClick={onClose} aria-label={common("close")}>&times;</button>
         </div>
 
         <div className={styles.tabsContainer}>
@@ -97,20 +98,20 @@ export default function AccountSettingsModal({ isOpen, onClose, username }: Acco
             onClick={() => setActiveTab("password")}
             className={`${styles.tabBtn} ${activeTab === "password" ? styles.tabBtnActive : ""}`}
           >
-            Contraseña
+            {t("password")}
           </button>
           <button
             onClick={() => setActiveTab("delete")}
             className={`${styles.tabBtn} ${styles.tabBtnDanger} ${activeTab === "delete" ? styles.tabBtnActive : ""}`}
           >
-            Eliminar Cuenta
+            {t("deleteAccount")}
           </button>
         </div>
 
         {activeTab === "password" && (
           <form className={styles.formContainer} onSubmit={handleChangePassword}>
             <div className={styles.formGroup}>
-              <label className={styles.formLabel}>Contraseña Actual</label>
+              <label className={styles.formLabel}>{t("currentPassword")}</label>
               <input
                 type="password"
                 className={styles.formInput}
@@ -120,7 +121,7 @@ export default function AccountSettingsModal({ isOpen, onClose, username }: Acco
               />
             </div>
             <div className={styles.formGroup}>
-              <label className={styles.formLabel}>Nueva Contraseña</label>
+              <label className={styles.formLabel}>{t("newPassword")}</label>
               <input
                 type="password"
                 className={styles.formInput}
@@ -131,9 +132,9 @@ export default function AccountSettingsModal({ isOpen, onClose, username }: Acco
               />
             </div>
             <div className={styles.modalFooter}>
-              <button type="button" className={styles.cancelBtn} onClick={onClose}>Cancelar</button>
+              <button type="button" className={styles.cancelBtn} onClick={onClose}>{common("cancel")}</button>
               <button type="submit" className={styles.saveBtn} disabled={isSaving}>
-                {isSaving ? "Guardando..." : "Cambiar Contraseña"}
+                {isSaving ? t("changingPassword") : t("changePassword")}
               </button>
             </div>
           </form>
@@ -142,17 +143,17 @@ export default function AccountSettingsModal({ isOpen, onClose, username }: Acco
         {activeTab === "delete" && (
           <div className={styles.formContainer}>
             <p className={styles.warningText}>
-              Eliminar tu cuenta es una acción permanente y no se puede deshacer. Se borrarán todos tus datos asociados.
+              {t("deleteAccountWarning")}
             </p>
             <div className={styles.modalFooter}>
-              <button type="button" className={styles.cancelBtn} onClick={onClose}>Cancelar</button>
+              <button type="button" className={styles.cancelBtn} onClick={onClose}>{common("cancel")}</button>
               <button 
                 type="button" 
                 onClick={handleDeleteAccount}
                 disabled={isSaving}
                 className={styles.deleteBtn}
               >
-                {isSaving ? "Eliminando..." : "Eliminar Permanentemente"}
+                {isSaving ? t("deleting") : t("deletePermanently")}
               </button>
             </div>
           </div>

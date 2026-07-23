@@ -74,7 +74,7 @@ export default function Navbar() {
       <nav className={`${styles.navbar} ${isVisible ? "" : styles.navbarHidden}`}>
         <div className={styles.container}>
           <Link href="/" className={styles.logo}>
-            <img src="/logo.png" alt="RTM Logo" className={styles.logoIcon} />
+            <img src="/logo.png" alt={t("logoAlt")} className={styles.logoIcon} />
             <span>Ride The <span className={styles.highlight}>Music</span></span>
           </Link>
 

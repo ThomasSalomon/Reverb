@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
+import { Link } from "@/i18n/routing";
+import { useTranslations, useLocale } from "next-intl";
 
 import { motion, useScroll, useTransform } from "framer-motion";
 import styles from "./page.module.css";
@@ -43,6 +44,8 @@ export default function ArtistDetailClient({
   id: string;
   initialData: ArtistData | null;
 }) {
+  const t = useTranslations("Artist");
+  const locale = useLocale();
   const [data, setData] = useState<ArtistData | null>(initialData);
   const [loading, setLoading] = useState(!initialData);
 
@@ -74,7 +77,7 @@ export default function ArtistDetailClient({
     return (
       <div className={styles.container}>
         <div style={{ padding: "100px", textAlign: "center", color: "#a1a1aa" }}>
-          Cargando artista...
+          {t("loading")}
         </div>
       </div>
     );
@@ -84,7 +87,7 @@ export default function ArtistDetailClient({
     return (
       <div className={styles.container}>
         <div style={{ padding: "100px", textAlign: "center", color: "#ef4444" }}>
-          Artista no encontrado
+          {t("notFound")}
         </div>
       </div>
     );
@@ -108,9 +111,9 @@ export default function ArtistDetailClient({
           <h1 className={styles.artistName}>{data.artist.name}</h1>
           <div className={styles.artistStats}>
             <span className={styles.fansCount}>
-              {new Intl.NumberFormat().format(data.artist.nb_fan)}
+              {new Intl.NumberFormat(locale).format(data.artist.nb_fan)}
             </span>{" "}
-            FANS
+            {t("fans")}
           </div>
         </motion.div>
       </div>
@@ -120,7 +123,7 @@ export default function ArtistDetailClient({
           
           <div className={styles.topSectionGrid}>
             <div>
-              <h2 className={styles.sectionTitle}>Top Canciones</h2>
+              <h2 className={styles.sectionTitle}>{t("topTracks")}</h2>
               <div className={styles.trackList}>
                 {data.topTracks.map((track, i) => (
                   <div key={track.id} className={styles.trackItem}>
@@ -133,13 +136,13 @@ export default function ArtistDetailClient({
                   </div>
                 ))}
                 {data.topTracks.length === 0 && (
-                  <p style={{ color: "var(--text-muted)" }}>No hay top tracks disponibles.</p>
+                  <p style={{ color: "var(--text-muted)" }}>{t("noTopTracks")}</p>
                 )}
               </div>
             </div>
 
             <div>
-              <h2 className={styles.sectionTitle}>Artistas Relacionados</h2>
+              <h2 className={styles.sectionTitle}>{t("relatedArtists")}</h2>
               <div className={styles.relatedGrid}>
                 {data.related.map((artist) => (
                   <Link href={`/artists/${artist.id}`} key={artist.id} className={styles.relatedCard}>
@@ -159,7 +162,7 @@ export default function ArtistDetailClient({
           </div>
 
           <div>
-            <h2 className={styles.sectionTitle}>Discografía</h2>
+            <h2 className={styles.sectionTitle}>{t("discography")}</h2>
             <div className={styles.albumsGrid}>
               {data.albums.map((album) => (
                 <div key={album.id} style={{ display: "flex", flexDirection: "column", gap: "8px" }}>

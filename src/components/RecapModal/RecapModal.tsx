@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from "react";
 import styles from "./RecapModal.module.css";
 import { useBodyScrollLock } from "@/hooks/useBodyScrollLock";
+import { useTranslations } from "next-intl";
 
 interface RecapModalProps {
   username: string;
@@ -10,6 +11,8 @@ interface RecapModalProps {
 }
 
 export default function RecapModal({ username, onClose }: RecapModalProps) {
+  const t = useTranslations("Profile");
+  const common = useTranslations("Common");
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -24,19 +27,19 @@ export default function RecapModal({ username, onClose }: RecapModalProps) {
         const json = await res.json();
 
         if (!res.ok) {
-          throw new Error(json.error || "Error al cargar recap");
+          throw new Error(t("recapLoadError"));
         }
 
         setData(json);
       } catch (err: any) {
-        setError(err.message || "Error de red");
+        setError(err.message || t("networkError"));
       } finally {
         setLoading(false);
       }
     }
 
     fetchRecap();
-  }, [username]);
+  }, [username, t]);
 
   return (
     <div className={styles.wrapper} onClick={onClose}>
@@ -50,7 +53,7 @@ export default function RecapModal({ username, onClose }: RecapModalProps) {
         {/* Top decorative light bar */}
         <div className={styles.topLightBar} aria-hidden="true" />
 
-        <button className={styles.closeBtn} onClick={onClose} aria-label="Cerrar">
+        <button className={styles.closeBtn} onClick={onClose} aria-label={common("close")}>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
             <line x1="18" y1="6" x2="6" y2="18"></line>
             <line x1="6" y1="6" x2="18" y2="18"></line>
@@ -61,7 +64,7 @@ export default function RecapModal({ username, onClose }: RecapModalProps) {
           {loading && (
             <div className={styles.loaderContainer}>
               <div className={styles.loaderRing} />
-              <span className={styles.loaderText}>Sincronizando tus frecuencias…</span>
+              <span className={styles.loaderText}>{t("recapLoading")}</span>
             </div>
           )}
           
@@ -75,15 +78,15 @@ export default function RecapModal({ username, onClose }: RecapModalProps) {
               {/* Year badge */}
               <div className={styles.yearBadge}>RTM RECAP</div>
 
-              <h2 className={styles.title}>Frecuencias de {data.year}</h2>
-              <p className={styles.subtitle}>Tu año en música, decodificado.</p>
+              <h2 className={styles.title}>{t("recapTitle", { year: data.year })}</h2>
+              <p className={styles.subtitle}>{t("recapSubtitle")}</p>
 
               <div className={styles.statGrid}>
                 {/* Reviews Card */}
                 <div className={styles.statCard}>
                   <div className={styles.cardGlow} aria-hidden="true" />
                   <div className={styles.cardHeader}>
-                    <span className={styles.statLabel}>Reseñas</span>
+                    <span className={styles.statLabel}>{t("reviews")}</span>
                     <div className={styles.iconCircle}>
                       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
@@ -104,7 +107,7 @@ export default function RecapModal({ username, onClose }: RecapModalProps) {
                 <div className={styles.statCard}>
                   <div className={styles.cardGlow} aria-hidden="true" />
                   <div className={styles.cardHeader}>
-                    <span className={styles.statLabel}>Calificación</span>
+                    <span className={styles.statLabel}>{t("rating")}</span>
                     <div className={`${styles.iconCircle} ${styles.iconCircleGold}`}>
                       <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
                         <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
@@ -124,7 +127,7 @@ export default function RecapModal({ username, onClose }: RecapModalProps) {
                 <div className={`${styles.statCard} ${styles.statCardWide}`}>
                   <div className={styles.cardGlow} aria-hidden="true" />
                   <div className={styles.cardHeader}>
-                    <span className={styles.statLabel}>Vibe Dominante</span>
+                    <span className={styles.statLabel}>{t("dominantVibe")}</span>
                     <div className={styles.waveContainer}>
                       <span className={styles.waveBar}></span>
                       <span className={styles.waveBar}></span>
@@ -134,7 +137,7 @@ export default function RecapModal({ username, onClose }: RecapModalProps) {
                     </div>
                   </div>
                   <div className={styles.moodValueContainer}>
-                    <span className={styles.statValue}>{data.topTag || "Sin Datos"}</span>
+                    <span className={styles.statValue}>{data.topTag || t("noDataValue")}</span>
                   </div>
                 </div>
               </div>
@@ -143,8 +146,8 @@ export default function RecapModal({ username, onClose }: RecapModalProps) {
               <div className={styles.topArtist}>
                 <div className={styles.cardGlow} aria-hidden="true" />
                 <div className={styles.topArtistInner}>
-                  <span className={styles.topArtistLabel}>Tu artista supremo</span>
-                  <span className={styles.topArtistValue}>{data.topArtist || "Ninguno"}</span>
+                  <span className={styles.topArtistLabel}>{t("topArtist")}</span>
+                  <span className={styles.topArtistValue}>{data.topArtist || t("none")}</span>
                 </div>
                 
                 {/* Premium Spinning Vinyl Disc SVG */}

@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import { Link } from "@/i18n/routing";
 import styles from "./SpecialPlaylistModal.module.css";
 import Image from "next/image";
+import { useTranslations } from "next-intl";
 
 interface Props {
   artistName: string;
@@ -12,6 +13,8 @@ interface Props {
 }
 
 export default function SpecialPlaylistModal({ artistName, onClose }: Props) {
+  const t = useTranslations("Home");
+  const common = useTranslations("Common");
   const [tracks, setTracks] = useState<any[]>([]);
   const [artistPic, setArtistPic] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -46,8 +49,8 @@ export default function SpecialPlaylistModal({ artistName, onClose }: Props) {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          title: `Tributo: ${artistName}`,
-          description: `Una lista generada en honor a ${artistName}.`,
+          title: t("tributeListTitle", { artist: artistName }),
+          description: t("tributeListDescription", { artist: artistName }),
           tracks,
         }),
       });
@@ -79,8 +82,8 @@ export default function SpecialPlaylistModal({ artistName, onClose }: Props) {
         )}
         
         <div className={styles.header}>
-          <h2>Tributo a {artistName}</h2>
-          <button className={styles.closeButton} onClick={onClose} aria-label="Cerrar">
+          <h2>{t("tributeTitle", { artist: artistName })}</h2>
+          <button className={styles.closeButton} onClick={onClose} aria-label={common("close")}>
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M18 6L6 18M6 6l12 12" />
             </svg>
@@ -120,12 +123,12 @@ export default function SpecialPlaylistModal({ artistName, onClose }: Props) {
         {!loading && tracks.length > 0 && (
           <div className={styles.footer}>
             {saved ? (
-              <p className={styles.message}>¡Lista guardada en tu perfil!</p>
+              <p className={styles.message}>{t("playlistSaved")}</p>
             ) : needsLogin ? (
               <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
-                <p className={styles.trackArtist} style={{ margin: 0 }}>Debes iniciar sesión para guardar</p>
+                <p className={styles.trackArtist} style={{ margin: 0 }}>{t("loginToSave")}</p>
                 <Link href="/login" className={styles.saveButton} onClick={onClose} style={{ textDecoration: "none" }}>
-                  Iniciar Sesión
+                  {t("loginBtn")}
                 </Link>
               </div>
             ) : (
@@ -134,7 +137,7 @@ export default function SpecialPlaylistModal({ artistName, onClose }: Props) {
                 onClick={handleSavePlaylist}
                 disabled={saving}
               >
-                {saving ? "Guardando..." : "Guardar Lista"}
+                {saving ? t("savingPlaylist") : t("savePlaylist")}
               </button>
             )}
           </div>

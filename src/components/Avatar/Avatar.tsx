@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { useTranslations } from "next-intl";
 
 interface AvatarProps {
   username: string;
@@ -21,6 +22,7 @@ const COLOR_MAP: Record<string, string> = {
 };
 
 export default function Avatar({ username, profileColor, profileImage, size = 40, className, style }: AvatarProps) {
+  const t = useTranslations("Common");
   const themeColor = profileColor && COLOR_MAP[profileColor] ? COLOR_MAP[profileColor] : "#10b981";
 
   // Check if profileImage is a valid non-empty URL or path
@@ -28,7 +30,7 @@ export default function Avatar({ username, profileColor, profileImage, size = 40
     return (
       <img
         src={profileImage}
-        alt={`Avatar de @${username}`}
+        alt={t("avatarAlt", { username })}
         className={className}
         loading="lazy"
         style={{
@@ -51,6 +53,8 @@ export default function Avatar({ username, profileColor, profileImage, size = 40
   return (
     <div
       className={className}
+      role="img"
+      aria-label={t("avatarAlt", { username })}
       style={{
         width: `${size}px`,
         height: `${size}px`,

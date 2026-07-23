@@ -4,8 +4,10 @@ import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import styles from "./SpecialDayBanner.module.css";
 import SpecialPlaylistModal from "../SpecialPlaylistModal/SpecialPlaylistModal";
+import { useTranslations } from "next-intl";
 
 export default function SpecialDayBanner() {
+  const t = useTranslations("Home");
   const [eventData, setEventData] = useState<any>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -48,13 +50,13 @@ export default function SpecialDayBanner() {
         <div className={styles.shimmer} />
         <div className={styles.content}>
           <h2 className={styles.title}>
-            Un día como hoy, recordando a {eventData.artistName}
+            {t("specialDayTitle", { artist: eventData.artistName })}
           </h2>
           <p className={styles.subtitle}>
-            {eventData.description || `Hoy conmemoramos el legado de ${eventData.artistName}. Escuchá sus más grandes éxitos con nosotros.`}
+            {eventData.description || t("specialDayFallback", { artist: eventData.artistName })}
           </p>
           <button className={styles.actionButton} tabIndex={-1}>
-            Ver Tributo
+            {t("viewTribute")}
           </button>
         </div>
       </motion.div>

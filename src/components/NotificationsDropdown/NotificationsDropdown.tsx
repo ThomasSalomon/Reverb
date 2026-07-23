@@ -1,24 +1,26 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import Link from "next/link";
+import { Link } from "@/i18n/routing";
+import { useTranslations } from "next-intl";
 import styles from "./NotificationsDropdown.module.css";
 import Avatar from "@/components/Avatar/Avatar";
 
-function timeAgo(dateString: string): string {
+function timeAgo(dateString: string, t: ReturnType<typeof useTranslations>): string {
   const date = new Date(dateString);
   const now = new Date();
   const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
 
-  if (diffInSeconds < 60) return `Hace ${diffInSeconds} segundos`;
+  if (diffInSeconds < 10) return t("justNow");
+  if (diffInSeconds < 60) return t("secondsAgo", {count: diffInSeconds});
   const diffInMinutes = Math.floor(diffInSeconds / 60);
-  if (diffInMinutes < 60) return `Hace ${diffInMinutes} minuto${diffInMinutes > 1 ? 's' : ''}`;
+  if (diffInMinutes < 60) return t("minutesAgo", {count: diffInMinutes});
   const diffInHours = Math.floor(diffInMinutes / 60);
-  if (diffInHours < 24) return `Hace ${diffInHours} hora${diffInHours > 1 ? 's' : ''}`;
+  if (diffInHours < 24) return t("hoursAgo", {count: diffInHours});
   const diffInDays = Math.floor(diffInHours / 24);
-  if (diffInDays < 30) return `Hace ${diffInDays} día${diffInDays > 1 ? 's' : ''}`;
+  if (diffInDays < 30) return t("daysAgo", {count: diffInDays});
   const diffInMonths = Math.floor(diffInDays / 30);
-  return `Hace ${diffInMonths} mes${diffInMonths > 1 ? 'es' : ''}`;
+  return t("monthsAgo", {count: diffInMonths});
 }
 
 interface Notification {
@@ -35,10 +37,22 @@ interface Notification {
   } | null;
 }
 
+function notificationMessage(notification: Notification, t: ReturnType<typeof useTranslations>) {
+  const actor = notification.sourceUser?.username;
+  if (notification.type === "NEW_FOLLOWER") return actor ? t("newFollower", { actor }) : notification.message;
+  if (notification.type === "NEW_LIKE") return actor ? t("newLike", { actor }) : notification.message;
+  if (notification.type === "NEW_COMMENT") return actor ? t("newComment", { actor }) : notification.message;
+  if (notification.type === "NEW_BADGE") return t("newBadge");
+  return t("unknown");
+}
+
 export default function NotificationsDropdown() {
+  const t = useTranslations("Notifications");
   const [isOpen, setIsOpen] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
 
@@ -64,14 +78,18 @@ export default function NotificationsDropdown() {
 
   const fetchNotifications = async () => {
     try {
+      setError(false);
       const res = await fetch("/api/notifications");
       if (res.ok) {
         const data = await res.json();
         setNotifications(data.notifications || []);
         setUnreadCount(data.unreadCount || 0);
-      }
+      } else setError(true);
     } catch (e) {
       console.error("Failed to fetch notifications", e);
+      setError(true);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -117,7 +135,7 @@ export default function NotificationsDropdown() {
 
   return (
     <div className={styles.container} ref={dropdownRef}>
-      <button className={styles.bellBtn} onClick={toggleDropdown} title="Notificaciones">
+      <button className={styles.bellBtn} onClick={toggleDropdown} title={t("bellLabel")} aria-label={t("bellLabel")}>
         🔔
         {unreadCount > 0 && (
           <span className={styles.badge}>{unreadCount > 9 ? "9+" : unreadCount}</span>
@@ -127,11 +145,11 @@ export default function NotificationsDropdown() {
       {isOpen && (
         <div className={styles.dropdown}>
           <div className={styles.header}>
-            <h3 className={styles.title}>Notificaciones</h3>
+            <h3 className={styles.title}>{t("title")}</h3>
             <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
               {unreadCount > 0 && (
                 <button onClick={markAllAsRead} className={styles.markAllBtn}>
-                  Marcar todas leídas
+                  {t("markAllRead")}
                 </button>
               )}
               {notifications.length > 0 && (
@@ -140,15 +158,15 @@ export default function NotificationsDropdown() {
                   className={styles.markAllBtn} 
                   style={{ color: "var(--text-secondary)", background: "transparent", padding: "0", fontWeight: "normal" }}
                 >
-                  Limpiar todas
+                  {t("clearAll")}
                 </button>
               )}
             </div>
           </div>
 
           <ul className={styles.list}>
-            {notifications.length === 0 ? (
-              <li className={styles.emptyState}>No tienes notificaciones</li>
+            {loading ? <li className={styles.emptyState}>{t("loading")}</li> : error ? <li className={styles.emptyState} role="alert">{t("error")}</li> : notifications.length === 0 ? (
+              <li className={styles.emptyState}>{t("empty")}</li>
             ) : (
               notifications.map((n) => {
                 const innerContent = (
@@ -165,9 +183,9 @@ export default function NotificationsDropdown() {
                       </div>
                     )}
                     <div className={styles.content}>
-                      <p className={styles.message}>{n.message}</p>
+                      <p className={styles.message}>{notificationMessage(n, t)}</p>
                       <p className={styles.time}>
-                        {timeAgo(n.createdAt)}
+                        {timeAgo(n.createdAt, t)}
                       </p>
                     </div>
                     {!n.isRead && <div className={styles.dot}></div>}

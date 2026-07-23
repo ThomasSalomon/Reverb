@@ -1,12 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { Link, useRouter } from "@/i18n/routing";
+import { useTranslations } from "next-intl";
 import styles from "./page.module.css";
 
 export default function LoginPage() {
   const router = useRouter();
+  const t = useTranslations("Auth");
   const [usernameOrEmail, setUsernameOrEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -15,7 +16,7 @@ export default function LoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!usernameOrEmail || !password) {
-      setError("Todos los campos son requeridos");
+      setError(t("allFieldsRequired"));
       return;
     }
 
@@ -29,19 +30,14 @@ export default function LoginPage() {
         body: JSON.stringify({ usernameOrEmail, password }),
       });
 
-      const data = await res.json();
       if (!res.ok) {
-        throw new Error(data.error || "Algo salió mal");
+        throw new Error(t("loginFailed"));
       }
 
       router.push("/");
       router.refresh();
-      // Ensure redirect works immediately
-      setTimeout(() => {
-        window.location.href = "/";
-      }, 100);
     } catch (e: any) {
-      setError(e.message || "Error al iniciar sesión");
+      setError(e.message || t("loginFailed"));
     } finally {
       setLoading(false);
     }
@@ -50,24 +46,24 @@ export default function LoginPage() {
   return (
     <main className={styles.main}>
       <div className={`${styles.authCard} glass`}>
-        <h2 className={styles.title}>Iniciar Sesión</h2>
-        <p className={styles.subtitle}>¡Hola de nuevo! Entra a tu cuenta musical.</p>
+        <h2 className={styles.title}>{t("loginTitle")}</h2>
+        <p className={styles.subtitle}>{t("loginSubtitle")}</p>
 
         <form onSubmit={handleSubmit} className={styles.form}>
           <div className={styles.inputGroup}>
-            <label className={styles.label}>Usuario o Email</label>
+            <label className={styles.label}>{t("usernameOrEmail")}</label>
             <input
               type="text"
               value={usernameOrEmail}
               onChange={(e) => setUsernameOrEmail(e.target.value)}
-              placeholder="tu_usuario o tu@email.com"
+              placeholder={t("emailPlaceholder")}
               className="input-field"
               disabled={loading}
             />
           </div>
 
           <div className={styles.inputGroup}>
-            <label className={styles.label}>Contraseña</label>
+            <label className={styles.label}>{t("password")}</label>
             <input
               type="password"
               value={password}
@@ -81,12 +77,12 @@ export default function LoginPage() {
           {error && <div className={styles.errorMsg}>{error}</div>}
 
           <button type="submit" className="neon-btn" disabled={loading}>
-            {loading ? "Entrando..." : "Entrar"}
+            {loading ? t("loggingIn") : t("login")}
           </button>
         </form>
 
         <p className={styles.footerText}>
-          ¿No tienes una cuenta? <Link href="/register">Regístrate gratis</Link>
+          {t("noAccount")} <Link href="/register">{t("createFree")}</Link>
         </p>
       </div>
     </main>

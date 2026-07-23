@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { showToast } from "@/components/Toast/ToastListener";
+import { useTranslations } from "next-intl";
 import styles from "./AddToListModal.module.css";
 
 interface AddToListModalProps {
@@ -19,6 +20,8 @@ interface ListData {
 }
 
 export default function AddToListModal({ isOpen, onClose, musicItemId, username }: AddToListModalProps) {
+  const t = useTranslations("Profile");
+  const common = useTranslations("Common");
   const [lists, setLists] = useState<ListData[]>([]);
   const [loading, setLoading] = useState(true);
   const [addingToListId, setAddingToListId] = useState<string | null>(null);
@@ -61,16 +64,15 @@ export default function AddToListModal({ isOpen, onClose, musicItemId, username 
         body: JSON.stringify({ musicItemId }),
       });
       
-      const data = await res.json();
-      
       if (res.ok) {
-        showToast("Álbum añadido a la lista", "success");
+        showToast(t("addedToList"), "success");
         onClose();
       } else {
-        showToast(data.error || "Error al añadir a la lista", "error");
+        await res.json();
+        showToast(t("addToListError"), "error");
       }
     } catch (error) {
-      showToast("Error de conexión", "error");
+      showToast(common("connectionError"), "error");
     } finally {
       setAddingToListId(null);
     }
@@ -96,7 +98,7 @@ export default function AddToListModal({ isOpen, onClose, musicItemId, username 
       const listData = await resList.json();
       
       if (!resList.ok) {
-        showToast(listData.error || "Error al crear la lista", "error");
+        showToast(t("createListError"), "error");
         setIsCreating(false);
         return;
       }
@@ -109,16 +111,16 @@ export default function AddToListModal({ isOpen, onClose, musicItemId, username 
       });
       
       if (resItem.ok) {
-        showToast(`Añadido a "${listData.title}"`, "success");
+        showToast(t("addedToNamedList", { title: listData.title }), "success");
         onClose();
       } else {
-        const itemData = await resItem.json();
-        showToast(itemData.error || "Lista creada pero falló al añadir el álbum", "error");
+        await resItem.json();
+        showToast(t("createdButAddFailed"), "error");
         fetchLists(); // refresh so user sees the new list at least
         setShowCreate(false);
       }
     } catch (error) {
-      showToast("Error de conexión", "error");
+      showToast(common("connectionError"), "error");
     } finally {
       setIsCreating(false);
     }
@@ -130,8 +132,8 @@ export default function AddToListModal({ isOpen, onClose, musicItemId, username 
     <div className={styles.overlay} onClick={onClose}>
       <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
         <div className={styles.header}>
-          <h2 className={styles.title}>Añadir a Lista</h2>
-          <button className={styles.closeBtn} onClick={onClose}>
+          <h2 className={styles.title}>{t("addToListTitle")}</h2>
+          <button className={styles.closeBtn} onClick={onClose} aria-label={common("close")}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <line x1="18" y1="6" x2="6" y2="18"></line>
               <line x1="6" y1="6" x2="18" y2="18"></line>
@@ -141,7 +143,7 @@ export default function AddToListModal({ isOpen, onClose, musicItemId, username 
         
         <div className={styles.content}>
           {loading ? (
-            <div className={styles.loading}>Cargando tus listas...</div>
+            <div className={styles.loading}>{t("loadingLists")}</div>
           ) : (
             <>
               {lists.length > 0 ? (
@@ -162,7 +164,7 @@ export default function AddToListModal({ isOpen, onClose, musicItemId, username 
                         <div className={styles.listInfo}>
                           <span className={styles.listName}>{list.title}</span>
                           <span className={styles.listMeta}>
-                            {list.items?.length || 0} álbumes • {list.isPublic ? "Pública" : "Privada"}
+                            {t("albumsCount", { count: list.items?.length || 0 })} • {list.isPublic ? t("public") : t("private")}
                           </span>
                         </div>
                         <div>
@@ -171,7 +173,7 @@ export default function AddToListModal({ isOpen, onClose, musicItemId, username 
                               <polyline points="20 6 9 17 4 12"></polyline>
                             </svg>
                           ) : addingToListId === list.id ? (
-                            <span style={{ fontSize: '0.8rem' }}>Añadiendo...</span>
+                            <span style={{ fontSize: '0.8rem' }}>{t("adding")}</span>
                           ) : (
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                               <line x1="12" y1="5" x2="12" y2="19"></line>
@@ -185,7 +187,7 @@ export default function AddToListModal({ isOpen, onClose, musicItemId, username 
                 </div>
               ) : (
                 <div className={styles.emptyState}>
-                  No tienes ninguna lista todavía.
+                  {t("noOwnLists")}
                 </div>
               )}
               
@@ -199,14 +201,14 @@ export default function AddToListModal({ isOpen, onClose, musicItemId, username 
                       <line x1="12" y1="5" x2="12" y2="19"></line>
                       <line x1="5" y1="12" x2="19" y2="12"></line>
                     </svg>
-                    Crear nueva lista
+                    {t("createNewList")}
                   </button>
                 ) : (
                   <form className={styles.createForm} onSubmit={handleCreateList}>
                     <input
                       type="text"
                       className={styles.input}
-                      placeholder="Título de la nueva lista..."
+                      placeholder={t("newListTitle")}
                       value={newTitle}
                       onChange={(e) => setNewTitle(e.target.value)}
                       required
@@ -220,7 +222,7 @@ export default function AddToListModal({ isOpen, onClose, musicItemId, username 
                         style={{ fontSize: "0.85rem", padding: "6px 12px" }}
                         onClick={() => setShowCreate(false)}
                       >
-                        Cancelar
+                        {common("cancel")}
                       </button>
                       <button 
                         type="submit" 
@@ -228,7 +230,7 @@ export default function AddToListModal({ isOpen, onClose, musicItemId, username 
                         style={{ fontSize: "0.85rem", padding: "6px 12px" }}
                         disabled={isCreating || !newTitle.trim()}
                       >
-                        {isCreating ? "Creando..." : "Crear y Añadir"}
+                        {isCreating ? t("creating") : t("createAndAdd")}
                       </button>
                     </div>
                   </form>

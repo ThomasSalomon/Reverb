@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import styles from "./ShareModal.module.css";
+import { useTranslations } from "next-intl";
 
 interface ShareModalProps {
   isOpen: boolean;
@@ -133,6 +134,7 @@ export default function ShareModal({
   album,
   shareUrl,
 }: ShareModalProps) {
+  const t = useTranslations("Review");
   const [copied, setCopied] = useState(false);
   const [ambientColor, setAmbientColor] = useState<string>("#1a1a2e");
   const [visible, setVisible] = useState(false);
@@ -171,7 +173,7 @@ export default function ShareModal({
     if (e.target === e.currentTarget) onClose();
   };
 
-  const shareText = `Escucha "${album.title}" de ${album.artist} en Ride The Music`;
+  const shareText = `${album.title} — ${album.artist} | Ride The Music`;
 
   if (!isOpen) return null;
 
@@ -181,7 +183,7 @@ export default function ShareModal({
       onClick={handleBackdropClick}
       role="dialog"
       aria-modal="true"
-      aria-label={`Compartir ${album.title}`}
+      aria-label={`${t("shareOn")} ${album.title}`}
     >
       <div
         className={`${styles.modal} ${visible ? styles.modalVisible : ""}`}
@@ -193,7 +195,7 @@ export default function ShareModal({
         <button
           className={styles.closeBtn}
           onClick={onClose}
-          aria-label="Cerrar modal"
+          aria-label={t("closeModal")}
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
             <line x1="18" y1="6" x2="6" y2="18" />
@@ -206,13 +208,13 @@ export default function ShareModal({
           <div className={styles.coverWrapper}>
             <img
               src={album.coverUrl}
-              alt={`Portada de ${album.title}`}
+              alt={album.title}
               className={styles.cover}
             />
             <div className={styles.coverGlow} style={{ background: ambientColor }} />
           </div>
           <div className={styles.albumInfo}>
-            <span className={styles.albumLabel}>Compartiendo álbum</span>
+            <span className={styles.albumLabel}>{t("shareLabel")}</span>
             <h2 className={styles.albumTitle}>{album.title}</h2>
             <p className={styles.albumArtist}>
               {album.artist} <span className={styles.dot}>·</span> {album.releaseYear}
@@ -225,7 +227,7 @@ export default function ShareModal({
 
         {/* Social network buttons */}
         <div className={styles.socialSection}>
-          <p className={styles.sectionLabel}>Compartir en</p>
+          <p className={styles.sectionLabel}>{t("shareOn")}</p>
           <div className={styles.socialGrid}>
             {SOCIAL_NETWORKS.map((network) => (
               <a
@@ -234,7 +236,7 @@ export default function ShareModal({
                 target="_blank"
                 rel="noopener noreferrer"
                 className={styles.socialBtn}
-                title={`Compartir en ${network.name}`}
+                title={`${t("shareOn")} ${network.name}`}
                 style={{ "--network-color": network.color } as React.CSSProperties}
               >
                 <span className={styles.socialIcon}>
@@ -251,7 +253,7 @@ export default function ShareModal({
 
         {/* Copy link */}
         <div className={styles.copySection}>
-          <p className={styles.sectionLabel}>O copia el enlace</p>
+          <p className={styles.sectionLabel}>{t("copyLink")}</p>
           <div className={styles.copyRow}>
             <input
               ref={inputRef}
@@ -260,7 +262,7 @@ export default function ShareModal({
               value={shareUrl}
               className={styles.urlInput}
               onFocus={() => inputRef.current?.select()}
-              aria-label="URL del álbum"
+              aria-label={t("albumUrl")}
             />
             <button
               className={`${styles.copyBtn} ${copied ? styles.copyBtnCopied : ""}`}
@@ -271,7 +273,7 @@ export default function ShareModal({
                   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                     <polyline points="20 6 9 17 4 12" />
                   </svg>
-                  Copiado
+                  {t("copied")}
                 </>
               ) : (
                 <>
@@ -279,7 +281,7 @@ export default function ShareModal({
                     <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
                     <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
                   </svg>
-                  Copiar
+                  {t("copy")}
                 </>
               )}
             </button>

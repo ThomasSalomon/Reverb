@@ -2,6 +2,7 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import styles from "../SharedModal.module.css";
+import { useTranslations } from "next-intl";
 
 interface ImageCropperProps {
   imageSrc: string;
@@ -22,6 +23,8 @@ const COLOR_MAP: Record<string, string> = {
 };
 
 export default function ImageCropper({ imageSrc, onCropComplete, onCancel, profileColor }: ImageCropperProps) {
+  const t = useTranslations("Profile");
+  const common = useTranslations("Common");
   const activeColor = COLOR_MAP[profileColor] || "#10b981";
   
   const [zoom, setZoom] = useState(1);
@@ -197,7 +200,7 @@ export default function ImageCropper({ imageSrc, onCropComplete, onCancel, profi
 
   return (
     <div className={styles.cropperContainer}>
-      <p className={styles.cropperSubtitle}>Arrastra y haz zoom para encuadrar tu foto de perfil</p>
+      <p className={styles.cropperSubtitle}>{t("cropInstructions")}</p>
       
       {/* Cropper Viewport wrapper */}
       <div 
@@ -213,7 +216,7 @@ export default function ImageCropper({ imageSrc, onCropComplete, onCancel, profi
         <img
           ref={imgRef}
           src={imageSrc}
-          alt="Original a recortar"
+          alt={t("cropSourceAlt")}
           onLoad={handleImageLoad}
           className={styles.cropperImage}
           style={{
@@ -246,7 +249,7 @@ export default function ImageCropper({ imageSrc, onCropComplete, onCancel, profi
           type="button"
           onClick={() => handleZoomChange(zoom - 0.1)}
           className={styles.zoomBtn}
-          title="Reducir zoom"
+          title={t("zoomOut")}
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
             <line x1="5" y1="12" x2="19" y2="12"></line>
@@ -268,7 +271,7 @@ export default function ImageCropper({ imageSrc, onCropComplete, onCancel, profi
           type="button"
           onClick={() => handleZoomChange(zoom + 0.1)}
           className={styles.zoomBtn}
-          title="Aumentar zoom"
+          title={t("zoomIn")}
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
             <line x1="12" y1="5" x2="12" y2="19"></line>
@@ -284,7 +287,7 @@ export default function ImageCropper({ imageSrc, onCropComplete, onCancel, profi
           onClick={onCancel} 
           className={styles.cropperCancelBtn}
         >
-          Cancelar
+          {common("cancel")}
         </button>
         <button 
           type="button" 
@@ -295,7 +298,7 @@ export default function ImageCropper({ imageSrc, onCropComplete, onCancel, profi
             boxShadow: `0 4px 12px ${activeColor}40`
           }}
         >
-          Recortar y Aplicar
+          {t("cropApply")}
         </button>
       </div>
     </div>

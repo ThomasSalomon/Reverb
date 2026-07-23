@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
+import { Link } from "@/i18n/routing";
 import Image from "next/image";
 import styles from "./page.module.css";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
 
 interface ListData {
   id: string;
@@ -33,7 +33,9 @@ export default function ListDetailClient({ id }: { id: string }) {
   const [list, setList] = useState<ListData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const t = useTranslations("Navigation");
+  const t = useTranslations("List");
+  const common = useTranslations("Common");
+  const locale = useLocale();
 
   useEffect(() => {
     async function fetchList() {
@@ -41,9 +43,9 @@ export default function ListDetailClient({ id }: { id: string }) {
         const res = await fetch(`/api/lists/${id}`, { cache: "no-store" });
         if (!res.ok) {
           if (res.status === 404 || res.status === 403) {
-            throw new Error("La lista no existe o es privada.");
+            throw new Error(t("private"));
           }
-          throw new Error("Error al cargar la lista");
+          throw new Error(t("notFound"));
         }
         const data = await res.json();
         setList(data);
@@ -54,20 +56,20 @@ export default function ListDetailClient({ id }: { id: string }) {
       }
     }
     fetchList();
-  }, [id]);
+  }, [id, t]);
 
   if (loading) {
-    return <div className={styles.loading}>Cargando lista...</div>;
+    return <div className={styles.loading}>{t("loading")}</div>;
   }
 
   if (error || !list) {
     return (
       <div className={styles.container}>
         <div className={styles.emptyState}>
-          <h3>Oops</h3>
-          <p>{error || "No se pudo encontrar la lista."}</p>
+          <h3>{t("notFound")}</h3>
+          <p>{error || t("notFound")}</p>
           <Link href="/explore" className="neon-btn" style={{ marginTop: "20px", display: "inline-block" }}>
-            Volver a explorar
+            {common("backToExplore")}
           </Link>
         </div>
       </div>
@@ -84,7 +86,7 @@ export default function ListDetailClient({ id }: { id: string }) {
         {list.description && <p className={styles.description}>{list.description}</p>}
         
         <div className={styles.meta}>
-          <span>Por</span>
+          <span>{t("by")}</span>
           <Link href={`/users/${list.user.username}`} className={styles.author}>
             <div className={styles.avatar} style={{ backgroundColor: list.user.profileColor || "var(--primary)" }}>
               {list.user.username.charAt(0).toUpperCase()}
@@ -92,9 +94,9 @@ export default function ListDetailClient({ id }: { id: string }) {
             @{list.user.username}
           </Link>
           <span>•</span>
-          <span>{list.items.length} álbumes</span>
+          <span>{t("albums", {count: list.items.length})}</span>
           <span>•</span>
-          <span>{new Date(list.createdAt).toLocaleDateString()}</span>
+          <span>{new Date(list.createdAt).toLocaleDateString(locale)}</span>
         </div>
       </div>
 
@@ -124,7 +126,7 @@ export default function ListDetailClient({ id }: { id: string }) {
         </div>
       ) : (
         <div className={styles.emptyState}>
-          <p>Esta lista está vacía.</p>
+          <p>{t("empty")}</p>
         </div>
       )}
     </div>

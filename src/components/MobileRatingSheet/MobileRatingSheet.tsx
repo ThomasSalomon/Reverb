@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import styles from "./MobileRatingSheet.module.css";
 import SliderRating from "../SliderRating/SliderRating";
+import { useTranslations } from "next-intl";
 
 interface MobileRatingSheetProps {
   isOpen: boolean;
@@ -17,6 +18,8 @@ export default function MobileRatingSheet({
   currentRating,
   onRate,
 }: MobileRatingSheetProps) {
+  const t = useTranslations("Album");
+  const common = useTranslations("Common");
   const [localRating, setLocalRating] = useState<number | null>(currentRating);
   const [isAnimatingOut, setIsAnimatingOut] = useState(false);
 
@@ -62,7 +65,7 @@ export default function MobileRatingSheet({
       >
         <div className={styles.dragHandle} />
         
-        <h3 className={styles.title}>Calificar Álbum</h3>
+        <h3 className={styles.title}>{t("rateAlbum")}</h3>
         <p className={styles.subtitle}>{albumTitle}</p>
         
         <div className={styles.starsWrapper}>
@@ -75,10 +78,10 @@ export default function MobileRatingSheet({
         
         <div className={styles.actions}>
           <button className={styles.cancelBtn} onClick={handleClose}>
-            Cancelar
+            {common("cancel")}
           </button>
           <button className="neon-btn" onClick={handleSave} style={{ padding: "12px 24px", width: "100%" }}>
-            Guardar
+            {common("save")}
           </button>
         </div>
       </div>

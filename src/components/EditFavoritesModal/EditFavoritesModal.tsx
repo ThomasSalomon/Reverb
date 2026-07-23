@@ -5,6 +5,7 @@ import styles from "../SharedModal.module.css";
 import localStyles from "../../app/[locale]/users/[username]/page.module.css";
 import { showToast } from "@/components/Toast/ToastListener";
 import { useBodyScrollLock } from "@/hooks/useBodyScrollLock";
+import { useTranslations } from "next-intl";
 
 interface DeezerSearchResult {
   id: string;
@@ -41,6 +42,8 @@ interface EditFavoritesModalProps {
 }
 
 export default function EditFavoritesModal({ isOpen, onClose, profile, onSave }: EditFavoritesModalProps) {
+  const t = useTranslations("Profile");
+  const common = useTranslations("Common");
   const [selectedAlbums, setSelectedAlbums] = useState<{ [slot: number]: any }>({ 1: null, 2: null, 3: null });
   const [albumQueries, setAlbumQueries] = useState<{ [slot: number]: string }>({ 1: "", 2: "", 3: "" });
   const [slotSearchResults, setSlotSearchResults] = useState<{ [slot: number]: DeezerSearchResult[] }>({ 1: [], 2: [], 3: [] });
@@ -148,18 +151,17 @@ export default function EditFavoritesModal({ isOpen, onClose, profile, onSave }:
         })
       });
 
-      const data = await res.json();
       if (!res.ok) {
-        showToast(data.error || "Error al actualizar favoritos", "error");
+        showToast(t("favoritesUpdateError"), "error");
         return;
       }
 
-      showToast("Álbumes favoritos actualizados", "success");
+      showToast(t("favoritesUpdated"), "success");
       await onSave();
       onClose();
     } catch (e) {
       console.error("Save favorites error:", e);
-      showToast("Error de conexión", "error");
+      showToast(common("connectionError"), "error");
     } finally {
       setSaving(false);
     }
@@ -172,15 +174,15 @@ export default function EditFavoritesModal({ isOpen, onClose, profile, onSave }:
     <div className={styles.modalOverlay}>
       <div className={styles.modalContent} style={{ maxWidth: "480px" }}>
         <div className={styles.modalHeader}>
-          <h3 className={styles.modalTitle}>Álbumes Favoritos</h3>
-          <button onClick={onClose} className={styles.closeBtn}>
+          <h3 className={styles.modalTitle}>{t("favoriteAlbums")}</h3>
+          <button onClick={onClose} className={styles.closeBtn} aria-label={common("close")}>
             &times;
           </button>
         </div>
 
         <form onSubmit={handleSubmit} className={styles.formContainer}>
           <span style={{ fontSize: "0.85rem", color: "var(--text-secondary)" }}>
-            Elige hasta 3 álbumes para destacar en tu perfil.
+            {t("favoritesHelp")}
           </span>
 
           <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
@@ -192,7 +194,7 @@ export default function EditFavoritesModal({ isOpen, onClose, profile, onSave }:
               
               return (
                 <div key={slot} style={{ padding: "12px", background: "rgba(255,255,255,0.02)", borderRadius: "8px", border: "1px solid var(--border)" }}>
-                  <span style={{ fontSize: "0.8rem", fontWeight: 700, color: "var(--text-secondary)", display: "block", marginBottom: "6px" }}>Puesto #{slot}</span>
+                  <span style={{ fontSize: "0.8rem", fontWeight: 700, color: "var(--text-secondary)", display: "block", marginBottom: "6px" }}>{t("position", { number: slot })}</span>
                   
                   {selectedAlbum ? (
                     <div className={localStyles.selectedAlbumDisplay} style={{ margin: 0 }}>
@@ -218,7 +220,7 @@ export default function EditFavoritesModal({ isOpen, onClose, profile, onSave }:
                         }}
                         className={localStyles.removeAlbumBtn}
                       >
-                        Remover
+                        {common("remove")}
                       </button>
                     </div>
                   ) : (
@@ -226,7 +228,7 @@ export default function EditFavoritesModal({ isOpen, onClose, profile, onSave }:
                       <input
                         type="text"
                         className={styles.formInput}
-                        placeholder="Buscar álbum (ej: The Dark Side of the Moon)"
+                        placeholder={t("favoriteSearchPlaceholder")}
                         value={albumQuery}
                         onChange={(e) => setAlbumQueries(prev => ({ ...prev, [slot]: e.target.value }))}
                         style={{ width: "100%", paddingRight: "30px" }}
@@ -271,10 +273,10 @@ export default function EditFavoritesModal({ isOpen, onClose, profile, onSave }:
 
           <div className={styles.modalFooter}>
             <button type="button" onClick={onClose} className={styles.cancelBtn} disabled={saving}>
-              Cancelar
+              {common("cancel")}
             </button>
             <button type="submit" className={styles.saveBtn} disabled={saving}>
-              {saving ? "Guardando..." : "Guardar"}
+              {saving ? t("changingPassword") : common("save")}
             </button>
           </div>
         </form>
