@@ -6,6 +6,15 @@
     "logout": "Log out"
   },
   "Home": {
+    "searchResults": "Search results",
+    "searchMinChars": "Enter at least 2 characters to search",
+    "searching": "Searching...",
+    "searchError": "The search could not be completed",
+    "retrySearch": "Retry",
+    "partialSearch": "Showing partial results because one source did not respond.",
+    "artists": "Artists",
+    "directAlbums": "Matching albums",
+    "featuredAlbums": "Featured albums",
     "heroTitle1": "Take note of every",
     "heroTitleHighlight": "beat",
     "heroSubtitle": "Rate albums, write detailed reviews, and keep track of your musical journey.",

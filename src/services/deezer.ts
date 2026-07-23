@@ -6,6 +6,12 @@ export interface DeezerAlbumSearchItem {
   releaseYear: number;
 }
 
+export interface DeezerArtistSearchItem {
+  id: string;
+  name: string;
+  pictureUrl: string;
+}
+
 export interface DeezerTrack {
   title: string;
   duration: string;
@@ -81,7 +87,7 @@ export const DeezerService = {
       });
     } catch (error) {
       console.error("Error in DeezerService.searchAlbums:", error);
-      return [];
+      throw error;
     }
   },
 
@@ -174,7 +180,7 @@ export const DeezerService = {
     }
   },
 
-  async searchArtists(query: string, index: number = 0, limit: number = 50): Promise<any[]> {
+  async searchArtists(query: string, index: number = 0, limit: number = 50): Promise<DeezerArtistSearchItem[]> {
     if (!query || query.trim() === "") return [];
 
     try {
@@ -195,7 +201,7 @@ export const DeezerService = {
       }));
     } catch (error) {
       console.error("Error in DeezerService.searchArtists:", error);
-      return [];
+      throw error;
     }
   },
 
@@ -266,10 +272,10 @@ export const DeezerService = {
     }
   },
 
-  async getArtistAlbums(artistId: string): Promise<DeezerAlbumSearchItem[]> {
+  async getArtistAlbums(artistId: string, limit: number = 50): Promise<DeezerAlbumSearchItem[]> {
     if (!artistId) return [];
     try {
-      const response = await fetch(`https://api.deezer.com/artist/${artistId}/albums?limit=50`, { cache: "no-store" });
+      const response = await fetch(`https://api.deezer.com/artist/${artistId}/albums?limit=${limit}`, { cache: "no-store" });
       if (!response.ok) throw new Error("API Error");
       const data = await response.json();
       if (!data.data) return [];

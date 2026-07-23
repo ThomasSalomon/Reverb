@@ -6,6 +6,15 @@
     "logout": "Salir"
   },
   "Home": {
+    "searchResults": "Resultados de b\u00fasqueda",
+    "searchMinChars": "Escrib\u00ed al menos 2 caracteres para buscar",
+    "searching": "Buscando...",
+    "searchError": "No se pudo completar la b\u00fasqueda",
+    "retrySearch": "Reintentar",
+    "partialSearch": "Se muestran resultados parciales porque una fuente no respondi\u00f3.",
+    "artists": "Artistas",
+    "directAlbums": "\u00c1lbumes coincidentes",
+    "featuredAlbums": "\u00c1lbumes destacados",
     "heroTitle1": "Toma nota de cada",
     "heroTitleHighlight": "ritmo",
     "heroSubtitle": "Califica álbumes, escribe reseñas detalladas y lleva un registro de tu viaje musical.",

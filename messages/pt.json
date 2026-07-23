@@ -6,6 +6,15 @@
     "logout": "Sair"
   },
   "Home": {
+    "searchResults": "Resultados da pesquisa",
+    "searchMinChars": "Digite pelo menos 2 caracteres para pesquisar",
+    "searching": "Pesquisando...",
+    "searchError": "N\u00e3o foi poss\u00edvel concluir a pesquisa",
+    "retrySearch": "Tentar novamente",
+    "partialSearch": "Resultados parciais: uma fonte n\u00e3o respondeu.",
+    "artists": "Artistas",
+    "directAlbums": "\u00c1lbuns correspondentes",
+    "featuredAlbums": "\u00c1lbuns em destaque",
     "heroTitle1": "Tome nota de cada",
     "heroTitleHighlight": "ritmo",
     "heroSubtitle": "Avalie álbuns, escreva resenhas detalhadas e acompanhe sua jornada musical.",

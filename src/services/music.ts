@@ -172,8 +172,11 @@ export const MusicService = {
     }
     if (deezerResults.length === 0) return [];
 
-    // 2. Query matching local records to get their ratings and reviews
-    const ids = deezerResults.map((r) => r.id);
+    return this.blendExternalItems(deezerResults);
+  },
+
+  async blendExternalItems(items: DeezerAlbumSearchItem[]): Promise<MusicItemWithStats[]> {
+    const ids = items.map((item) => item.id);
     const localItems = await prisma.musicItem.findMany({
       where: { id: { in: ids } },
       include: {
@@ -199,8 +202,7 @@ export const MusicService = {
     // Create lookup map
     const localItemsMap = new Map(localItems.map((item) => [item.id, item]));
 
-    // 3. Blend Deezer items with local stats
-    return deezerResults.map((item) => {
+    return items.map((item) => {
       const localItem = localItemsMap.get(item.id);
       if (localItem) {
         return this._enrichStats(localItem);
@@ -221,6 +223,79 @@ export const MusicService = {
           averageRating: 0,
           totalRatings: 0,
           totalReviews: 0,
+        },
+      };
+    });
+  },
+
+  async blendExternalItemsForHomeSearch(items: DeezerAlbumSearchItem[]): Promise<MusicItemWithStats[]> {
+    const ids = items.map((item) => item.id);
+    const localItems = await prisma.musicItem.findMany({
+      where: { id: { in: ids } },
+      select: {
+        id: true,
+        title: true,
+        artist: true,
+        type: true,
+        coverUrl: true,
+        releaseYear: true,
+        tracks: true,
+        createdAt: true,
+        ratings: { select: { value: true } },
+        _count: { select: { reviews: true } },
+      },
+    });
+    const localItemsMap = new Map(localItems.map((item) => [item.id, item]));
+
+    return items.map((item) => {
+      const localItem = localItemsMap.get(item.id);
+      if (!localItem) {
+        return {
+          id: item.id,
+          title: item.title,
+          artist: item.artist,
+          type: "ALBUM",
+          coverUrl: item.coverUrl,
+          releaseYear: item.releaseYear,
+          tracks: null,
+          createdAt: new Date(),
+          reviews: [],
+          stats: {
+            averageRating: 0,
+            totalRatings: 0,
+            totalReviews: 0,
+          },
+        };
+      }
+
+      const ratingsCount = localItem.ratings.length;
+      const averageRating = ratingsCount === 0
+        ? 0
+        : Math.round((localItem.ratings.reduce((sum, rating) => sum + rating.value, 0) / ratingsCount) * 10) / 10;
+
+      let tracks: Track[] | null = null;
+      if (localItem.tracks) {
+        try {
+          tracks = JSON.parse(localItem.tracks);
+        } catch (error) {
+          console.error("Failed to parse tracks for item: " + localItem.id, error);
+        }
+      }
+
+      return {
+        id: localItem.id,
+        title: localItem.title,
+        artist: localItem.artist,
+        type: localItem.type,
+        coverUrl: localItem.coverUrl,
+        releaseYear: localItem.releaseYear,
+        tracks,
+        createdAt: localItem.createdAt,
+        reviews: [],
+        stats: {
+          averageRating,
+          totalRatings: ratingsCount,
+          totalReviews: localItem._count.reviews,
         },
       };
     });
