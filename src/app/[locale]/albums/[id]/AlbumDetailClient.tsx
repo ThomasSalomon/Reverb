@@ -15,6 +15,7 @@ import MobileRatingSheet from "@/components/MobileRatingSheet/MobileRatingSheet"
 import SliderRating from "@/components/SliderRating/SliderRating";
 import { useLazyIframe } from "@/hooks/useLazyIframe";
 import AccessibleDialog from "@/components/AccessibleDialog/AccessibleDialog";
+import Button from "@/components/Button/Button";
 
 interface Track {
   title: string;
@@ -651,32 +652,12 @@ export default function AlbumDetailClient({ id }: { id: string }) {
               </div>
 
               <div style={{ display: "flex", justifyContent: "flex-end", gap: "12px", marginTop: "10px" }}>
-                <button
-                  type="button"
-                  onClick={() => setIsDiaryOpen(false)}
-                  style={{
-                    background: "transparent",
-                    border: "1px solid var(--border)",
-                    color: "var(--text-secondary)",
-                    padding: "10px 20px",
-                    borderRadius: "8px",
-                    cursor: "pointer",
-                    fontWeight: 600,
-                    fontSize: "0.9rem"
-                  }}
-                >
+                <Button variant="secondary" onClick={() => setIsDiaryOpen(false)}>
                   {common("cancel")}
-                </button>
-                <button
-                  type="submit"
-                  className="neon-btn"
-                  style={{
-                    padding: "10px 24px",
-                    fontSize: "0.9rem"
-                  }}
-                >
+                </Button>
+                <Button type="submit" variant="neon">
                   {common("save")}
-                </button>
+                </Button>
               </div>
             </form>
           </div>

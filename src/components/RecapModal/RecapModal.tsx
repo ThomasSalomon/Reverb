@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import styles from "./RecapModal.module.css";
 import AccessibleDialog from "@/components/AccessibleDialog/AccessibleDialog";
 import { useTranslations } from "next-intl";
+import { getReviewTagTranslationKey } from "@/utils/review-tags";
 
 interface RecapModalProps {
   username: string;
@@ -12,6 +13,7 @@ interface RecapModalProps {
 
 export default function RecapModal({ username, onClose }: RecapModalProps) {
   const t = useTranslations("Profile");
+  const reviewT = useTranslations("Review");
   const common = useTranslations("Common");
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -136,7 +138,13 @@ export default function RecapModal({ username, onClose }: RecapModalProps) {
                     </div>
                   </div>
                   <div className={styles.moodValueContainer}>
-                    <span className={styles.statValue}>{data.topTag || t("noDataValue")}</span>
+                    <span className={styles.statValue}>
+                      {data.topTag === null || data.topTag === undefined
+                        ? t("noDataValue")
+                        : getReviewTagTranslationKey(data.topTag)
+                          ? reviewT(getReviewTagTranslationKey(data.topTag)!)
+                          : t("unknownVibe")}
+                    </span>
                   </div>
                 </div>
               </div>

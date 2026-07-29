@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "@/i18n/routing";
 import { useTranslations, useLocale } from "next-intl";
 
-import { motion, useScroll, useTransform } from "framer-motion";
+import { motion, useReducedMotion, useScroll, useTransform } from "framer-motion";
 import styles from "./page.module.css";
 import Cover3D from "@/components/Cover3D/Cover3D";
+import { getUniqueArtistReleases } from "@/utils/artist-discography";
 
 interface ArtistData {
   artist: {
@@ -30,6 +31,7 @@ interface ArtistData {
     coverUrl: string;
     releaseYear: number;
   }>;
+  nextAlbumOffset: number | null;
   related: Array<{
     id: string;
     name: string;
@@ -48,36 +50,108 @@ export default function ArtistDetailClient({
   const locale = useLocale();
   const [data, setData] = useState<ArtistData | null>(initialData);
   const [loading, setLoading] = useState(!initialData);
+  const [initialError, setInitialError] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
+  const [albums, setAlbums] = useState(initialData?.albums ?? []);
+  const [nextAlbumOffset, setNextAlbumOffset] = useState(initialData?.nextAlbumOffset ?? null);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [loadMoreError, setLoadMoreError] = useState(false);
+  const [releaseStatus, setReleaseStatus] = useState("");
+  const loadMoreInFlight = useRef(false);
 
-  const { scrollY } = useScroll();
-  const y = useTransform(scrollY, [0, 500], [0, 200]);
-  const opacity = useTransform(scrollY, [0, 300], [1, 0]);
-  const scale = useTransform(scrollY, [0, 300], [1, 0.95]);
+  const prefersReducedMotion = useReducedMotion();
 
   useEffect(() => {
-    if (!initialData) {
-      const fetchArtist = async () => {
-        try {
-          const res = await fetch(`/api/artists/${encodeURIComponent(id)}`);
-          if (res.ok) {
-            const json = await res.json();
-            setData(json);
-          }
-        } catch (error) {
-          console.error("Failed to fetch artist data", error);
-        } finally {
-          setLoading(false);
-        }
-      };
-      fetchArtist();
+    setData(initialData);
+    setAlbums(initialData?.albums ?? []);
+    setNextAlbumOffset(initialData?.nextAlbumOffset ?? null);
+    setInitialError(false);
+    setLoadMoreError(false);
+    setReleaseStatus("");
+
+    if (initialData) {
+      setLoading(false);
+      return;
     }
-  }, [id, initialData]);
+
+    let cancelled = false;
+    const fetchArtist = async () => {
+      setLoading(true);
+      try {
+        const res = await fetch(`/api/artists/${encodeURIComponent(id)}`);
+        if (res.status === 404) return;
+        if (!res.ok) throw new Error("Failed to fetch artist data");
+
+        const json = await res.json();
+        if (!cancelled) {
+          setData(json);
+          setAlbums(json.albums);
+          setNextAlbumOffset(json.nextAlbumOffset);
+        }
+      } catch (error) {
+        console.error("Failed to fetch artist data", error);
+        if (!cancelled) setInitialError(true);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+
+    fetchArtist();
+    return () => {
+      cancelled = true;
+    };
+  }, [id, initialData, retryCount]);
+
+  const loadMoreAlbums = async () => {
+    const artistId = data?.artist.id;
+    if (artistId === undefined || nextAlbumOffset === null || loadMoreInFlight.current) return;
+
+    loadMoreInFlight.current = true;
+    setIsLoadingMore(true);
+    setLoadMoreError(false);
+    setReleaseStatus("");
+
+    try {
+      const res = await fetch(
+        `/api/artists/${encodeURIComponent(artistId)}?albumsOffset=${nextAlbumOffset}`
+      );
+      if (!res.ok) throw new Error("Failed to load more albums");
+
+      const page: Pick<ArtistData, "albums" | "nextAlbumOffset"> = await res.json();
+      const newAlbums = getUniqueArtistReleases(albums, page.albums);
+
+      setAlbums((currentAlbums) => [...currentAlbums, ...newAlbums]);
+      setNextAlbumOffset(page.nextAlbumOffset);
+      if (newAlbums.length > 0) {
+        setReleaseStatus(t("releasesLoaded", { count: newAlbums.length }));
+      }
+    } catch (error) {
+      console.error("Failed to load more artist albums", error);
+      setLoadMoreError(true);
+    } finally {
+      loadMoreInFlight.current = false;
+      setIsLoadingMore(false);
+    }
+  };
 
   if (loading) {
     return (
       <div className={styles.container}>
         <div style={{ padding: "100px", textAlign: "center", color: "#a1a1aa" }}>
           {t("loading")}
+        </div>
+      </div>
+    );
+  }
+
+  if (initialError) {
+    return (
+      <div className={styles.container}>
+        <div className={styles.initialError} role="alert">
+          <p>{t("discographyLoadError")}</p>
+          <button type="button" className={styles.loadMoreButton} onClick={() => setRetryCount((count) => count + 1)}>
+            {t("retry")}
+          </button>
         </div>
       </div>
     );
@@ -97,25 +171,38 @@ export default function ArtistDetailClient({
     <div className={styles.container}>
 
       <div className={styles.hero}>
-        <motion.div className={styles.heroBackground} style={{ y }}>
-          <img
-            src={data.artist.pictureXlUrl}
-            alt={data.artist.name}
-            className={styles.heroImage}
-            style={{ width: "100%", height: "100%" }}
-          />
-        </motion.div>
+        {prefersReducedMotion ? (
+          <div className={styles.heroBackground}>
+            <img
+              src={data.artist.pictureXlUrl}
+              alt={data.artist.name}
+              className={styles.heroImage}
+              style={{ width: "100%", height: "100%" }}
+            />
+          </div>
+        ) : (
+          <AnimatedArtistHeroBackground src={data.artist.pictureXlUrl} alt={data.artist.name} />
+        )}
         <div className={styles.heroOverlay} />
         
-        <motion.div className={styles.heroContent} style={{ opacity, scale }}>
-          <h1 className={styles.artistName}>{data.artist.name}</h1>
-          <div className={styles.artistStats}>
-            <span className={styles.fansCount}>
-              {new Intl.NumberFormat(locale).format(data.artist.nb_fan)}
-            </span>{" "}
-            {t("fans")}
+        {prefersReducedMotion ? (
+          <div className={styles.heroContent}>
+            <h1 className={styles.artistName}>{data.artist.name}</h1>
+            <div className={styles.artistStats}>
+              <span className={styles.fansCount}>
+                {new Intl.NumberFormat(locale).format(data.artist.nb_fan)}
+              </span>{" "}
+              {t("fans")}
+            </div>
           </div>
-        </motion.div>
+        ) : (
+          <AnimatedArtistHeroContent
+            locale={locale}
+            name={data.artist.name}
+            fans={data.artist.nb_fan}
+            label={t("fans")}
+          />
+        )}
       </div>
 
       <div className={styles.contentContainer}>
@@ -161,27 +248,85 @@ export default function ArtistDetailClient({
             </div>
           </div>
 
-          <div>
-            <h2 className={styles.sectionTitle}>{t("discography")}</h2>
-            <div className={styles.albumsGrid}>
-              {data.albums.map((album) => (
-                <div key={album.id} style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                  <Link href={`/albums/${album.id}`}>
-                    <Cover3D src={album.coverUrl} alt={album.title} size="100%" />
-                  </Link>
-                  <div style={{ display: "flex", flexDirection: "column" }}>
-                    <Link href={`/albums/${album.id}`} style={{ fontWeight: 600, color: "var(--text-primary)", textDecoration: "none", fontSize: "1rem", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                      {album.title}
-                    </Link>
-                    <span style={{ fontSize: "0.85rem", color: "var(--text-secondary)" }}>{album.releaseYear}</span>
-                  </div>
+          <section className={styles.discographySection} aria-labelledby="artist-discography-title">
+            <h2 id="artist-discography-title" className={styles.sectionTitle}>{t("discography")}</h2>
+            {albums.length > 0 ? (
+              <>
+                <div className={styles.albumsGrid}>
+                  {albums.map((album) => (
+                    <article key={album.id} className={styles.albumCard}>
+                      <div className={styles.albumCover}>
+                        <Link href={`/albums/${album.id}`} className={styles.albumCoverLink}>
+                          <Cover3D src={album.coverUrl} alt={album.title} size="100%" />
+                        </Link>
+                      </div>
+                      <div className={styles.albumMeta}>
+                        <Link href={`/albums/${album.id}`} className={styles.albumTitle}>
+                          {album.title}
+                        </Link>
+                        <span className={styles.albumYear}>{album.releaseYear}</span>
+                      </div>
+                    </article>
+                  ))}
                 </div>
-              ))}
-            </div>
-          </div>
+
+                <div className={styles.discographyActions}>
+                  {nextAlbumOffset !== null && (
+                    <button
+                      type="button"
+                      className={styles.loadMoreButton}
+                      onClick={loadMoreAlbums}
+                      disabled={isLoadingMore}
+                    >
+                      {isLoadingMore ? t("loadingMore") : t("loadMore")}
+                    </button>
+                  )}
+                  {loadMoreError && (
+                    <div className={styles.loadMoreError} role="alert">
+                      <span>{t("loadMoreError")}</span>
+                      <button type="button" className={styles.retryButton} onClick={loadMoreAlbums}>
+                        {t("retry")}
+                      </button>
+                    </div>
+                  )}
+                  <p className={styles.statusMessage} role="status" aria-live="polite">
+                    {releaseStatus}
+                  </p>
+                </div>
+              </>
+            ) : (
+              <p className={styles.emptyDiscography}>{t("noDiscography")}</p>
+            )}
+          </section>
 
         </div>
       </div>
     </div>
+  );
+}
+
+function AnimatedArtistHeroBackground({ src, alt }: { src: string; alt: string }) {
+  const { scrollY } = useScroll();
+  const y = useTransform(scrollY, [0, 500], [0, 200]);
+
+  return (
+    <motion.div className={styles.heroBackground} style={{ y }}>
+      <img src={src} alt={alt} className={styles.heroImage} style={{ width: "100%", height: "100%" }} />
+    </motion.div>
+  );
+}
+
+function AnimatedArtistHeroContent({ locale, name, fans, label }: { locale: string; name: string; fans: number; label: string }) {
+  const { scrollY } = useScroll();
+  const opacity = useTransform(scrollY, [0, 300], [1, 0]);
+  const scale = useTransform(scrollY, [0, 300], [1, 0.95]);
+
+  return (
+    <motion.div className={styles.heroContent} style={{ opacity, scale }}>
+      <h1 className={styles.artistName}>{name}</h1>
+      <div className={styles.artistStats}>
+        <span className={styles.fansCount}>{new Intl.NumberFormat(locale).format(fans)}</span>{" "}{label}
+      </div>
+    </motion.div>
   );
 }

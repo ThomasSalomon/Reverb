@@ -1,15 +1,17 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import styles from "./SpecialDayBanner.module.css";
 import SpecialPlaylistModal from "../SpecialPlaylistModal/SpecialPlaylistModal";
 import { useTranslations } from "next-intl";
+import { MOTION_EASE, reducedMotionDuration } from "@/utils/motion";
 
 export default function SpecialDayBanner() {
   const t = useTranslations("Home");
   const [eventData, setEventData] = useState<any>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const prefersReducedMotion = useReducedMotion();
 
   useEffect(() => {
     async function fetchEvent() {
@@ -33,11 +35,11 @@ export default function SpecialDayBanner() {
       <motion.div
         className={styles.bannerContainer}
         onClick={() => setIsModalOpen(true)}
-        initial={{ opacity: 0, y: -20, scale: 0.95 }}
+        initial={prefersReducedMotion ? false : { opacity: 0, y: -20, scale: 0.95 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         transition={{
-          duration: 0.5,
-          ease: [0.23, 1, 0.32, 1], // Custom strong ease-out
+          duration: reducedMotionDuration(Boolean(prefersReducedMotion), 0.5),
+          ease: MOTION_EASE.expressive,
         }}
       >
         {eventData.artistPicture && (

@@ -5,6 +5,7 @@ import styles from "../SharedModal.module.css";
 import localStyles from "../../app/[locale]/users/[username]/page.module.css";
 import { showToast } from "@/components/Toast/ToastListener";
 import AccessibleDialog from "@/components/AccessibleDialog/AccessibleDialog";
+import Button from "@/components/Button/Button";
 import ImageCropper from "./ImageCropper";
 import { useTranslations } from "next-intl";
 
@@ -335,12 +336,12 @@ export default function EditProfileModal({ isOpen, onClose, profile, onSave }: E
 
             {/* Footer */}
             <div className={styles.modalFooter}>
-              <button type="button" onClick={onClose} className={styles.cancelBtn} disabled={saving}>
+              <Button variant="secondary" onClick={onClose} disabled={saving}>
                 {common("cancel")}
-              </button>
-              <button type="submit" className={styles.saveBtn} disabled={saving}>
-                {saving ? t("changingPassword") : common("saveChanges")}
-              </button>
+              </Button>
+              <Button type="submit" isLoading={saving} loadingLabel={t("changingPassword")}>
+                {common("saveChanges")}
+              </Button>
             </div>
           </form>
         )}

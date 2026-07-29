@@ -1,12 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import { Link } from "@/i18n/routing";
 import styles from "./SpecialPlaylistModal.module.css";
 import Image from "next/image";
 import { useTranslations } from "next-intl";
 import AccessibleDialog from "@/components/AccessibleDialog/AccessibleDialog";
+import { MOTION_DURATION, MOTION_EASE, reducedMotionDuration } from "@/utils/motion";
 
 interface Props {
   artistName: string;
@@ -22,6 +23,7 @@ export default function SpecialPlaylistModal({ artistName, onClose }: Props) {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [needsLogin, setNeedsLogin] = useState(false);
+  const prefersReducedMotion = useReducedMotion();
 
   useEffect(() => {
     async function fetchTracks() {
@@ -72,10 +74,13 @@ export default function SpecialPlaylistModal({ artistName, onClose }: Props) {
     <AccessibleDialog isOpen={true} onClose={onClose} labelledBy="special-playlist-dialog-title" className={styles.overlay}>
       <motion.div
         className={styles.modal}
-        initial={{ opacity: 0, scale: 0.95 }}
+        initial={prefersReducedMotion ? false : { opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
-        exit={{ opacity: 0, scale: 0.95 }}
-        transition={{ duration: 0.3, ease: [0.23, 1, 0.32, 1] }}
+        exit={prefersReducedMotion ? undefined : { opacity: 0, scale: 0.95 }}
+        transition={{
+          duration: reducedMotionDuration(Boolean(prefersReducedMotion), MOTION_DURATION.slow),
+          ease: MOTION_EASE.expressive,
+        }}
       >
         {artistPic && (
           <img src={artistPic} alt={artistName} className={styles.artistBackground} />
@@ -101,9 +106,12 @@ export default function SpecialPlaylistModal({ artistName, onClose }: Props) {
                 <motion.div
                   key={track.id}
                   className={styles.trackItem}
-                  initial={{ opacity: 0, y: 10 }}
+                  initial={prefersReducedMotion ? false : { opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.05, duration: 0.3 }}
+                  transition={{
+                    delay: prefersReducedMotion ? 0 : i * 0.05,
+                    duration: reducedMotionDuration(Boolean(prefersReducedMotion), MOTION_DURATION.slow),
+                  }}
                 >
                   <img
                     src={track.album.cover_xl || "https://via.placeholder.com/150"}

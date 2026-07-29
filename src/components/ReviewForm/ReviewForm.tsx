@@ -5,6 +5,8 @@ import RatingStars from "../RatingStars/RatingStars";
 import SliderRating from "../SliderRating/SliderRating";
 import styles from "./ReviewForm.module.css";
 import { useTranslations } from "next-intl";
+import { CANONICAL_REVIEW_TAGS } from "@/utils/review-tags";
+import Button from "@/components/Button/Button";
 
 interface ReviewFormProps {
   musicItemId: string;
@@ -47,19 +49,6 @@ export default function ReviewForm({
   const errorRef = React.useRef<HTMLDivElement>(null);
   const contentId = React.useId();
   const contentHelpId = `${contentId}-help`;
-
-  const AVAILABLE_TAGS = [
-    { value: "Épico", label: "tagEpic" },
-    { value: "Relajante", label: "tagRelaxing" },
-    { value: "Melancólico", label: "tagMelancholic" },
-    { value: "Enérgico", label: "tagEnergetic" },
-    { value: "Oscuro", label: "tagDark" },
-    { value: "Experimental", label: "tagExperimental" },
-    { value: "Clásico", label: "tagClassic" },
-    { value: "Innovador", label: "tagInnovative" },
-    { value: "Nostálgico", label: "tagNostalgic" },
-    { value: "Divertido", label: "tagFun" }
-  ];
 
   const toggleTag = (tag: string) => {
     setSelectedTags(prev => 
@@ -136,15 +125,15 @@ export default function ReviewForm({
       <fieldset className={styles.tagsSection} disabled={loading}>
         <legend className={styles.label}>{t("tags")}:</legend>
         <div className={styles.tagsContainer}>
-          {AVAILABLE_TAGS.map(tag => (
+          {CANONICAL_REVIEW_TAGS.map(tag => (
             <button
-              key={tag.value}
+              key={tag.key}
               type="button"
-              aria-pressed={selectedTags.includes(tag.value)}
-              onClick={() => toggleTag(tag.value)}
-              className={`${styles.tagPill} ${selectedTags.includes(tag.value) ? styles.tagPillActive : ""}`}
+              aria-pressed={selectedTags.includes(tag.key)}
+              onClick={() => toggleTag(tag.key)}
+              className={`${styles.tagPill} ${selectedTags.includes(tag.key) ? styles.tagPillActive : ""}`}
             >
-              {t(tag.label)}
+              {t(tag.translationKey)}
             </button>
           ))}
         </div>
@@ -176,9 +165,9 @@ export default function ReviewForm({
       {error && <div ref={errorRef} className={styles.errorMsg} role="alert" tabIndex={-1}>{error}</div>}
       {successMsg && <div className={styles.successMsg} role="status">{successMsg}</div>}
 
-      <button type="submit" className="neon-btn" disabled={loading}>
-        {loading ? t("publishing") : t("publish")}
-      </button>
+      <Button type="submit" variant="neon" isLoading={loading} loadingLabel={t("publishing")}>
+        {t("publish")}
+      </Button>
     </form>
   );
 }

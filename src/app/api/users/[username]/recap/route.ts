@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/services/db";
 import { unstable_cache } from "next/cache";
+import { getTopCanonicalReviewTag } from "@/utils/review-tags";
 
 export const dynamic = "force-dynamic";
 
@@ -45,7 +46,6 @@ const getRecapData = async (username: string, year: number) => {
   let totalReviews = reviews.length;
   let avgRating = 0;
   const artistCounts = new Map<string, number>();
-  const tagCounts = new Map<string, number>();
 
   let sumRating = 0;
   
@@ -55,21 +55,12 @@ const getRecapData = async (username: string, year: number) => {
     const artist = r.musicItem.artist;
     artistCounts.set(artist, (artistCounts.get(artist) || 0) + 1);
 
-    if (r.tags) {
-      const tList = r.tags.split(",");
-      tList.forEach(tag => {
-        const t = tag.trim();
-        if (t) {
-          tagCounts.set(t, (tagCounts.get(t) || 0) + 1);
-        }
-      });
-    }
   });
 
   avgRating = sumRating / totalReviews;
 
   const topArtist = Array.from(artistCounts.entries()).sort((a, b) => b[1] - a[1])[0]?.[0] || "Desconocido";
-  const topTag = Array.from(tagCounts.entries()).sort((a, b) => b[1] - a[1])[0]?.[0] || "Ninguno";
+  const topTag = getTopCanonicalReviewTag(reviews.map((review) => review.tags));
   
   const topItems = reviews
     .sort((a, b) => b.ratingValue - a.ratingValue)

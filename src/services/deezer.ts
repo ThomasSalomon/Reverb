@@ -52,6 +52,11 @@ export interface DeezerRelatedArtist {
   pictureUrl: string;
 }
 
+export interface DeezerArtistAlbumsPage {
+  albums: DeezerAlbumSearchItem[];
+  nextIndex: number | null;
+}
+
 function formatDuration(seconds: number): string {
   const mins = Math.floor(seconds / 60);
   const secs = seconds % 60;
@@ -290,6 +295,39 @@ export const DeezerService = {
     } catch (error) {
       console.error("Error getting artist albums:", error);
       return [];
+    }
+  },
+
+  async getArtistAlbumsPage(
+    artistId: string,
+    index: number,
+    limit: number
+  ): Promise<DeezerArtistAlbumsPage> {
+    if (!artistId) return { albums: [], nextIndex: null };
+
+    try {
+      const response = await fetch(
+        `https://api.deezer.com/artist/${artistId}/albums?index=${index}&limit=${limit}`,
+        { cache: "no-store" }
+      );
+      if (!response.ok) throw new Error("API Error");
+      const data = await response.json();
+      const sourceAlbums = Array.isArray(data.data) ? data.data : [];
+      const albums = sourceAlbums.map((item: any) => ({
+        id: String(item.id),
+        title: item.title,
+        artist: item.artist?.name || "Artista Desconocido",
+        coverUrl: item.cover_medium || item.cover || "/covers/placeholder.png",
+        releaseYear: item.release_date ? parseInt(item.release_date.substring(0, 4), 10) : 2000,
+      }));
+
+      return {
+        albums,
+        nextIndex: data.next && sourceAlbums.length > 0 ? index + sourceAlbums.length : null,
+      };
+    } catch (error) {
+      console.error("Error getting artist albums page:", error);
+      throw error;
     }
   },
 

@@ -10,6 +10,12 @@ import { useLocale, useTranslations } from "next-intl";
 
 import sharedStyles from "../SharedModal.module.css";
 import AccessibleDialog from "@/components/AccessibleDialog/AccessibleDialog";
+import Button from "@/components/Button/Button";
+import {
+  CANONICAL_REVIEW_TAGS,
+  getReviewTagTranslationKey,
+  normalizeReviewTagValues,
+} from "@/utils/review-tags";
 
 interface ReviewCardProps {
   review: {
@@ -87,22 +93,9 @@ const ReviewCard = React.memo(function ReviewCard({ review, showMusicDetails = f
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState(review.content);
   const [editRating, setEditRating] = useState(review.ratingValue);
-  const [editTags, setEditTags] = useState<string[]>(review.tags ? review.tags.split(",") : []);
+  const [editTags, setEditTags] = useState<string[]>(normalizeReviewTagValues(review.tags ? review.tags.split(",") : [], Infinity));
   const [editFavoriteTrack, setEditFavoriteTrack] = useState(review.favoriteTrack || "");
   const [savingEdit, setSavingEdit] = useState(false);
-
-  const AVAILABLE_TAGS = [
-    { value: "Épico", label: "tagEpic" },
-    { value: "Relajante", label: "tagRelaxing" },
-    { value: "Melancólico", label: "tagMelancholic" },
-    { value: "Enérgico", label: "tagEnergetic" },
-    { value: "Oscuro", label: "tagDark" },
-    { value: "Experimental", label: "tagExperimental" },
-    { value: "Clásico", label: "tagClassic" },
-    { value: "Innovador", label: "tagInnovative" },
-    { value: "Nostálgico", label: "tagNostalgic" },
-    { value: "Divertido", label: "tagFun" }
-  ];
 
   const toggleEditTag = (tag: string) => {
     setEditTags(prev => 
@@ -346,7 +339,7 @@ const ReviewCard = React.memo(function ReviewCard({ review, showMusicDetails = f
                       onClick={() => {
                         setEditContent(content);
                         setEditRating(ratingValue);
-                        setEditTags(tags ? tags.split(",") : []);
+                        setEditTags(normalizeReviewTagValues(tags ? tags.split(",") : [], Infinity));
                         setEditFavoriteTrack(favoriteTrack || "");
                         setIsEditing(true);
                       }}
@@ -406,8 +399,8 @@ const ReviewCard = React.memo(function ReviewCard({ review, showMusicDetails = f
         {tags && tags.length > 0 && (
           <div className={styles.tagsContainer}>
             {tags.split(",").map(tag => {
-              const knownTag = AVAILABLE_TAGS.find((item) => item.value === tag);
-              return <span key={tag} className={styles.tagPill}>{knownTag ? t(knownTag.label) : tag}</span>;
+              const translationKey = getReviewTagTranslationKey(tag);
+              return <span key={tag} className={styles.tagPill}>{translationKey ? t(translationKey) : tag}</span>;
             })}
           </div>
         )}
@@ -523,9 +516,9 @@ const ReviewCard = React.memo(function ReviewCard({ review, showMusicDetails = f
                   <span style={{ fontSize: "0.75rem", color: "var(--text-secondary)" }}>
                     {newCommentText.length}/300
                   </span>
-                  <button type="submit" className="neon-btn" style={{ padding: "6px 16px", fontSize: "0.85rem" }}>
+                  <Button type="submit" variant="neon" size="compact">
                     {t("postComment")}
-                  </button>
+                  </Button>
                 </div>
               </form>
             ) : (
@@ -734,14 +727,14 @@ const ReviewCard = React.memo(function ReviewCard({ review, showMusicDetails = f
               <div className={sharedStyles.formGroup}>
                 <span className={sharedStyles.formLabel}>{t("tags")}:</span>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
-                  {AVAILABLE_TAGS.map(tag => {
-                    const isActive = editTags.includes(tag.value);
+                  {CANONICAL_REVIEW_TAGS.map(tag => {
+                    const isActive = editTags.includes(tag.key);
                     return (
                       <button
-                        key={tag.value}
+                      key={tag.key}
                         type="button"
-                        aria-pressed={isActive}
-                        onClick={() => toggleEditTag(tag.value)}
+                      aria-pressed={isActive}
+                      onClick={() => toggleEditTag(tag.key)}
                         style={{
                           background: isActive ? "rgba(0, 229, 117, 0.15)" : "rgba(255, 255, 255, 0.05)",
                           border: `1px solid ${isActive ? "var(--primary)" : "var(--border)"}`,
@@ -755,7 +748,7 @@ const ReviewCard = React.memo(function ReviewCard({ review, showMusicDetails = f
                           userSelect: "none"
                         }}
                       >
-                        {t(tag.label)}
+                        {t(tag.translationKey)}
                       </button>
                     );
                   })}
@@ -793,21 +786,20 @@ const ReviewCard = React.memo(function ReviewCard({ review, showMusicDetails = f
 
               {/* Modal Footer */}
               <div className={sharedStyles.modalFooter}>
-                <button
-                  type="button"
+                <Button
+                  variant="secondary"
                   onClick={() => setIsEditing(false)}
-                  className={sharedStyles.cancelBtn}
                   disabled={savingEdit}
                 >
                   {common("cancel")}
-                </button>
-                <button
+                </Button>
+                <Button
                   type="submit"
-                  className={sharedStyles.saveBtn}
-                  disabled={savingEdit}
+                  isLoading={savingEdit}
+                  loadingLabel={t("saving")}
                 >
-                  {savingEdit ? t("saving") : t("saveChanges")}
-                </button>
+                  {t("saveChanges")}
+                </Button>
               </div>
             </form>
           </div>

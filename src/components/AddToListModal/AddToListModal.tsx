@@ -5,6 +5,7 @@ import { showToast } from "@/components/Toast/ToastListener";
 import { useTranslations } from "next-intl";
 import styles from "./AddToListModal.module.css";
 import AccessibleDialog from "@/components/AccessibleDialog/AccessibleDialog";
+import Button from "@/components/Button/Button";
 
 interface AddToListModalProps {
   isOpen: boolean;
@@ -217,22 +218,19 @@ export default function AddToListModal({ isOpen, onClose, musicItemId, username 
                       autoFocus
                     />
                     <div className={styles.actions}>
-                      <button 
-                        type="button" 
-                        className="secondary-btn" 
-                        style={{ fontSize: "0.85rem", padding: "6px 12px" }}
-                        onClick={() => setShowCreate(false)}
-                      >
+                      <Button variant="secondary" size="compact" onClick={() => setShowCreate(false)}>
                         {common("cancel")}
-                      </button>
-                      <button 
-                        type="submit" 
-                        className="neon-btn"
-                        style={{ fontSize: "0.85rem", padding: "6px 12px" }}
-                        disabled={isCreating || !newTitle.trim()}
+                      </Button>
+                      <Button
+                        type="submit"
+                        variant="neon"
+                        size="compact"
+                        isLoading={isCreating}
+                        loadingLabel={t("creating")}
+                        disabled={!newTitle.trim()}
                       >
-                        {isCreating ? t("creating") : t("createAndAdd")}
-                      </button>
+                        {t("createAndAdd")}
+                      </Button>
                     </div>
                   </form>
                 )}

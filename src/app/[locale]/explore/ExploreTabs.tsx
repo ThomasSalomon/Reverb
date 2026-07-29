@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl";
 import styles from "./page.module.css";
 import Avatar from "@/components/Avatar/Avatar";
 import Cover3D from "@/components/Cover3D/Cover3D";
+import Button from "@/components/Button/Button";
 
 type Tab = "albums" | "artists" | "users";
 
@@ -127,6 +128,7 @@ export default function ExploreTabs() {
         <input
           type="text"
           placeholder={renderPlaceholder()}
+          aria-label={renderPlaceholder()}
           className={styles.searchInput}
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
@@ -214,23 +216,13 @@ export default function ExploreTabs() {
             )}
             {hasMore && (
               <div style={{ display: "flex", justifyContent: "center", marginTop: "40px", marginBottom: "20px" }}>
-                <button 
+                <Button
                   onClick={loadMore}
-                  disabled={loading}
-                  style={{
-                    background: "var(--primary)",
-                    color: "#000",
-                    border: "none",
-                    borderRadius: "24px",
-                    padding: "12px 24px",
-                    fontWeight: 600,
-                    cursor: loading ? "not-allowed" : "pointer",
-                    opacity: loading ? 0.7 : 1,
-                    transition: "opacity 0.2s"
-                  }}
+                  isLoading={loading}
+                  loadingLabel={common("loading")}
                 >
-                  {loading ? common("loading") : common("loadMore")}
-                </button>
+                  {common("loadMore")}
+                </Button>
               </div>
             )}
           </>

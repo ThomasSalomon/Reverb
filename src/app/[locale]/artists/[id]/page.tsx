@@ -1,4 +1,5 @@
 import ArtistDetailClient from "./ArtistDetailClient";
+import { ARTIST_DISCOGRAPHY_PAGE_SIZE } from "@/utils/artist-discography";
 
 // Force static rendering or SSR depending on data
 // Since it's dynamic based on [id], it will be SSR.
@@ -22,15 +23,16 @@ export default async function ArtistPage({
   let initialData = null;
   if (artist) {
     const artistId = artist.id;
-    const [topTracks, albums, related] = await Promise.all([
+    const [topTracks, albumsPage, related] = await Promise.all([
       DeezerService.getArtistTopTracks(artistId),
-      DeezerService.getArtistAlbums(artistId),
+      DeezerService.getArtistAlbumsPage(artistId, 0, ARTIST_DISCOGRAPHY_PAGE_SIZE.initial),
       DeezerService.getRelatedArtists(artistId)
     ]);
     initialData = {
       artist,
       topTracks,
-      albums,
+      albums: albumsPage.albums,
+      nextAlbumOffset: albumsPage.nextIndex,
       related
     };
   }

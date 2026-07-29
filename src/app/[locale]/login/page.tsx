@@ -3,6 +3,8 @@
 import { useRef, useState } from "react";
 import { Link, useRouter } from "@/i18n/routing";
 import { useTranslations } from "next-intl";
+import Button from "@/components/Button/Button";
+import Field from "@/components/Field/Field";
 import styles from "./page.module.css";
 
 export default function LoginPage() {
@@ -61,17 +63,19 @@ export default function LoginPage() {
         <p className={styles.subtitle}>{t("loginSubtitle")}</p>
 
         <form onSubmit={handleSubmit} className={styles.form} noValidate>
-          <div className={styles.inputGroup}>
-            <label className={styles.label} htmlFor="login-identifier">{t("usernameOrEmail")}</label>
+          <Field
+            id="login-identifier"
+            label={t("usernameOrEmail")}
+            error={fieldErrors.usernameOrEmail}
+            required
+          >
             <input
               ref={identifierRef}
-              id="login-identifier"
               name="username"
               type="text"
               autoComplete="username"
               autoCapitalize="none"
               spellCheck={false}
-              required
               value={usernameOrEmail}
               onChange={(e) => {
                 setUsernameOrEmail(e.target.value);
@@ -80,21 +84,20 @@ export default function LoginPage() {
               placeholder={t("emailPlaceholder")}
               className="input-field"
               disabled={loading}
-              aria-invalid={Boolean(fieldErrors.usernameOrEmail)}
-              aria-describedby={fieldErrors.usernameOrEmail ? "login-identifier-error" : undefined}
             />
-            {fieldErrors.usernameOrEmail && <p id="login-identifier-error" className={styles.fieldError}>{fieldErrors.usernameOrEmail}</p>}
-          </div>
+          </Field>
 
-          <div className={styles.inputGroup}>
-            <label className={styles.label} htmlFor="login-password">{t("password")}</label>
+          <Field
+            id="login-password"
+            label={t("password")}
+            error={fieldErrors.password}
+            required
+          >
             <input
               ref={passwordRef}
-              id="login-password"
               name="password"
               type="password"
               autoComplete="current-password"
-              required
               value={password}
               onChange={(e) => {
                 setPassword(e.target.value);
@@ -103,17 +106,14 @@ export default function LoginPage() {
               placeholder="••••••••"
               className="input-field"
               disabled={loading}
-              aria-invalid={Boolean(fieldErrors.password)}
-              aria-describedby={fieldErrors.password ? "login-password-error" : undefined}
             />
-            {fieldErrors.password && <p id="login-password-error" className={styles.fieldError}>{fieldErrors.password}</p>}
-          </div>
+          </Field>
 
           {error && <div className={styles.errorMsg} role="alert">{error}</div>}
 
-          <button type="submit" className="neon-btn" disabled={loading}>
-            {loading ? t("loggingIn") : t("login")}
-          </button>
+          <Button type="submit" variant="neon" isLoading={loading} loadingLabel={t("loggingIn")}>
+            {t("login")}
+          </Button>
         </form>
 
         <p className={styles.footerText}>

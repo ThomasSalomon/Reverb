@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { prisma } from "@/services/db";
 import { verifyToken } from "@/utils/auth";
+import { normalizeReviewTagsForStorage } from "@/utils/review-tags";
 
 export const dynamic = "force-dynamic";
 
@@ -175,15 +176,8 @@ export async function POST(req: Request) {
     }
 
     // Process and validate tags
-    let validTags = null;
-    if (tags && Array.isArray(tags)) {
-      // Limit to 5 tags, max 20 chars each to prevent abuse
-      validTags = tags
-        .map(t => String(t).trim().substring(0, 20))
-        .filter(t => t.length > 0)
-        .slice(0, 5)
-        .join(",");
-    }
+    // Known moods are persisted as stable keys; free-form tags keep their user-provided text.
+    const validTags = normalizeReviewTagsForStorage(tags);
 
     const numericRating = parseFloat(ratingValue);
     if (isNaN(numericRating) || numericRating < 1 || numericRating > 5 || numericRating % 0.5 !== 0) {

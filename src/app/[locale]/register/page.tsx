@@ -3,6 +3,8 @@
 import { useRef, useState } from "react";
 import { Link, useRouter } from "@/i18n/routing";
 import { useTranslations } from "next-intl";
+import Button from "@/components/Button/Button";
+import Field from "@/components/Field/Field";
 import styles from "../login/page.module.css";
 
 type RegisterField = "username" | "email" | "password";
@@ -77,29 +79,23 @@ export default function RegisterPage() {
         <p className={styles.subtitle}>{t("registerSubtitle")}</p>
 
         <form onSubmit={handleSubmit} className={styles.form} noValidate>
-          <div className={styles.inputGroup}>
-            <label className={styles.label} htmlFor="register-username">{t("username")}</label>
-            <input ref={usernameRef} id="register-username" name="username" type="text" autoComplete="username" autoCapitalize="none" spellCheck={false} required minLength={3} value={username} onChange={(e) => { setUsername(e.target.value); clearFieldError("username"); }} placeholder={t("usernamePlaceholder")} className="input-field" disabled={loading} aria-invalid={Boolean(fieldErrors.username)} aria-describedby={fieldErrors.username ? "register-username-error" : undefined} />
-            {fieldErrors.username && <p id="register-username-error" className={styles.fieldError}>{fieldErrors.username}</p>}
-          </div>
+          <Field id="register-username" label={t("username")} error={fieldErrors.username} required>
+            <input ref={usernameRef} name="username" type="text" autoComplete="username" autoCapitalize="none" spellCheck={false} minLength={3} value={username} onChange={(e) => { setUsername(e.target.value); clearFieldError("username"); }} placeholder={t("usernamePlaceholder")} className="input-field" disabled={loading} />
+          </Field>
 
-          <div className={styles.inputGroup}>
-            <label className={styles.label} htmlFor="register-email">{t("email")}</label>
-            <input ref={emailRef} id="register-email" name="email" type="email" inputMode="email" autoComplete="email" autoCapitalize="none" spellCheck={false} required value={email} onChange={(e) => { setEmail(e.target.value); clearFieldError("email"); }} placeholder={t("emailPlaceholder")} className="input-field" disabled={loading} aria-invalid={Boolean(fieldErrors.email)} aria-describedby={fieldErrors.email ? "register-email-error" : undefined} />
-            {fieldErrors.email && <p id="register-email-error" className={styles.fieldError}>{fieldErrors.email}</p>}
-          </div>
+          <Field id="register-email" label={t("email")} error={fieldErrors.email} required>
+            <input ref={emailRef} name="email" type="email" inputMode="email" autoComplete="email" autoCapitalize="none" spellCheck={false} value={email} onChange={(e) => { setEmail(e.target.value); clearFieldError("email"); }} placeholder={t("emailPlaceholder")} className="input-field" disabled={loading} />
+          </Field>
 
-          <div className={styles.inputGroup}>
-            <label className={styles.label} htmlFor="register-password">{t("password")}</label>
-            <input ref={passwordRef} id="register-password" name="password" type="password" autoComplete="new-password" required minLength={6} value={password} onChange={(e) => { setPassword(e.target.value); clearFieldError("password"); }} placeholder={t("passwordPlaceholder")} className="input-field" disabled={loading} aria-invalid={Boolean(fieldErrors.password)} aria-describedby={fieldErrors.password ? "register-password-error" : undefined} />
-            {fieldErrors.password && <p id="register-password-error" className={styles.fieldError}>{fieldErrors.password}</p>}
-          </div>
+          <Field id="register-password" label={t("password")} error={fieldErrors.password} required>
+            <input ref={passwordRef} name="password" type="password" autoComplete="new-password" minLength={6} value={password} onChange={(e) => { setPassword(e.target.value); clearFieldError("password"); }} placeholder={t("passwordPlaceholder")} className="input-field" disabled={loading} />
+          </Field>
 
           {error && <div className={styles.errorMsg} role="alert">{error}</div>}
 
-          <button type="submit" className="neon-btn" disabled={loading}>
-            {loading ? t("registering") : t("register")}
-          </button>
+          <Button type="submit" variant="neon" isLoading={loading} loadingLabel={t("registering")}>
+            {t("register")}
+          </Button>
         </form>
 
         <p className={styles.footerText}>

@@ -3,7 +3,7 @@
   top: 0;
   left: 0;
   right: 0;
-  z-index: 100;
+  z-index: var(--layer-navigation);
   width: 100%;
   background: rgba(8, 8, 10, 0.85);
   backdrop-filter: blur(16px);
@@ -20,7 +20,7 @@
 }
 
 .container {
-  max-width: 1200px;
+  max-width: var(--content-max-width);
   width: 100%;
   margin: 0 auto;
   padding: 0 24px;
@@ -229,5 +229,23 @@
 .registerBtn {
   padding: 8px 16px;
   font-size: 0.9rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .navbar,
+  .logoIcon,
+  .profileLink,
+  .logoutBtn,
+  .username,
+  .miniAvatar {
+    transition: none;
+  }
+
+  .logo:hover .logoIcon,
+  .profileLink:hover,
+  .profileLink:active,
+  .logoutBtn:active {
+    transform: none;
+  }
 }
 

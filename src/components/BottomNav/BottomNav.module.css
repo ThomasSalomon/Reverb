@@ -9,7 +9,7 @@
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border-top: 1px solid var(--border);
-  z-index: 100;
+  z-index: var(--layer-navigation);
   justify-content: space-around;
   align-items: center;
   padding-bottom: env(safe-area-inset-bottom);
@@ -65,4 +65,15 @@
 
 .active .miniAvatar {
   box-shadow: 0 0 0 2px var(--primary);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .navItem,
+  .navItem svg {
+    transition: none;
+  }
+
+  .navItem:active svg {
+    transform: none;
+  }
 }

@@ -43,7 +43,7 @@
 }
 
 .star {
-  transition: transform 0.15s cubic-bezier(0.16, 1, 0.3, 1), color 0.15s ease;
+  transition: transform var(--duration-fast) var(--ease-entrance), color var(--duration-fast) var(--ease-standard);
 }
 
 .ratingControl:hover .star {

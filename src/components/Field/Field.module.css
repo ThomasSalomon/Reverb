@@ -1,0 +1,35 @@
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.required {
+  color: var(--color-error);
+  margin-inline-start: var(--space-xs);
+}
+
+.hint,
+.error {
+  margin: 0;
+  font-size: 0.85rem;
+  line-height: 1.35;
+}
+
+.hint {
+  color: var(--text-muted);
+}
+
+.error {
+  color: var(--color-error);
+}
+
+.field :where(input, textarea, select)[aria-invalid="true"] {
+  border-color: var(--color-error);
+}

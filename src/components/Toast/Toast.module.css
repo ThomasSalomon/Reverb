@@ -2,7 +2,7 @@
   position: fixed;
   bottom: 24px;
   right: 24px;
-  z-index: 9999;
+  z-index: var(--layer-toast);
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -21,7 +21,7 @@
   border-left: 4px solid var(--border);
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
   cursor: pointer;
-  animation: slideIn 300ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: slideIn var(--duration-slow) var(--ease-entrance) forwards;
   transition: transform var(--transition-fast), opacity var(--transition-fast);
 }
 
@@ -30,17 +30,17 @@
 }
 
 .success {
-  border-left-color: #10b981;
+  border-left-color: var(--color-success);
   background: rgba(16, 185, 129, 0.05);
 }
 
 .error {
-  border-left-color: #f43f5e;
+  border-left-color: var(--color-error);
   background: rgba(244, 63, 94, 0.05);
 }
 
 .info {
-  border-left-color: #3b82f6;
+  border-left-color: var(--color-info);
   background: rgba(59, 130, 246, 0.05);
 }
 
@@ -91,5 +91,17 @@
     left: 24px;
     width: auto;
     max-width: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .toast {
+    animation: none;
+    transform: none;
+    transition: opacity 0.01ms linear;
+  }
+
+  .toast:hover {
+    transform: none;
   }
 }

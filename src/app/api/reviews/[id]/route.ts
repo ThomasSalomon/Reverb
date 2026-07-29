@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getAuthUser } from "@/utils/auth";
 import { prisma } from "@/services/db";
+import { normalizeReviewTagsForStorage } from "@/utils/review-tags";
 
 export async function DELETE(
   request: Request,
@@ -101,12 +102,7 @@ export async function PATCH(
       );
     }
 
-    let validTags: string | null = null;
-    if (tags !== undefined) {
-      validTags = Array.isArray(tags)
-        ? tags.filter((t) => typeof t === "string").join(",")
-        : null;
-    }
+    const validTags = tags !== undefined ? normalizeReviewTagsForStorage(tags) : null;
 
     const musicItemId = review.musicItemId;
     const userId = user.userId;
@@ -191,4 +187,3 @@ export async function PATCH(
     );
   }
 }
-

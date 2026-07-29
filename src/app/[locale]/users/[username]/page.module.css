@@ -236,7 +236,7 @@
   gap: 32px;
 }
 
-@media (max-width: 800px) {
+@media (max-width: 768px) {
   .profileContent {
     grid-template-columns: 1fr;
   }
@@ -365,7 +365,7 @@
   width: 100%;
   height: 100%;
   background: rgba(0, 0, 0, 0.8);
-  z-index: 1000;
+  z-index: var(--layer-overlay);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -459,6 +459,174 @@
   transform: scale(0.995);
 }
 
+.dialogForm {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xl);
+}
+
+.dialogForm textarea {
+  resize: none;
+}
+
+.checkboxField {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.checkboxField input {
+  width: auto;
+  cursor: pointer;
+}
+
+.checkboxField label {
+  color: var(--text-primary);
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.albumSearchField {
+  position: relative;
+}
+
+.selectedDiaryAlbum {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  padding: 10px;
+  background: var(--surface-subtle);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+}
+
+.selectedDiaryAlbum > img {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--space-xs);
+  object-fit: cover;
+}
+
+.selectedDiaryAlbumMeta {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.selectedDiaryAlbumMeta strong,
+.searchResultItem strong {
+  color: var(--text-primary);
+  font-size: 0.85rem;
+}
+
+.selectedDiaryAlbumMeta span,
+.searchResultItem small {
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+}
+
+.searchingText {
+  position: absolute;
+  right: var(--space-md);
+  top: 36px;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
+.searchResultsDropdown,
+.diarySearchResultsDropdown {
+  position: absolute;
+  z-index: 1;
+  width: 100%;
+  margin-top: var(--space-xs);
+  background: #0c0d12;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  overflow: hidden;
+}
+
+.diarySearchResultsDropdown {
+  top: 68px;
+}
+
+.searchResultItem {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  border: 0;
+  border-bottom: 1px solid var(--border);
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+}
+
+.searchResultItem:last-child {
+  border-bottom: 0;
+}
+
+.searchResultItem:hover {
+  background: var(--surface-hover);
+}
+
+.searchResultItem img {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--space-xs);
+  object-fit: cover;
+}
+
+.searchResultItem span {
+  display: flex;
+  flex-direction: column;
+}
+
+.confirmOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: var(--layer-overlay);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-xl);
+  background: var(--overlay-backdrop);
+  backdrop-filter: blur(4px);
+}
+
+.confirmDialog {
+  width: 100%;
+  max-width: 340px;
+  padding: var(--space-xl);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-lg);
+}
+
+.confirmDialog h4 {
+  color: var(--text-primary);
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+}
+
+.confirmDialog p {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+
+.confirmActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-md);
+  margin-top: var(--space-sm);
+}
+
 .colorPicker {
   display: flex;
   gap: 16px;
@@ -505,7 +673,7 @@
   border-radius: 8px;
   max-height: 220px;
   overflow-y: auto;
-  z-index: 1100;
+  z-index: 1;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
 }
 
@@ -628,6 +796,9 @@
   margin-bottom: 24px;
   padding-bottom: 2px;
   overflow-x: auto;
+  overflow-y: hidden;
+  scroll-snap-type: x proximity;
+  scrollbar-width: thin;
 }
 
 .tabBtn {
@@ -643,11 +814,25 @@
   transition: color var(--transition-fast);
   border-radius: 6px;
   user-select: none;
+  flex: 0 0 auto;
+  min-height: 44px;
+  white-space: nowrap;
+  scroll-snap-align: start;
 }
 
 .tabBtn:hover {
   color: var(--text-primary);
   background: rgba(255, 255, 255, 0.02);
+}
+
+.tabBtn:focus-visible {
+  outline: 2px solid var(--profile-theme-color, var(--primary));
+  outline-offset: -2px;
+}
+
+.tabPanel:focus-visible {
+  outline: 2px solid var(--profile-theme-color, var(--primary));
+  outline-offset: 4px;
 }
 
 .tabBtnActive {
@@ -674,7 +859,7 @@
   width: 100%;
 }
 
-@media (max-width: 900px) {
+@media (max-width: 1024px) {
   .statsDashboard {
     grid-template-columns: 1fr;
   }
@@ -1010,7 +1195,7 @@
   to { transform: rotate(360deg); }
 }
 
-@media (max-width: 600px) {
+@media (max-width: 640px) {
   .profilePage {
     margin: 20px auto;
     padding: 0 16px;
@@ -1039,6 +1224,14 @@
   .actionBtn {
     padding: 8px 16px;
     font-size: 0.85rem;
+  }
+  .tabsContainer {
+    gap: 4px;
+    margin-bottom: 20px;
+    padding-bottom: 4px;
+  }
+  .tabBtn {
+    padding: 10px 16px;
   }
 }
 

@@ -43,3 +43,15 @@
   mix-blend-mode: overlay;
   border-radius: 12px;
 }
+
+@media (prefers-reduced-motion: reduce) {
+  .container {
+    perspective: none;
+  }
+
+  .card {
+    transform: none !important;
+    transition: none;
+    will-change: auto;
+  }
+}

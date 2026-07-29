@@ -47,7 +47,7 @@
   border: 1px solid var(--border);
   border-radius: 12px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-  z-index: 100;
+  z-index: var(--layer-navigation);
   margin-top: 10px;
   display: flex;
   flex-direction: column;

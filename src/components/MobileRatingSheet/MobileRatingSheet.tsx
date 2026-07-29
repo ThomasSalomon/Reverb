@@ -3,6 +3,7 @@ import styles from "./MobileRatingSheet.module.css";
 import SliderRating from "../SliderRating/SliderRating";
 import { useTranslations } from "next-intl";
 import AccessibleDialog from "@/components/AccessibleDialog/AccessibleDialog";
+import Button from "@/components/Button/Button";
 
 interface MobileRatingSheetProps {
   isOpen: boolean;
@@ -79,9 +80,9 @@ export default function MobileRatingSheet({
           <button type="button" data-dialog-initial-focus className={styles.cancelBtn} onClick={handleClose}>
             {common("cancel")}
           </button>
-          <button type="button" className="neon-btn" onClick={handleSave} style={{ padding: "12px 24px", width: "100%" }}>
+          <Button variant="neon" fullWidth onClick={handleSave}>
             {common("save")}
-          </button>
+          </Button>
         </div>
       </div>
     </AccessibleDialog>

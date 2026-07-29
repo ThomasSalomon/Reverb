@@ -2,7 +2,7 @@
   position: fixed;
   inset: 0;
   background: rgba(0, 0, 0, 0.6);
-  z-index: 1000;
+  z-index: var(--layer-overlay);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -13,15 +13,15 @@
 .modalContent {
   background: #09090b;
   border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 20px;
+  border-radius: var(--radius-modal);
   width: 100%;
   max-width: 440px;
-  padding: 32px;
+  padding: var(--space-2xl);
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: var(--space-xl);
   box-shadow: 0 24px 60px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.05);
-  animation: modalIn 300ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: modalIn var(--duration-slow) var(--ease-entrance) forwards;
   overscroll-behavior: contain;
 }
 
@@ -60,9 +60,9 @@
   justify-content: center;
   color: #a1a1aa;
   cursor: pointer;
-  transition: background-color 160ms cubic-bezier(0.23, 1, 0.32, 1),
-              color 160ms cubic-bezier(0.23, 1, 0.32, 1),
-              transform 160ms cubic-bezier(0.23, 1, 0.32, 1);
+  transition: background-color var(--transition-fast),
+              color var(--transition-fast),
+              transform var(--transition-fast);
 }
 
 @media (hover: hover) and (pointer: fine) {
@@ -155,7 +155,10 @@
   color: #fff;
   font-size: 0.95rem;
   outline: none;
-  transition: all 200ms cubic-bezier(0.23, 1, 0.32, 1);
+  transition: border-color var(--transition-fast),
+              background-color var(--transition-fast),
+              box-shadow var(--transition-fast),
+              transform var(--transition-fast);
 }
 
 .formInput:focus {
@@ -173,82 +176,6 @@
   justify-content: flex-end;
   gap: 12px;
   margin-top: 16px;
-}
-
-.cancelBtn, .saveBtn, .deleteBtn {
-  padding: 12px 20px;
-  border-radius: 12px;
-  font-size: 0.9rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 160ms cubic-bezier(0.23, 1, 0.32, 1);
-  outline: none;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.cancelBtn {
-  background: transparent;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  color: #d4d4d8;
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .cancelBtn:hover {
-    background: rgba(255, 255, 255, 0.05);
-    color: #fff;
-  }
-}
-
-.cancelBtn:active {
-  transform: scale(0.96);
-}
-
-.saveBtn {
-  background: var(--primary, #10b981);
-  border: 1px solid transparent;
-  color: #000;
-  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.25);
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .saveBtn:hover:not(:disabled) {
-    filter: brightness(1.1);
-    transform: translateY(-1px);
-    box-shadow: 0 6px 16px rgba(16, 185, 129, 0.3);
-  }
-}
-
-.saveBtn:active:not(:disabled) {
-  transform: scale(0.96);
-}
-
-.saveBtn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.deleteBtn {
-  background: rgba(239, 68, 68, 0.1);
-  border: 1px solid rgba(239, 68, 68, 0.2);
-  color: #ef4444;
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .deleteBtn:hover:not(:disabled) {
-    background: rgba(239, 68, 68, 0.15);
-    border-color: rgba(239, 68, 68, 0.3);
-  }
-}
-
-.deleteBtn:active:not(:disabled) {
-  transform: scale(0.96);
-}
-
-.deleteBtn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
 }
 
 .warningText {
@@ -328,7 +255,9 @@
   justify-content: center;
   color: #a1a1aa;
   cursor: pointer;
-  transition: all 160ms cubic-bezier(0.23, 1, 0.32, 1);
+  transition: background-color var(--transition-fast),
+              border-color var(--transition-fast),
+              color var(--transition-fast);
   outline: none;
 }
 
@@ -365,7 +294,7 @@
   background: var(--slider-color, #10b981);
   border: 2px solid #09090b;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
-  transition: transform 150ms cubic-bezier(0.23, 1, 0.32, 1);
+  transition: transform var(--transition-fast);
 }
 
 .zoomSlider::-webkit-slider-thumb:hover {
@@ -379,7 +308,7 @@
   background: var(--slider-color, #10b981);
   border: 2px solid #09090b;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
-  transition: transform 150ms cubic-bezier(0.23, 1, 0.32, 1);
+  transition: transform var(--transition-fast);
 }
 
 .zoomSlider::-moz-range-thumb:hover {
@@ -400,7 +329,10 @@
   font-size: 0.9rem;
   font-weight: 600;
   cursor: pointer;
-  transition: all 160ms cubic-bezier(0.23, 1, 0.32, 1);
+  transition: background-color var(--transition-fast),
+              border-color var(--transition-fast),
+              color var(--transition-fast),
+              transform var(--transition-fast);
   background: transparent;
   border: 1px solid rgba(255, 255, 255, 0.1);
   color: #d4d4d8;
@@ -427,7 +359,10 @@
   font-size: 0.9rem;
   font-weight: 600;
   cursor: pointer;
-  transition: all 160ms cubic-bezier(0.23, 1, 0.32, 1);
+  transition: background-color var(--transition-fast),
+              border-color var(--transition-fast),
+              color var(--transition-fast),
+              transform var(--transition-fast);
   border: 1px solid transparent;
   color: #000;
   display: flex;

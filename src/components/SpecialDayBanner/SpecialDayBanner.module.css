@@ -118,3 +118,21 @@
     background: rgba(255, 255, 255, 0.2);
   }
 }
+
+@media (prefers-reduced-motion: reduce) {
+  .bannerContainer,
+  .artistBackground,
+  .actionButton {
+    transition: none;
+  }
+
+  .bannerContainer:hover,
+  .bannerContainer:active {
+    transform: none;
+  }
+
+  .shimmer {
+    animation: none;
+    opacity: 0;
+  }
+}

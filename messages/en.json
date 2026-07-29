@@ -178,7 +178,14 @@
     "topTracks": "Top tracks",
     "noTopTracks": "No top tracks are available.",
     "relatedArtists": "Related artists",
-    "discography": "Discography"
+    "discography": "Discography",
+    "noDiscography": "No releases are available for this artist.",
+    "loadMore": "Load more releases",
+    "loadingMore": "Loading more releases…",
+    "loadMoreError": "More releases could not be loaded.",
+    "discographyLoadError": "The artist information could not be loaded.",
+    "retry": "Retry",
+    "releasesLoaded": "{count, plural, one {# more release loaded} other {# more releases loaded}}"
   },
   "List": {
     "loading": "Loading list...",
@@ -202,6 +209,7 @@
     "diary": "Listening diary",
     "statistics": "Metrics and statistics",
     "listenLater": "Listen later",
+    "profileSections": "Profile sections",
     "emptyList": "Empty list",
     "noStatistics": "No statistics available.",
     "noData": "There is not enough data.",
@@ -332,6 +340,7 @@
     "recapTitle": "Frequencies of {year}",
     "recapSubtitle": "Your year in music, decoded.",
     "dominantVibe": "Dominant vibe",
+    "unknownVibe": "Category unavailable",
     "noDataValue": "No data",
     "topArtist": "Your top artist",
     "none": "None"

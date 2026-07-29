@@ -6,6 +6,7 @@ import { showToast } from "@/components/Toast/ToastListener";
 import { useRouter } from "@/i18n/routing";
 import { useTranslations } from "next-intl";
 import AccessibleDialog from "@/components/AccessibleDialog/AccessibleDialog";
+import Button from "@/components/Button/Button";
 
 interface AccountSettingsModalProps {
   isOpen: boolean;
@@ -130,10 +131,10 @@ export default function AccountSettingsModal({ isOpen, onClose, username }: Acco
               />
             </div>
             <div className={styles.modalFooter}>
-              <button type="button" className={styles.cancelBtn} onClick={onClose}>{common("cancel")}</button>
-              <button type="submit" className={styles.saveBtn} disabled={isSaving}>
-                {isSaving ? t("changingPassword") : t("changePassword")}
-              </button>
+              <Button variant="secondary" onClick={onClose}>{common("cancel")}</Button>
+              <Button type="submit" isLoading={isSaving} loadingLabel={t("changingPassword")}>
+                {t("changePassword")}
+              </Button>
             </div>
           </form>
         )}
@@ -144,15 +145,15 @@ export default function AccountSettingsModal({ isOpen, onClose, username }: Acco
               {t("deleteAccountWarning")}
             </p>
             <div className={styles.modalFooter}>
-              <button type="button" className={styles.cancelBtn} onClick={onClose}>{common("cancel")}</button>
-              <button 
-                type="button" 
+              <Button variant="secondary" onClick={onClose}>{common("cancel")}</Button>
+              <Button
+                variant="danger"
                 onClick={handleDeleteAccount}
-                disabled={isSaving}
-                className={styles.deleteBtn}
+                isLoading={isSaving}
+                loadingLabel={t("deleting")}
               >
-                {isSaving ? t("deleting") : t("deletePermanently")}
-              </button>
+                {t("deletePermanently")}
+              </Button>
             </div>
           </div>
         )}

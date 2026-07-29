@@ -2,6 +2,8 @@
 
 import React, { useRef, useEffect } from "react";
 import styles from "./Cover3D.module.css";
+import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
+import { getCoverTilt } from "@/utils/cover-tilt";
 
 interface Cover3DProps {
   src: string;
@@ -13,12 +15,21 @@ export default function Cover3D({ src, alt, size = 300 }: Cover3DProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const cardRef = useRef<HTMLDivElement>(null);
   const glowRef = useRef<HTMLDivElement>(null);
+  const prefersReducedMotion = usePrefersReducedMotion();
   
   // Cache the bounding rect to avoid layout thrashing on mousemove
   const rectRef = useRef<DOMRect | null>(null);
   const rafRef = useRef<number | null>(null);
 
   useEffect(() => {
+    if (prefersReducedMotion) {
+      rectRef.current = null;
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      if (cardRef.current) cardRef.current.style.transform = "rotateX(0deg) rotateY(0deg) scale(1)";
+      if (glowRef.current) glowRef.current.style.background = "transparent";
+      return;
+    }
+
     const handleScroll = () => {
       rectRef.current = null;
     };
@@ -30,7 +41,7 @@ export default function Cover3D({ src, alt, size = 300 }: Cover3DProps) {
         cancelAnimationFrame(rafRef.current);
       }
     };
-  }, []);
+  }, [prefersReducedMotion]);
 
   const handleMouseEnter = () => {
     if (containerRef.current) {
@@ -39,6 +50,7 @@ export default function Cover3D({ src, alt, size = 300 }: Cover3DProps) {
   };
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (prefersReducedMotion) return;
     const card = cardRef.current;
     const glow = glowRef.current;
     if (!card) return;
@@ -53,24 +65,19 @@ export default function Cover3D({ src, alt, size = 300 }: Cover3DProps) {
     const x = e.clientX - rect.left; // cursor x relative to card
     const y = e.clientY - rect.top;  // cursor y relative to card
 
-    // Normalize coordinates: range -0.5 to 0.5
-    const normalizedX = x / rect.width - 0.5;
-    const normalizedY = y / rect.height - 0.5;
-
-    // Calculation for rotation degrees (max 20 degrees for premium subtle tilt)
-    const rotateX = -normalizedY * 20;
-    const rotateY = normalizedX * 20;
+    const tilt = getCoverTilt(false, { x, y, width: rect.width, height: rect.height });
 
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
     rafRef.current = requestAnimationFrame(() => {
-      card.style.transform = `rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale(1.03)`;
+      card.style.transform = tilt.transform;
       if (glow) {
-        glow.style.background = `radial-gradient(circle 160px at ${x}px ${y}px, rgba(255, 255, 255, 0.16), transparent)`;
+        glow.style.background = tilt.glow;
       }
     });
   };
 
   const handleMouseLeave = () => {
+    if (prefersReducedMotion) return;
     const card = cardRef.current;
     const glow = glowRef.current;
     rectRef.current = null; // Clear cache on leave
@@ -91,9 +98,9 @@ export default function Cover3D({ src, alt, size = 300 }: Cover3DProps) {
     <div
       ref={containerRef}
       className={styles.container}
-      onMouseEnter={handleMouseEnter}
-      onMouseMove={handleMouseMove}
-      onMouseLeave={handleMouseLeave}
+      onMouseEnter={prefersReducedMotion ? undefined : handleMouseEnter}
+      onMouseMove={prefersReducedMotion ? undefined : handleMouseMove}
+      onMouseLeave={prefersReducedMotion ? undefined : handleMouseLeave}
       style={{ width: sizeStyle, height: sizeStyle }}
     >
       <div ref={cardRef} className={styles.card}>

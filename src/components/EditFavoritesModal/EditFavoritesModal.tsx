@@ -5,6 +5,7 @@ import styles from "../SharedModal.module.css";
 import localStyles from "../../app/[locale]/users/[username]/page.module.css";
 import { showToast } from "@/components/Toast/ToastListener";
 import AccessibleDialog from "@/components/AccessibleDialog/AccessibleDialog";
+import Button from "@/components/Button/Button";
 import { useTranslations } from "next-intl";
 
 interface DeezerSearchResult {
@@ -271,12 +272,12 @@ export default function EditFavoritesModal({ isOpen, onClose, profile, onSave }:
           </div>
 
           <div className={styles.modalFooter}>
-            <button type="button" onClick={onClose} className={styles.cancelBtn} disabled={saving}>
+            <Button variant="secondary" onClick={onClose} disabled={saving}>
               {common("cancel")}
-            </button>
-            <button type="submit" className={styles.saveBtn} disabled={saving}>
-              {saving ? t("changingPassword") : common("save")}
-            </button>
+            </Button>
+            <Button type="submit" isLoading={saving} loadingLabel={t("changingPassword")}>
+              {common("save")}
+            </Button>
           </div>
         </form>
       </div>

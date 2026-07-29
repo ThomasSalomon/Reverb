@@ -4,8 +4,8 @@
   left: 0;
   width: 100vw;
   height: 100vh;
-  background: rgba(0, 0, 0, 0.75); /* Darker background to compensate for no blur */
-  z-index: 1000;
+  background: var(--overlay-backdrop); /* Darker background to compensate for no blur */
+  z-index: var(--layer-overlay);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -186,4 +186,22 @@
   text-align: center;
   color: var(--color-primary, #1db954);
   font-weight: 600;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .closeButton,
+  .saveButton,
+  .trackItem {
+    transition: none;
+  }
+
+  .closeButton:active,
+  .saveButton:hover,
+  .saveButton:active {
+    transform: none;
+  }
+
+  .spinner {
+    animation: none;
+  }
 }

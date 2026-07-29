@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useParams } from "next/navigation";
 import { Link, useRouter } from "@/i18n/routing";
 import ReviewCard from "@/components/ReviewCard/ReviewCard";
@@ -12,8 +12,21 @@ import EditFavoritesModal from "@/components/EditFavoritesModal/EditFavoritesMod
 import AccountSettingsModal from "@/components/AccountSettingsModal/AccountSettingsModal";
 import Avatar from "@/components/Avatar/Avatar";
 import RecapModal from "@/components/RecapModal/RecapModal";
-import AccessibleDialog from "@/components/AccessibleDialog/AccessibleDialog";
+import Button from "@/components/Button/Button";
+import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
 import { useLocale, useTranslations } from "next-intl";
+import {
+  CreateListDialog,
+  DeleteListDialog,
+  DiaryDialog,
+} from "./ProfileDialogs";
+import ProfileTabNavigation from "./ProfileTabNavigation";
+import {
+  getProfileTab,
+  getProfileTabHref,
+  PROFILE_TAB_IDS,
+  type ProfileTab,
+} from "@/utils/profile-tabs";
 
 interface FavoriteAlbumRelation {
   slot: number;
@@ -65,6 +78,7 @@ export default function UserProfilePage() {
   const locale = useLocale();
   const { username } = useParams() as { username: string };
   const router = useRouter();
+  const prefersReducedMotion = usePrefersReducedMotion();
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -85,8 +99,15 @@ export default function UserProfilePage() {
   const [isAccountSettingsOpen, setIsAccountSettingsOpen] = useState(false);
   const [isRecapOpen, setIsRecapOpen] = useState(false);
 
-  // Tab states
-  const [activeTab, setActiveTab] = useState<"reviews" | "lists" | "diary" | "stats" | "listen-later">("reviews");
+  // The URL is the source of truth; this state only re-renders after native history changes.
+  const [profileSearch, setProfileSearch] = useState("");
+  const tabDataRequestIds = useRef<Record<Exclude<ProfileTab, "reviews">, number>>({
+    lists: 0,
+    diary: 0,
+    stats: 0,
+    "listen-later": 0,
+  });
+  const activeTab = getProfileTab(new URLSearchParams(profileSearch).get("tab"), isOwnProfile);
   const [lists, setLists] = useState<any[]>([]);
   const [diaryLogs, setDiaryLogs] = useState<any[]>([]);
   const [statsData, setStatsData] = useState<any | null>(null);
@@ -121,12 +142,47 @@ export default function UserProfilePage() {
   const [diarySearching, setDiarySearching] = useState(false);
   const [diarySelectedAlbum, setDiarySelectedAlbum] = useState<DeezerSearchResult | null>(null);
 
+  const availableTabs: readonly ProfileTab[] = isOwnProfile
+    ? PROFILE_TAB_IDS
+    : PROFILE_TAB_IDS.filter((tab) => tab !== "listen-later");
+
+  useEffect(() => {
+    const syncProfileSearch = () => setProfileSearch(window.location.search);
+
+    syncProfileSearch();
+    window.addEventListener("popstate", syncProfileSearch);
+    return () => window.removeEventListener("popstate", syncProfileSearch);
+  }, []);
+
+  useEffect(() => {
+    setSelectedList(null);
+  }, [activeTab]);
+
+  const selectProfileTab = useCallback((nextTab: ProfileTab) => {
+    if (nextTab === "listen-later" && !isOwnProfile) return;
+
+    const nextHref = getProfileTabHref(
+      window.location.pathname,
+      new URLSearchParams(window.location.search),
+      nextTab
+    );
+    const currentHref = `${window.location.pathname}${window.location.search}`;
+
+    if (nextHref !== currentHref) {
+      window.history.pushState(null, "", nextHref);
+      setProfileSearch(window.location.search);
+    }
+  }, [isOwnProfile]);
+
   const fetchLists = useCallback(async () => {
+    const requestId = ++tabDataRequestIds.current.lists;
     try {
       const res = await fetch(`/api/lists?username=${username}`, { cache: "no-store" });
       if (res.ok) {
         const data = await res.json();
-        setLists(data);
+        if (tabDataRequestIds.current.lists === requestId) {
+          setLists(data);
+        }
       }
     } catch (e) {
       console.error(e);
@@ -134,11 +190,14 @@ export default function UserProfilePage() {
   }, [username]);
 
   const fetchDiary = useCallback(async () => {
+    const requestId = ++tabDataRequestIds.current.diary;
     try {
       const res = await fetch(`/api/diary?username=${username}`, { cache: "no-store" });
       if (res.ok) {
         const data = await res.json();
-        setDiaryLogs(data);
+        if (tabDataRequestIds.current.diary === requestId) {
+          setDiaryLogs(data);
+        }
       }
     } catch (e) {
       console.error(e);
@@ -146,11 +205,14 @@ export default function UserProfilePage() {
   }, [username]);
 
   const fetchStats = useCallback(async () => {
+    const requestId = ++tabDataRequestIds.current.stats;
     try {
       const res = await fetch(`/api/users/${username}/stats`, { cache: "no-store" });
       if (res.ok) {
         const data = await res.json();
-        setStatsData(data);
+        if (tabDataRequestIds.current.stats === requestId) {
+          setStatsData(data);
+        }
       }
     } catch (e) {
       console.error(e);
@@ -158,11 +220,14 @@ export default function UserProfilePage() {
   }, [username]);
 
   const fetchListenLater = useCallback(async () => {
+    const requestId = ++tabDataRequestIds.current["listen-later"];
     try {
       const res = await fetch(`/api/listen-later?username=${username}`, { cache: "no-store" });
       if (res.ok) {
         const data = await res.json();
-        setListenLaterItems(data);
+        if (tabDataRequestIds.current["listen-later"] === requestId) {
+          setListenLaterItems(data);
+        }
       }
     } catch (e) {
       console.error(e);
@@ -170,26 +235,34 @@ export default function UserProfilePage() {
   }, [username]);
 
   useEffect(() => {
+    let cancelled = false;
+
     async function loadTabData() {
+      if (activeTab === "reviews") {
+        setLoadingTab(false);
+        return;
+      }
+
+      setLoadingTab(true);
       if (activeTab === "lists") {
-        setLoadingTab(true);
         await fetchLists();
-        setLoadingTab(false);
       } else if (activeTab === "diary") {
-        setLoadingTab(true);
         await fetchDiary();
-        setLoadingTab(false);
       } else if (activeTab === "stats") {
-        setLoadingTab(true);
         await fetchStats();
-        setLoadingTab(false);
       } else if (activeTab === "listen-later") {
-        setLoadingTab(true);
         await fetchListenLater();
+      }
+
+      if (!cancelled) {
         setLoadingTab(false);
       }
     }
+
     loadTabData();
+    return () => {
+      cancelled = true;
+    };
   }, [activeTab, fetchLists, fetchDiary, fetchStats, fetchListenLater]);
 
   const handleCreateList = async (e: React.FormEvent) => {
@@ -678,42 +751,19 @@ export default function UserProfilePage() {
         </div>
       </header>
 
-      {/* Tab Selector */}
-      <div className={styles.tabsContainer}>
-        <button
-          onClick={() => { setActiveTab("reviews"); setSelectedList(null); }}
-          className={`${styles.tabBtn} ${activeTab === "reviews" ? styles.tabBtnActive : ""}`}
-        >
-          {t("reviews")}
-        </button>
-        <button
-          onClick={() => { setActiveTab("lists"); setSelectedList(null); }}
-          className={`${styles.tabBtn} ${activeTab === "lists" ? styles.tabBtnActive : ""}`}
-        >
-          {t("lists")}
-        </button>
-        <button
-          onClick={() => { setActiveTab("diary"); setSelectedList(null); }}
-          className={`${styles.tabBtn} ${activeTab === "diary" ? styles.tabBtnActive : ""}`}
-        >
-          {t("diary")}
-        </button>
-        <button
-          onClick={() => { setActiveTab("stats"); setSelectedList(null); }}
-          className={`${styles.tabBtn} ${activeTab === "stats" ? styles.tabBtnActive : ""}`}
-        >
-          {t("statistics")}
-        </button>
-        {isOwnProfile && (
-          <button
-            onClick={() => { setActiveTab("listen-later"); setSelectedList(null); }}
-            className={`${styles.tabBtn} ${activeTab === "listen-later" ? styles.tabBtnActive : ""}`}
-          >
-            {t("listenLater")}
-          </button>
-        )}
-      </div>
+      <ProfileTabNavigation
+        activeTab={activeTab}
+        availableTabs={availableTabs}
+        onSelect={selectProfileTab}
+      />
 
+      <section
+        id={`profile-tab-panel-${activeTab}`}
+        role="tabpanel"
+        aria-labelledby={`profile-tab-${activeTab}`}
+        tabIndex={0}
+        className={styles.tabPanel}
+      >
       {loadingTab ? (
         <div style={{ textAlign: "center", padding: "40px 0", color: "var(--text-secondary)" }}>
           {t("tabLoading")}
@@ -721,7 +771,7 @@ export default function UserProfilePage() {
       ) : (
         <>
           {activeTab === "reviews" && (
-            <main className={styles.profileContent}>
+            <div className={styles.profileContent}>
               {/* Left Side: Reviews */}
               <div>
                 <h3 className={styles.sectionTitle}>{t("recentReviews")}</h3>
@@ -763,7 +813,9 @@ export default function UserProfilePage() {
                         e.currentTarget.style.background = "var(--profile-theme-color, #10b981)";
                         e.currentTarget.style.color = "#08080a";
                         e.currentTarget.style.borderColor = "var(--profile-theme-color, #10b981)";
-                        e.currentTarget.style.transform = "translateY(-1px)";
+                        if (!prefersReducedMotion) {
+                          e.currentTarget.style.transform = "translateY(-1px)";
+                        }
                       }}
                       onMouseOut={(e) => {
                         e.currentTarget.style.background = "var(--profile-theme-bg, rgba(16, 185, 129, 0.15))";
@@ -824,7 +876,7 @@ export default function UserProfilePage() {
                                   className={styles.deleteOverlay}
                                   title={t("removeFavorite")}
                                 >
-                                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#f43f5e" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ transition: "transform 0.2s" }} onMouseOver={(e) => e.currentTarget.style.transform = "scale(1.15)"} onMouseOut={(e) => e.currentTarget.style.transform = "scale(1)"}>
+                                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#f43f5e" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ transition: "transform var(--transition-fast)" }} onMouseOver={(e) => { if (!prefersReducedMotion) e.currentTarget.style.transform = "scale(1.15)"; }} onMouseOut={(e) => e.currentTarget.style.transform = "scale(1)"}>
                                     <line x1="18" y1="6" x2="6" y2="18"></line>
                                     <line x1="6" y1="6" x2="18" y2="18"></line>
                                   </svg>
@@ -861,7 +913,9 @@ export default function UserProfilePage() {
                             }}
                             onMouseOver={(e) => {
                               e.currentTarget.style.borderColor = "var(--theme-color)";
-                              e.currentTarget.style.transform = "scale(1.02)";
+                              if (!prefersReducedMotion) {
+                                e.currentTarget.style.transform = "scale(1.02)";
+                              }
                             }}
                             onMouseOut={(e) => {
                               e.currentTarget.style.borderColor = "var(--theme-border)";
@@ -880,7 +934,7 @@ export default function UserProfilePage() {
                   })}
                 </div>
               </aside>
-            </main>
+            </div>
           )}
 
           {activeTab === "lists" && (
@@ -922,16 +976,16 @@ export default function UserProfilePage() {
                         <label htmlFor="edit-list-public" className={styles.checkboxLabel}>{t("publicList")}</label>
                       </div>
                       <div style={{ display: "flex", gap: "12px", justifyContent: "flex-end" }}>
-                        <button type="button" onClick={() => setIsEditingList(false)} className="secondary-btn">{common("cancel")}</button>
-                        <button type="submit" className="neon-btn">{t("saveChanges")}</button>
+                        <Button variant="secondary" onClick={() => setIsEditingList(false)}>{common("cancel")}</Button>
+                        <Button type="submit" variant="neon">{t("saveChanges")}</Button>
                       </div>
                     </form>
                   ) : (
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "16px", flexWrap: "wrap", gap: "16px" }}>
                       <div>
-                        <button onClick={() => setSelectedList(null)} className="secondary-btn" style={{ marginBottom: "12px", display: "inline-block", fontSize: "0.85rem", padding: "6px 12px" }}>
+                        <Button variant="secondary" size="compact" onClick={() => setSelectedList(null)} style={{ marginBottom: "12px" }}>
                           ← {t("backToLists")}
-                        </button>
+                        </Button>
                         <h2 className={styles.listTitle} style={{ fontSize: "2rem" }}>{selectedList.title}</h2>
                         {selectedList.description && (
                           <p style={{ color: "var(--text-secondary)", marginTop: "8px", fontSize: "0.95rem" }}>{selectedList.description}</p>
@@ -945,20 +999,20 @@ export default function UserProfilePage() {
                       </div>
                       {isOwnProfile && (
                         <div style={{ display: "flex", gap: "10px" }}>
-                          <button 
+                          <Button
+                            variant="secondary"
                             onClick={() => {
                               setEditListTitle(selectedList.title);
                               setEditListDesc(selectedList.description || "");
                               setEditListPublic(selectedList.isPublic);
                               setIsEditingList(true);
-                            }} 
-                            className="secondary-btn"
+                            }}
                           >
                             {t("editList")}
-                          </button>
-                          <button onClick={() => handleDeleteList(selectedList.id)} className="secondary-btn" style={{ borderColor: "rgba(244, 63, 94, 0.4)", color: "#f43f5e" }}>
+                          </Button>
+                          <Button variant="danger" onClick={() => handleDeleteList(selectedList.id)}>
                             {t("deleteList")}
-                          </button>
+                          </Button>
                         </div>
                       )}
                     </div>
@@ -973,13 +1027,14 @@ export default function UserProfilePage() {
                           type="text"
                           className={styles.formInput}
                           placeholder={t("searchAlbumPlaceholder")}
+                          aria-label={t("searchAlbumPlaceholder")}
                           value={listItemQuery}
                           onChange={(e) => setListItemQuery(e.target.value)}
                         />
                         {listSearching && <div className={styles.searchingText} style={{ position: "absolute", right: "12px", top: "12px" }}>{common("searching")}</div>}
                         
                         {listSearchResults.length > 0 && (
-                          <div className={styles.searchResultsDropdown} style={{ position: "absolute", width: "100%", zIndex: 10, background: "#0c0d12", border: "1px solid var(--border)", borderRadius: "8px", marginTop: "4px" }}>
+                          <div className={styles.searchResultsDropdown}>
                             {listSearchResults.map((albumItem) => (
                               <div
                                 key={albumItem.id}
@@ -1015,14 +1070,14 @@ export default function UserProfilePage() {
                             <p style={{ fontSize: "0.8rem", color: "var(--text-secondary)" }}>{item.musicItem.artist}</p>
                           </div>
                           {isOwnProfile && (
-                            <button
+                            <Button
+                              variant="secondary"
+                              size="compact"
                               onClick={() => handleRemoveItemFromList(item.musicItemId)}
-                              className="secondary-btn"
-                              style={{ padding: "4px 8px", fontSize: "0.75rem", borderColor: "rgba(255, 255, 255, 0.1)" }}
-                              title={t("removeFromList")}
+                              aria-label={t("removeFromList")}
                             >
-                              &times;
-                            </button>
+                              <span aria-hidden="true">&times;</span>
+                            </Button>
                           )}
                         </div>
                       ))
@@ -1037,9 +1092,9 @@ export default function UserProfilePage() {
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
                     <h3 className={styles.sectionTitle}>{t("listCollections")}</h3>
                     {isOwnProfile && (
-                      <button onClick={() => setIsCreateListOpen(true)} className="neon-btn">
+                      <Button variant="neon" onClick={() => setIsCreateListOpen(true)}>
                         {t("createNewList")}
-                      </button>
+                      </Button>
                     )}
                   </div>
 
@@ -1094,9 +1149,9 @@ export default function UserProfilePage() {
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
                 <h3 className={styles.sectionTitle}>{t("diary")}</h3>
                 {isOwnProfile && (
-                  <button onClick={() => setIsDiaryModalOpen(true)} className="neon-btn">
+                  <Button variant="neon" onClick={() => setIsDiaryModalOpen(true)}>
                     {t("diaryTitle")}
-                  </button>
+                  </Button>
                 )}
               </div>
 
@@ -1244,14 +1299,14 @@ export default function UserProfilePage() {
                         </p>
                       </div>
                       {isOwnProfile && (
-                        <button
+                        <Button
+                          variant="secondary"
+                          size="compact"
                           onClick={() => handleRemoveFromListenLater(item.musicItemId)}
-                          className="secondary-btn"
-                          style={{ padding: "4px 8px", fontSize: "0.75rem", borderColor: "rgba(255, 255, 255, 0.1)" }}
-                          title={t("removeListenLater")}
+                          aria-label={t("removeListenLater")}
                         >
-                          &times;
-                        </button>
+                          <span aria-hidden="true">&times;</span>
+                        </Button>
                       )}
                     </div>
                   ))}
@@ -1265,6 +1320,7 @@ export default function UserProfilePage() {
           )}
         </>
       )}
+      </section>
       </div>
 
       {/* Edit Profile Modal */}
@@ -1287,272 +1343,42 @@ export default function UserProfilePage() {
         />
       )}
 
-      {/* Create List Modal */}
-      {isCreateListOpen && (
-        <AccessibleDialog
-          isOpen={isCreateListOpen}
-          onClose={() => setIsCreateListOpen(false)}
-          labelledBy="create-list-dialog-title"
-          className={styles.modalOverlay}
-        >
-          <div className={styles.modalContent}>
-            <div className={styles.modalHeader}>
-              <h3 id="create-list-dialog-title" className={styles.modalTitle}>{t("createCollection")}</h3>
-              <button type="button" data-dialog-initial-focus onClick={() => setIsCreateListOpen(false)} className={styles.closeBtn} aria-label={common("close")}>
-                &times;
-              </button>
-            </div>
+      <CreateListDialog
+        isOpen={isCreateListOpen}
+        onClose={() => setIsCreateListOpen(false)}
+        onSubmit={handleCreateList}
+        title={newListTitle}
+        onTitleChange={setNewListTitle}
+        description={newListDesc}
+        onDescriptionChange={setNewListDesc}
+        isPublic={newListPublic}
+        onPublicChange={setNewListPublic}
+      />
 
-            <form onSubmit={handleCreateList} style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
-              <div className={styles.formGroup}>
-                <label htmlFor="new-list-title" className={styles.formLabel}>{t("listTitle")}</label>
-                <input
-                  id="new-list-title"
-                  type="text"
-                  required
-                  className={styles.formInput}
-                  value={newListTitle}
-                  onChange={(e) => setNewListTitle(e.target.value)}
-                  placeholder={t("newListTitlePlaceholder")}
-                />
-              </div>
+      <DiaryDialog
+        isOpen={isDiaryModalOpen}
+        onClose={() => setIsDiaryModalOpen(false)}
+        onSubmit={handleCreateDiaryLog}
+        selectedAlbum={diarySelectedAlbum}
+        onSelectedAlbumChange={setDiarySelectedAlbum}
+        searchQuery={diarySearchQuery}
+        onSearchQueryChange={setDiarySearchQuery}
+        searchResults={diarySearchResults}
+        searching={diarySearching}
+        rating={diaryRating}
+        onRatingChange={setDiaryRating}
+        notes={diaryNotes}
+        onNotesChange={setDiaryNotes}
+      />
 
-              <div className={styles.formGroup}>
-                <label htmlFor="new-list-description" className={styles.formLabel}>{t("listDescription")} ({common("optional")})</label>
-                <textarea
-                  id="new-list-description"
-                  className={styles.formInput}
-                  rows={3}
-                  maxLength={500}
-                  value={newListDesc}
-                  onChange={(e) => setNewListDesc(e.target.value)}
-                  placeholder={t("newListDescriptionPlaceholder")}
-                  style={{ resize: "none" }}
-                />
-              </div>
-
-              <div className={styles.formGroup} style={{ flexDirection: "row", gap: "10px", alignItems: "center" }}>
-                <input
-                  type="checkbox"
-                  id="newListPublic"
-                  checked={newListPublic}
-                  onChange={(e) => setNewListPublic(e.target.checked)}
-                  style={{ width: "auto", cursor: "pointer" }}
-                />
-                <label htmlFor="newListPublic" style={{ cursor: "pointer", fontSize: "0.9rem", color: "var(--text-primary)" }}>
-                  {t("publicList")}
-                </label>
-              </div>
-
-              <div className={styles.modalFooter}>
-                <button type="button" onClick={() => setIsCreateListOpen(false)} className={styles.cancelBtn}>
-                  {common("cancel")}
-                </button>
-                <button type="submit" className={styles.saveBtn}>
-                  {t("createList")}
-                </button>
-              </div>
-            </form>
-          </div>
-        </AccessibleDialog>
-      )}
-
-      {/* Register Diary Entry Modal */}
-      {isDiaryModalOpen && (
-        <AccessibleDialog
-          isOpen={isDiaryModalOpen}
-          onClose={() => setIsDiaryModalOpen(false)}
-          labelledBy="profile-diary-dialog-title"
-          className={styles.modalOverlay}
-        >
-          <div className={styles.modalContent}>
-            <div className={styles.modalHeader}>
-              <h3 id="profile-diary-dialog-title" className={styles.modalTitle}>{t("diaryTitle")}</h3>
-              <button type="button" data-dialog-initial-focus onClick={() => setIsDiaryModalOpen(false)} className={styles.closeBtn} aria-label={common("close")}>
-                &times;
-              </button>
-            </div>
-
-            <form onSubmit={handleCreateDiaryLog} style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
-              {/* Search Album to Add */}
-              <div className={styles.formGroup} style={{ position: "relative" }}>
-                <label htmlFor="profile-diary-album-search" className={styles.formLabel}>{t("searchAlbum")}</label>
-                {diarySelectedAlbum ? (
-                  <div style={{ display: "flex", alignItems: "center", gap: "10px", padding: "10px", background: "rgba(255,255,255,0.03)", borderRadius: "6px", border: "1px solid var(--border)" }}>
-                    <img src={diarySelectedAlbum.coverUrl} alt={diarySelectedAlbum.title} style={{ width: "40px", height: "40px", borderRadius: "4px" }} />
-                    <div style={{ flexGrow: 1 }}>
-                      <div style={{ fontWeight: 600, color: "var(--text-primary)", fontSize: "0.85rem" }}>{diarySelectedAlbum.title}</div>
-                      <div style={{ color: "var(--text-secondary)", fontSize: "0.75rem" }}>{diarySelectedAlbum.artist}</div>
-                    </div>
-                    <button type="button" onClick={() => setDiarySelectedAlbum(null)} className="secondary-btn" style={{ padding: "2px 6px", fontSize: "0.75rem" }}>
-                      {t("change")}
-                    </button>
-                  </div>
-                ) : (
-                  <>
-                    <input
-                      id="profile-diary-album-search"
-                      type="text"
-                      className={styles.formInput}
-                      placeholder={t("albumTitlePlaceholder")}
-                      value={diarySearchQuery}
-                      onChange={(e) => setDiarySearchQuery(e.target.value)}
-                    />
-                    {diarySearching && <div className={styles.searchingText} style={{ position: "absolute", right: "12px", top: "36px" }}>{common("searching")}</div>}
-                    
-                    {diarySearchResults.length > 0 && (
-                      <div className={styles.searchResultsDropdown} style={{ position: "absolute", width: "100%", zIndex: 10, background: "#0c0d12", border: "1px solid var(--border)", borderRadius: "8px", marginTop: "4px", top: "68px" }}>
-                        {diarySearchResults.map((albumItem) => (
-                          <button
-                            type="button"
-                            key={albumItem.id}
-                            className={styles.searchResultItem}
-                            onClick={() => setDiarySelectedAlbum(albumItem)}
-                            style={{ display: "flex", width: "100%", alignItems: "center", gap: "10px", padding: "10px", cursor: "pointer", border: "none", borderBottom: "1px solid rgba(255,255,255,0.05)", background: "transparent", textAlign: "left" }}
-                          >
-                            <img src={albumItem.coverUrl} alt={albumItem.title} style={{ width: "36px", height: "36px", borderRadius: "4px" }} />
-                            <div>
-                              <div style={{ fontWeight: 600, color: "var(--text-primary)", fontSize: "0.85rem" }}>{albumItem.title}</div>
-                              <div style={{ color: "var(--text-secondary)", fontSize: "0.75rem" }}>{albumItem.artist}</div>
-                            </div>
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </>
-                )}
-              </div>
-
-              {/* Rating */}
-              <div className={styles.formGroup}>
-                <label htmlFor="profile-diary-rating" className={styles.formLabel}>{t("rating")}</label>
-                <select
-                  id="profile-diary-rating"
-                  className={styles.formInput}
-                  value={diaryRating}
-                  onChange={(e) => setDiaryRating(e.target.value)}
-                >
-                  <option value="5">★★★★★ (5.0)</option>
-                  <option value="4.5">★★★★½ (4.5)</option>
-                  <option value="4">★★★★☆ (4.0)</option>
-                  <option value="3.5">★★★½☆ (3.5)</option>
-                  <option value="3">★★★☆☆ (3.0)</option>
-                  <option value="2.5">★★½☆☆ (2.5)</option>
-                  <option value="2">★★☆☆☆ (2.0)</option>
-                  <option value="1.5">★½☆☆☆ (1.5)</option>
-                  <option value="1">★☆☆☆☆ (1.0)</option>
-                  <option value="0.5">½☆☆☆☆ (0.5)</option>
-                </select>
-              </div>
-
-              {/* Quick Notes */}
-              <div className={styles.formGroup}>
-                <label htmlFor="profile-diary-notes" className={styles.formLabel}>{t("quickNotes")} ({common("optional")})</label>
-                <textarea
-                  id="profile-diary-notes"
-                  className={styles.formInput}
-                  rows={3}
-                  maxLength={500}
-                  value={diaryNotes}
-                  onChange={(e) => setDiaryNotes(e.target.value)}
-                  placeholder={t("quickNotes")}
-                  style={{ resize: "none" }}
-                />
-              </div>
-
-              <div className={styles.modalFooter}>
-                <button type="button" onClick={() => setIsDiaryModalOpen(false)} className={styles.cancelBtn}>
-                  {common("cancel")}
-                </button>
-                <button type="submit" className={styles.saveBtn}>
-                  {common("save")}
-                </button>
-              </div>
-            </form>
-          </div>
-        </AccessibleDialog>
-      )}
-
-      {/* Custom List Delete Confirm Modal Overlay */}
-      {listToDelete && (
-        <AccessibleDialog
-          isOpen={Boolean(listToDelete)}
-          onClose={() => setListToDelete(null)}
-          labelledBy="delete-list-dialog-title"
-          role="alertdialog"
-          style={{
-            position: "fixed",
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            background: "rgba(0, 0, 0, 0.7)",
-            backdropFilter: "blur(4px)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            zIndex: 9999,
-            padding: "20px"
-          }}
-        >
-          <div
-            className="card glass"
-            style={{
-              width: "100%",
-              maxWidth: "340px",
-              padding: "24px",
-              display: "flex",
-              flexDirection: "column",
-              gap: "16px"
-            }}
-          >
-            <h4 id="delete-list-dialog-title" style={{ fontSize: "1.1rem", fontWeight: 700, color: "var(--text-primary)", fontFamily: "var(--font-display)" }}>
-              {t("deleteCollectionTitle")}
-            </h4>
-            <p style={{ fontSize: "0.85rem", color: "var(--text-secondary)", lineHeight: 1.5 }}>
-              {t("deleteCollectionDescription")}
-            </p>
-            <div style={{ display: "flex", justifyContent: "flex-end", gap: "12px", marginTop: "8px" }}>
-              <button
-                type="button"
-                data-dialog-initial-focus
-                onClick={() => setListToDelete(null)}
-                style={{
-                  background: "transparent",
-                  border: "1px solid var(--border)",
-                  color: "var(--text-secondary)",
-                  padding: "8px 16px",
-                  borderRadius: "8px",
-                  cursor: "pointer",
-                  fontWeight: 600,
-                  fontSize: "0.85rem"
-                }}
-              >
-                {common("cancel")}
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  executeDeleteList(listToDelete);
-                  setListToDelete(null);
-                }}
-                style={{
-                  background: "rgba(244, 63, 94, 0.1)",
-                  color: "#f43f5e",
-                  border: "1px solid rgba(244, 63, 94, 0.3)",
-                  padding: "8px 16px",
-                  borderRadius: "8px",
-                  cursor: "pointer",
-                  fontWeight: 600,
-                  fontSize: "0.85rem"
-                }}
-              >
-                {common("delete")}
-              </button>
-            </div>
-          </div>
-        </AccessibleDialog>
-      )}
+      <DeleteListDialog
+        listId={listToDelete}
+        onClose={() => setListToDelete(null)}
+        onConfirm={(listId) => {
+          executeDeleteList(listId);
+          setListToDelete(null);
+        }}
+      />
 
       {/* Account Settings Modal */}
       {isAccountSettingsOpen && (
