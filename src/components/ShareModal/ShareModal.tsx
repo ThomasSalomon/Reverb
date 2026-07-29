@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import styles from "./ShareModal.module.css";
 import { useTranslations } from "next-intl";
+import AccessibleDialog from "@/components/AccessibleDialog/AccessibleDialog";
 
 interface ShareModalProps {
   isOpen: boolean;
@@ -145,14 +146,9 @@ export default function ShareModal({
     if (isOpen) {
       // Tiny delay so CSS transition fires after mount
       requestAnimationFrame(() => setVisible(true));
-      document.body.style.overflow = "hidden";
     } else {
       setVisible(false);
-      document.body.style.overflow = "";
     }
-    return () => {
-      document.body.style.overflow = "";
-    };
   }, [isOpen]);
 
   // Extract ambient color from cover
@@ -169,21 +165,16 @@ export default function ShareModal({
     });
   };
 
-  const handleBackdropClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (e.target === e.currentTarget) onClose();
-  };
-
   const shareText = `${album.title} — ${album.artist} | Ride The Music`;
 
   if (!isOpen) return null;
 
   return (
-    <div
+    <AccessibleDialog
+      isOpen={isOpen}
+      onClose={onClose}
+      labelledBy="share-dialog-title"
       className={`${styles.backdrop} ${visible ? styles.backdropVisible : ""}`}
-      onClick={handleBackdropClick}
-      role="dialog"
-      aria-modal="true"
-      aria-label={`${t("shareOn")} ${album.title}`}
     >
       <div
         className={`${styles.modal} ${visible ? styles.modalVisible : ""}`}
@@ -195,6 +186,8 @@ export default function ShareModal({
         <button
           className={styles.closeBtn}
           onClick={onClose}
+          type="button"
+          data-dialog-initial-focus
           aria-label={t("closeModal")}
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
@@ -215,7 +208,7 @@ export default function ShareModal({
           </div>
           <div className={styles.albumInfo}>
             <span className={styles.albumLabel}>{t("shareLabel")}</span>
-            <h2 className={styles.albumTitle}>{album.title}</h2>
+            <h2 id="share-dialog-title" className={styles.albumTitle}>{album.title}</h2>
             <p className={styles.albumArtist}>
               {album.artist} <span className={styles.dot}>·</span> {album.releaseYear}
             </p>
@@ -288,6 +281,6 @@ export default function ShareModal({
           </div>
         </div>
       </div>
-    </div>
+    </AccessibleDialog>
   );
 }

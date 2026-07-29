@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import styles from "../SharedModal.module.css";
 import localStyles from "../../app/[locale]/users/[username]/page.module.css";
 import { showToast } from "@/components/Toast/ToastListener";
-import { useBodyScrollLock } from "@/hooks/useBodyScrollLock";
+import AccessibleDialog from "@/components/AccessibleDialog/AccessibleDialog";
 import { useTranslations } from "next-intl";
 
 interface DeezerSearchResult {
@@ -167,15 +167,14 @@ export default function EditFavoritesModal({ isOpen, onClose, profile, onSave }:
     }
   };
 
-  useBodyScrollLock(isOpen);
   if (!isOpen) return null;
 
   return (
-    <div className={styles.modalOverlay}>
+    <AccessibleDialog isOpen={isOpen} onClose={onClose} labelledBy="edit-favorites-dialog-title" className={styles.modalOverlay}>
       <div className={styles.modalContent} style={{ maxWidth: "480px" }}>
         <div className={styles.modalHeader}>
-          <h3 className={styles.modalTitle}>{t("favoriteAlbums")}</h3>
-          <button onClick={onClose} className={styles.closeBtn} aria-label={common("close")}>
+          <h3 id="edit-favorites-dialog-title" className={styles.modalTitle}>{t("favoriteAlbums")}</h3>
+          <button type="button" data-dialog-initial-focus onClick={onClose} className={styles.closeBtn} aria-label={common("close")}>
             &times;
           </button>
         </div>
@@ -281,6 +280,6 @@ export default function EditFavoritesModal({ isOpen, onClose, profile, onSave }:
           </div>
         </form>
       </div>
-    </div>
+    </AccessibleDialog>
   );
 }

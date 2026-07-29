@@ -47,6 +47,11 @@ body {
   position: relative;
 }
 
+:where(a, button, input, select, textarea, [tabindex]):focus-visible {
+  outline: 2px solid var(--primary, #00e575);
+  outline-offset: 3px;
+}
+
 /* Cyber-Retro Subtle CRT Noise Background */
 body::before {
   content: "";

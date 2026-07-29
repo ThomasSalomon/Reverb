@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import styles from "./RecapModal.module.css";
-import { useBodyScrollLock } from "@/hooks/useBodyScrollLock";
+import AccessibleDialog from "@/components/AccessibleDialog/AccessibleDialog";
 import { useTranslations } from "next-intl";
 
 interface RecapModalProps {
@@ -16,8 +16,6 @@ export default function RecapModal({ username, onClose }: RecapModalProps) {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  useBodyScrollLock(true);
 
   useEffect(() => {
     async function fetchRecap() {
@@ -42,9 +40,10 @@ export default function RecapModal({ username, onClose }: RecapModalProps) {
   }, [username, t]);
 
   return (
-    <div className={styles.wrapper} onClick={onClose}>
+    <AccessibleDialog isOpen={true} onClose={onClose} labelledBy="recap-dialog-title" className={styles.wrapper}>
       <div className={styles.overlay} />
-      <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
+      <div className={styles.modal}>
+        <h2 id="recap-dialog-title" style={{ position: "absolute", width: 1, height: 1, overflow: "hidden", clip: "rect(0, 0, 0, 0)" }}>{t("recap")}</h2>
         {/* Animated Background Mesh Blobs — GPU Accelerated */}
         <div className={styles.blob1} aria-hidden="true" />
         <div className={styles.blob2} aria-hidden="true" />
@@ -53,7 +52,7 @@ export default function RecapModal({ username, onClose }: RecapModalProps) {
         {/* Top decorative light bar */}
         <div className={styles.topLightBar} aria-hidden="true" />
 
-        <button className={styles.closeBtn} onClick={onClose} aria-label={common("close")}>
+        <button type="button" data-dialog-initial-focus className={styles.closeBtn} onClick={onClose} aria-label={common("close")}>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
             <line x1="18" y1="6" x2="6" y2="18"></line>
             <line x1="6" y1="6" x2="18" y2="18"></line>
@@ -170,6 +169,6 @@ export default function RecapModal({ username, onClose }: RecapModalProps) {
           )}
         </div>
       </div>
-    </div>
+    </AccessibleDialog>
   );
 }

@@ -14,6 +14,7 @@ import { showToast } from "@/components/Toast/ToastListener";
 import MobileRatingSheet from "@/components/MobileRatingSheet/MobileRatingSheet";
 import SliderRating from "@/components/SliderRating/SliderRating";
 import { useLazyIframe } from "@/hooks/useLazyIframe";
+import AccessibleDialog from "@/components/AccessibleDialog/AccessibleDialog";
 
 interface Track {
   title: string;
@@ -244,55 +245,8 @@ export default function AlbumDetailClient({ id }: { id: string }) {
   return (
     <main className={styles.main}>
       <div className={styles.detailGrid}>
-        {/* Left Column: Visual Cover and Quick Stats */}
-        <section className={styles.leftCol}>
-          <Cover3D src={album.coverUrl} alt={album.title} size={320} />
-
-          <div className={`${styles.statsCard} glass`}>
-            <div className={styles.statsValue}>
-              <span className={styles.average}>{album.stats.averageRating.toFixed(1)}</span>
-              <RatingStars value={album.stats.averageRating} size={16} />
-            </div>
-            <div className={styles.statsMeta}>
-              <div>{t("ratingsCount", { count: album.stats.totalRatings })}</div>
-              <div>{t("reviewsCount", { count: album.stats.totalReviews })}</div>
-            </div>
-          </div>
-
+        {/* Identity and actions come first in the DOM for reading and keyboard order. */}
           {/* Deezer Album Player Widget — carga diferida con IntersectionObserver */}
-          <div
-            ref={deezerRef}
-            className={`${styles.playerCard} glass`}
-            style={{ marginTop: "24px", overflow: "hidden", minHeight: "374px" }}
-          >
-            {deezerActiveSrc ? (
-              <iframe
-                title={t("playerTitle")}
-                src={deezerActiveSrc}
-                width="100%"
-                height="350"
-                frameBorder="0"
-                allowFullScreen
-                allow="encrypted-media; clipboard-write"
-                sandbox="allow-scripts allow-same-origin allow-popups"
-                style={{ borderRadius: "12px", border: "none", display: "block" }}
-              />
-            ) : (
-              <div style={{
-                height: "350px",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                color: "var(--text-muted)",
-                fontSize: "0.85rem"
-              }}>
-                {t("loadingPlayer")}
-              </div>
-            )}
-          </div>
-        </section>
-
-        {/* Right Column: Title, Tracklist, Review Form & List */}
         <section className={styles.rightCol}>
           <header className={styles.header}>
             <h1 className={styles.title}>{album.title}</h1>
@@ -301,6 +255,38 @@ export default function AlbumDetailClient({ id }: { id: string }) {
             </p>
             
             <div className={styles.actionsBar} style={{ display: "flex", gap: "12px", marginTop: "16px", flexWrap: "wrap" }}>
+              {user && (
+                <div className={styles.ratingAction} style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "8px",
+                  background: "rgba(255, 255, 255, 0.03)",
+                  padding: "8px 16px",
+                  borderRadius: "8px",
+                  border: "1px solid var(--border)",
+                }}>
+                  <div className={styles.desktopRating}>
+                    <span style={{ fontSize: "0.85rem", color: "var(--text-secondary)", fontWeight: 600 }}>{t("rate")}:</span>
+                    <RatingStars
+                      value={currentUserRating || 0}
+                      onChange={handleQuickRate}
+                      interactive={true}
+                      size={20}
+                    />
+                  </div>
+                  <div className={styles.mobileRating}>
+                    <span className={styles.mobileRatingText}>
+                      {currentUserRating ? t("yourRating", {rating: currentUserRating}) : t("rateAlbum")}
+                    </span>
+                    <SliderRating
+                      value={currentUserRating || 0.5}
+                      onChange={(val) => setCurrentUserRating(val)}
+                      onChangeComplete={handleQuickRate}
+                      size={28}
+                    />
+                  </div>
+                </div>
+              )}
               <button
                 onClick={handleShare}
                 className={styles.actionBtn}
@@ -413,41 +399,28 @@ export default function AlbumDetailClient({ id }: { id: string }) {
                       {t("addToList")}
                     </div>
                   </button>
-                  <div style={{
-                    display: "flex", 
-                    alignItems: "center", 
-                    gap: "8px", 
-                    background: "rgba(255, 255, 255, 0.03)", 
-                    padding: "8px 16px", 
-                    borderRadius: "8px",
-                    border: "1px solid var(--border)",
-                  }}>
-                    <div className={styles.desktopRating}>
-                      <span style={{ fontSize: "0.85rem", color: "var(--text-secondary)", fontWeight: 600 }}>{t("rate")}:</span>
-                      <RatingStars 
-                        value={currentUserRating || 0} 
-                        onChange={handleQuickRate} 
-                        interactive={true} 
-                        size={20} 
-                      />
-                    </div>
-                    <div className={styles.mobileRating}>
-                      <span className={styles.mobileRatingText}>
-                        {currentUserRating ? t("yourRating", {rating: currentUserRating}) : t("rateAlbum")}
-                      </span>
-                      <SliderRating 
-                        value={currentUserRating || 0.5} 
-                        onChange={(val) => setCurrentUserRating(val)}
-                        onChangeComplete={handleQuickRate}
-                        size={28} 
-                      />
-                    </div>
-                  </div>
                 </>
               )}
             </div>
           </header>
+        </section>
 
+        <section className={styles.leftCol}>
+          <Cover3D src={album.coverUrl} alt={album.title} size={320} />
+
+          <div className={`${styles.statsCard} glass`}>
+            <div className={styles.statsValue}>
+              <span className={styles.average}>{album.stats.averageRating.toFixed(1)}</span>
+              <RatingStars value={album.stats.averageRating} size={16} />
+            </div>
+            <div className={styles.statsMeta}>
+              <div>{t("ratingsCount", { count: album.stats.totalRatings })}</div>
+              <div>{t("reviewsCount", { count: album.stats.totalReviews })}</div>
+            </div>
+          </div>
+        </section>
+
+        <section className={styles.contentCol}>
           <section className={`${styles.tracksCard} glass`}>
             <h3 className={styles.cardTitle}>{t("trackList")}</h3>
             {album.tracks && album.tracks.length > 0 ? (
@@ -526,12 +499,47 @@ export default function AlbumDetailClient({ id }: { id: string }) {
             )}
           </section>
         </section>
+
+        <div
+          ref={deezerRef}
+          className={`${styles.playerCard} glass`}
+          style={{ overflow: "hidden", minHeight: "374px" }}
+        >
+          {deezerActiveSrc ? (
+            <iframe
+              title={t("playerTitle")}
+              src={deezerActiveSrc}
+              width="100%"
+              height="350"
+              frameBorder="0"
+              allowFullScreen
+              allow="encrypted-media; clipboard-write"
+              sandbox="allow-scripts allow-same-origin allow-popups"
+              style={{ borderRadius: "12px", border: "none", display: "block" }}
+            />
+          ) : (
+            <div style={{
+              height: "350px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              color: "var(--text-muted)",
+              fontSize: "0.85rem"
+            }}>
+              {t("loadingPlayer")}
+            </div>
+          )}
+        </div>
       </div>
 
 
       {/* Diary Modal */}
       {isDiaryOpen && (
-        <div
+        <AccessibleDialog
+          isOpen={isDiaryOpen}
+          onClose={() => setIsDiaryOpen(false)}
+          labelledBy="diary-dialog-title"
+          className=""
           style={{
             position: "fixed",
             top: 0,
@@ -559,10 +567,12 @@ export default function AlbumDetailClient({ id }: { id: string }) {
             }}
           >
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <h3 style={{ fontSize: "1.25rem", fontWeight: 700, color: "var(--text-primary)", fontFamily: "var(--font-display)" }}>
+              <h3 id="diary-dialog-title" style={{ fontSize: "1.25rem", fontWeight: 700, color: "var(--text-primary)", fontFamily: "var(--font-display)" }}>
                 {t("diaryTitle")}
               </h3>
               <button
+                type="button"
+                data-dialog-initial-focus
                 onClick={() => setIsDiaryOpen(false)}
                 aria-label={common("close")}
                 style={{
@@ -670,7 +680,7 @@ export default function AlbumDetailClient({ id }: { id: string }) {
               </div>
             </form>
           </div>
-        </div>
+        </AccessibleDialog>
       )}
 
       {/* Share Modal */}

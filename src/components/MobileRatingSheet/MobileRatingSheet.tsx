@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import styles from "./MobileRatingSheet.module.css";
 import SliderRating from "../SliderRating/SliderRating";
 import { useTranslations } from "next-intl";
+import AccessibleDialog from "@/components/AccessibleDialog/AccessibleDialog";
 
 interface MobileRatingSheetProps {
   isOpen: boolean;
@@ -27,13 +28,7 @@ export default function MobileRatingSheet({
     if (isOpen) {
       setLocalRating(currentRating);
       setIsAnimatingOut(false);
-      document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "";
     }
-    return () => {
-      document.body.style.overflow = "";
-    };
   }, [isOpen, currentRating]);
 
   const handleClose = () => {
@@ -58,14 +53,18 @@ export default function MobileRatingSheet({
   if (!isOpen && !isAnimatingOut) return null;
 
   return (
-    <div className={`${styles.overlay} ${isAnimatingOut ? styles.fadeOut : ""}`} onClick={handleClose}>
+    <AccessibleDialog
+      isOpen={isOpen || isAnimatingOut}
+      onClose={handleClose}
+      labelledBy="mobile-rating-sheet-title"
+      className={`${styles.overlay} ${isAnimatingOut ? styles.fadeOut : ""}`}
+    >
       <div 
-        className={`${styles.sheet} ${isAnimatingOut ? styles.slideDown : ""}`} 
-        onClick={(e) => e.stopPropagation()}
+        className={`${styles.sheet} ${isAnimatingOut ? styles.slideDown : ""}`}
       >
         <div className={styles.dragHandle} />
         
-        <h3 className={styles.title}>{t("rateAlbum")}</h3>
+        <h3 id="mobile-rating-sheet-title" className={styles.title}>{t("rateAlbum")}</h3>
         <p className={styles.subtitle}>{albumTitle}</p>
         
         <div className={styles.starsWrapper}>
@@ -77,14 +76,14 @@ export default function MobileRatingSheet({
         </div>
         
         <div className={styles.actions}>
-          <button className={styles.cancelBtn} onClick={handleClose}>
+          <button type="button" data-dialog-initial-focus className={styles.cancelBtn} onClick={handleClose}>
             {common("cancel")}
           </button>
-          <button className="neon-btn" onClick={handleSave} style={{ padding: "12px 24px", width: "100%" }}>
+          <button type="button" className="neon-btn" onClick={handleSave} style={{ padding: "12px 24px", width: "100%" }}>
             {common("save")}
           </button>
         </div>
       </div>
-    </div>
+    </AccessibleDialog>
   );
 }

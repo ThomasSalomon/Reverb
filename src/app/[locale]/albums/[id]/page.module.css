@@ -24,12 +24,23 @@
 .detailGrid {
   display: grid;
   grid-template-columns: 320px 1fr;
-  gap: 60px;
+  grid-template-areas:
+    "media identity"
+    "media content"
+    "player content";
+  column-gap: 60px;
+  row-gap: 40px;
+  align-items: start;
 }
 
 @media (max-width: 900px) {
   .detailGrid {
     grid-template-columns: 1fr;
+    grid-template-areas:
+      "identity"
+      "media"
+      "content"
+      "player";
     gap: 40px;
     justify-items: center;
   }
@@ -43,6 +54,7 @@
 }
 
 .leftCol {
+  grid-area: media;
   display: flex;
   flex-direction: column;
   gap: 24px;
@@ -100,6 +112,15 @@
 }
 
 .rightCol {
+  grid-area: identity;
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
+  width: 100%;
+}
+
+.contentCol {
+  grid-area: content;
   display: flex;
   flex-direction: column;
   gap: 40px;
@@ -243,6 +264,8 @@
 }
 
 .playerCard {
+  grid-area: player;
+  width: 100%;
   border-radius: 16px;
   padding: 12px;
   border: 1px solid var(--border);
@@ -341,6 +364,11 @@
 }
 
 @media (max-width: 768px) {
+  .ratingAction {
+    width: 100%;
+    justify-content: center;
+  }
+
   .desktopRating {
     display: none;
   }

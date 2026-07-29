@@ -31,14 +31,22 @@ export default function ReviewForm({
 
   const handleRatingChange = (newVal: number) => {
     setLocalRating(newVal);
+    if (errorField === "rating") {
+      setError(null);
+      setErrorField(null);
+    }
     if (onRatingChange) {
       onRatingChange(newVal);
     }
   };
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [errorField, setErrorField] = useState<"rating" | "content" | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const errorRef = React.useRef<HTMLDivElement>(null);
+  const contentId = React.useId();
+  const contentHelpId = `${contentId}-help`;
 
   const AVAILABLE_TAGS = [
     { value: "Épico", label: "tagEpic" },
@@ -65,15 +73,20 @@ export default function ReviewForm({
     e.preventDefault();
     if (localRating === 0) {
       setError(t("ratingRequired"));
+      setErrorField("rating");
+      requestAnimationFrame(() => errorRef.current?.focus());
       return;
     }
     if (!content.trim()) {
       setError(t("contentRequired"));
+      setErrorField("content");
+      requestAnimationFrame(() => errorRef.current?.focus());
       return;
     }
 
     setLoading(true);
     setError(null);
+    setErrorField(null);
     setSuccessMsg(null);
 
     try {
@@ -98,8 +111,9 @@ export default function ReviewForm({
       if (onSuccess) {
         onSuccess();
       }
-    } catch (e: any) {
-      setError(e.message || t("publishError"));
+    } catch {
+      setError(t("publishError"));
+      requestAnimationFrame(() => errorRef.current?.focus());
     } finally {
       setLoading(false);
     }
@@ -112,41 +126,55 @@ export default function ReviewForm({
       <div className={styles.ratingSection}>
         <span className={styles.label}>{t("yourRating")}:</span>
         <div className={styles.desktopRating}>
-          <RatingStars value={localRating} onChange={handleRatingChange} interactive={true} size={28} />
+          <RatingStars value={localRating} onChange={handleRatingChange} interactive={true} size={28} label={t("yourRating")} disabled={loading} invalid={errorField === "rating"} />
         </div>
         <div className={styles.mobileRating}>
-          <SliderRating value={localRating || 0.5} onChange={handleRatingChange} size={24} />
+          <SliderRating value={localRating || 0.5} onChange={handleRatingChange} size={24} label={t("yourRating")} disabled={loading} />
         </div>
       </div>
 
-      <div className={styles.tagsSection}>
-        <span className={styles.label}>{t("tags")}:</span>
+      <fieldset className={styles.tagsSection} disabled={loading}>
+        <legend className={styles.label}>{t("tags")}:</legend>
         <div className={styles.tagsContainer}>
           {AVAILABLE_TAGS.map(tag => (
-            <div 
+            <button
               key={tag.value}
+              type="button"
+              aria-pressed={selectedTags.includes(tag.value)}
               onClick={() => toggleTag(tag.value)}
               className={`${styles.tagPill} ${selectedTags.includes(tag.value) ? styles.tagPillActive : ""}`}
             >
               {t(tag.label)}
-            </div>
+            </button>
           ))}
         </div>
-      </div>
+      </fieldset>
 
       <div className={styles.inputSection}>
+        <label htmlFor={contentId} className={styles.label}>{t("yourReview")}:</label>
+        <p id={contentHelpId} className={styles.fieldHelp}>{t("reviewHelp")}</p>
         <textarea
+          id={contentId}
+          name="content"
           value={content}
-          onChange={(e) => setContent(e.target.value)}
+          onChange={(e) => {
+            setContent(e.target.value);
+            if (errorField === "content") {
+              setError(null);
+              setErrorField(null);
+            }
+          }}
           placeholder={t("contentPlaceholder")}
           rows={5}
           className={styles.textarea}
           disabled={loading}
+          aria-invalid={errorField === "content"}
+          aria-describedby={contentHelpId}
         />
       </div>
 
-      {error && <div className={styles.errorMsg}>{error}</div>}
-      {successMsg && <div className={styles.successMsg}>{successMsg}</div>}
+      {error && <div ref={errorRef} className={styles.errorMsg} role="alert" tabIndex={-1}>{error}</div>}
+      {successMsg && <div className={styles.successMsg} role="status">{successMsg}</div>}
 
       <button type="submit" className="neon-btn" disabled={loading}>
         {loading ? t("publishing") : t("publish")}

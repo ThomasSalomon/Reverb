@@ -6,6 +6,7 @@ import { Link } from "@/i18n/routing";
 import styles from "./SpecialPlaylistModal.module.css";
 import Image from "next/image";
 import { useTranslations } from "next-intl";
+import AccessibleDialog from "@/components/AccessibleDialog/AccessibleDialog";
 
 interface Props {
   artistName: string;
@@ -68,10 +69,9 @@ export default function SpecialPlaylistModal({ artistName, onClose }: Props) {
   };
 
   return (
-    <div className={styles.overlay} onClick={onClose}>
+    <AccessibleDialog isOpen={true} onClose={onClose} labelledBy="special-playlist-dialog-title" className={styles.overlay}>
       <motion.div
         className={styles.modal}
-        onClick={(e) => e.stopPropagation()}
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.95 }}
@@ -82,8 +82,8 @@ export default function SpecialPlaylistModal({ artistName, onClose }: Props) {
         )}
         
         <div className={styles.header}>
-          <h2>{t("tributeTitle", { artist: artistName })}</h2>
-          <button className={styles.closeButton} onClick={onClose} aria-label={common("close")}>
+          <h2 id="special-playlist-dialog-title">{t("tributeTitle", { artist: artistName })}</h2>
+          <button type="button" data-dialog-initial-focus className={styles.closeButton} onClick={onClose} aria-label={common("close")}>
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M18 6L6 18M6 6l12 12" />
             </svg>
@@ -143,6 +143,6 @@ export default function SpecialPlaylistModal({ artistName, onClose }: Props) {
           </div>
         )}
       </motion.div>
-    </div>
+    </AccessibleDialog>
   );
 }

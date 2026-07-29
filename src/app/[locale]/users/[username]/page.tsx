@@ -12,6 +12,7 @@ import EditFavoritesModal from "@/components/EditFavoritesModal/EditFavoritesMod
 import AccountSettingsModal from "@/components/AccountSettingsModal/AccountSettingsModal";
 import Avatar from "@/components/Avatar/Avatar";
 import RecapModal from "@/components/RecapModal/RecapModal";
+import AccessibleDialog from "@/components/AccessibleDialog/AccessibleDialog";
 import { useLocale, useTranslations } from "next-intl";
 
 interface FavoriteAlbumRelation {
@@ -1288,19 +1289,25 @@ export default function UserProfilePage() {
 
       {/* Create List Modal */}
       {isCreateListOpen && (
-        <div className={styles.modalOverlay}>
+        <AccessibleDialog
+          isOpen={isCreateListOpen}
+          onClose={() => setIsCreateListOpen(false)}
+          labelledBy="create-list-dialog-title"
+          className={styles.modalOverlay}
+        >
           <div className={styles.modalContent}>
             <div className={styles.modalHeader}>
-              <h3 className={styles.modalTitle}>{t("createCollection")}</h3>
-              <button onClick={() => setIsCreateListOpen(false)} className={styles.closeBtn} aria-label={common("close")}>
+              <h3 id="create-list-dialog-title" className={styles.modalTitle}>{t("createCollection")}</h3>
+              <button type="button" data-dialog-initial-focus onClick={() => setIsCreateListOpen(false)} className={styles.closeBtn} aria-label={common("close")}>
                 &times;
               </button>
             </div>
 
             <form onSubmit={handleCreateList} style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
               <div className={styles.formGroup}>
-                <label className={styles.formLabel}>{t("listTitle")}</label>
+                <label htmlFor="new-list-title" className={styles.formLabel}>{t("listTitle")}</label>
                 <input
+                  id="new-list-title"
                   type="text"
                   required
                   className={styles.formInput}
@@ -1311,8 +1318,9 @@ export default function UserProfilePage() {
               </div>
 
               <div className={styles.formGroup}>
-                <label className={styles.formLabel}>{t("listDescription")} ({common("optional")})</label>
+                <label htmlFor="new-list-description" className={styles.formLabel}>{t("listDescription")} ({common("optional")})</label>
                 <textarea
+                  id="new-list-description"
                   className={styles.formInput}
                   rows={3}
                   maxLength={500}
@@ -1346,16 +1354,21 @@ export default function UserProfilePage() {
               </div>
             </form>
           </div>
-        </div>
+        </AccessibleDialog>
       )}
 
       {/* Register Diary Entry Modal */}
       {isDiaryModalOpen && (
-        <div className={styles.modalOverlay}>
+        <AccessibleDialog
+          isOpen={isDiaryModalOpen}
+          onClose={() => setIsDiaryModalOpen(false)}
+          labelledBy="profile-diary-dialog-title"
+          className={styles.modalOverlay}
+        >
           <div className={styles.modalContent}>
             <div className={styles.modalHeader}>
-              <h3 className={styles.modalTitle}>{t("diaryTitle")}</h3>
-              <button onClick={() => setIsDiaryModalOpen(false)} className={styles.closeBtn} aria-label={common("close")}>
+              <h3 id="profile-diary-dialog-title" className={styles.modalTitle}>{t("diaryTitle")}</h3>
+              <button type="button" data-dialog-initial-focus onClick={() => setIsDiaryModalOpen(false)} className={styles.closeBtn} aria-label={common("close")}>
                 &times;
               </button>
             </div>
@@ -1363,7 +1376,7 @@ export default function UserProfilePage() {
             <form onSubmit={handleCreateDiaryLog} style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
               {/* Search Album to Add */}
               <div className={styles.formGroup} style={{ position: "relative" }}>
-                <label className={styles.formLabel}>{t("searchAlbum")}</label>
+                <label htmlFor="profile-diary-album-search" className={styles.formLabel}>{t("searchAlbum")}</label>
                 {diarySelectedAlbum ? (
                   <div style={{ display: "flex", alignItems: "center", gap: "10px", padding: "10px", background: "rgba(255,255,255,0.03)", borderRadius: "6px", border: "1px solid var(--border)" }}>
                     <img src={diarySelectedAlbum.coverUrl} alt={diarySelectedAlbum.title} style={{ width: "40px", height: "40px", borderRadius: "4px" }} />
@@ -1378,6 +1391,7 @@ export default function UserProfilePage() {
                 ) : (
                   <>
                     <input
+                      id="profile-diary-album-search"
                       type="text"
                       className={styles.formInput}
                       placeholder={t("albumTitlePlaceholder")}
@@ -1389,18 +1403,19 @@ export default function UserProfilePage() {
                     {diarySearchResults.length > 0 && (
                       <div className={styles.searchResultsDropdown} style={{ position: "absolute", width: "100%", zIndex: 10, background: "#0c0d12", border: "1px solid var(--border)", borderRadius: "8px", marginTop: "4px", top: "68px" }}>
                         {diarySearchResults.map((albumItem) => (
-                          <div
+                          <button
+                            type="button"
                             key={albumItem.id}
                             className={styles.searchResultItem}
                             onClick={() => setDiarySelectedAlbum(albumItem)}
-                            style={{ display: "flex", alignItems: "center", gap: "10px", padding: "10px", cursor: "pointer", borderBottom: "1px solid rgba(255,255,255,0.05)" }}
+                            style={{ display: "flex", width: "100%", alignItems: "center", gap: "10px", padding: "10px", cursor: "pointer", border: "none", borderBottom: "1px solid rgba(255,255,255,0.05)", background: "transparent", textAlign: "left" }}
                           >
                             <img src={albumItem.coverUrl} alt={albumItem.title} style={{ width: "36px", height: "36px", borderRadius: "4px" }} />
                             <div>
                               <div style={{ fontWeight: 600, color: "var(--text-primary)", fontSize: "0.85rem" }}>{albumItem.title}</div>
                               <div style={{ color: "var(--text-secondary)", fontSize: "0.75rem" }}>{albumItem.artist}</div>
                             </div>
-                          </div>
+                          </button>
                         ))}
                       </div>
                     )}
@@ -1410,8 +1425,9 @@ export default function UserProfilePage() {
 
               {/* Rating */}
               <div className={styles.formGroup}>
-                <label className={styles.formLabel}>{t("rating")}</label>
+                <label htmlFor="profile-diary-rating" className={styles.formLabel}>{t("rating")}</label>
                 <select
+                  id="profile-diary-rating"
                   className={styles.formInput}
                   value={diaryRating}
                   onChange={(e) => setDiaryRating(e.target.value)}
@@ -1431,8 +1447,9 @@ export default function UserProfilePage() {
 
               {/* Quick Notes */}
               <div className={styles.formGroup}>
-                <label className={styles.formLabel}>{t("quickNotes")} ({common("optional")})</label>
+                <label htmlFor="profile-diary-notes" className={styles.formLabel}>{t("quickNotes")} ({common("optional")})</label>
                 <textarea
+                  id="profile-diary-notes"
                   className={styles.formInput}
                   rows={3}
                   maxLength={500}
@@ -1453,12 +1470,16 @@ export default function UserProfilePage() {
               </div>
             </form>
           </div>
-        </div>
+        </AccessibleDialog>
       )}
 
       {/* Custom List Delete Confirm Modal Overlay */}
       {listToDelete && (
-        <div
+        <AccessibleDialog
+          isOpen={Boolean(listToDelete)}
+          onClose={() => setListToDelete(null)}
+          labelledBy="delete-list-dialog-title"
+          role="alertdialog"
           style={{
             position: "fixed",
             top: 0,
@@ -1485,7 +1506,7 @@ export default function UserProfilePage() {
               gap: "16px"
             }}
           >
-            <h4 style={{ fontSize: "1.1rem", fontWeight: 700, color: "var(--text-primary)", fontFamily: "var(--font-display)" }}>
+            <h4 id="delete-list-dialog-title" style={{ fontSize: "1.1rem", fontWeight: 700, color: "var(--text-primary)", fontFamily: "var(--font-display)" }}>
               {t("deleteCollectionTitle")}
             </h4>
             <p style={{ fontSize: "0.85rem", color: "var(--text-secondary)", lineHeight: 1.5 }}>
@@ -1493,6 +1514,8 @@ export default function UserProfilePage() {
             </p>
             <div style={{ display: "flex", justifyContent: "flex-end", gap: "12px", marginTop: "8px" }}>
               <button
+                type="button"
+                data-dialog-initial-focus
                 onClick={() => setListToDelete(null)}
                 style={{
                   background: "transparent",
@@ -1508,6 +1531,7 @@ export default function UserProfilePage() {
                 {common("cancel")}
               </button>
               <button
+                type="button"
                 onClick={() => {
                   executeDeleteList(listToDelete);
                   setListToDelete(null);
@@ -1527,7 +1551,7 @@ export default function UserProfilePage() {
               </button>
             </div>
           </div>
-        </div>
+        </AccessibleDialog>
       )}
 
       {/* Account Settings Modal */}

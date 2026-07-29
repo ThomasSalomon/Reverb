@@ -5,7 +5,7 @@ import styles from "../SharedModal.module.css";
 import { showToast } from "@/components/Toast/ToastListener";
 import { useRouter } from "@/i18n/routing";
 import { useTranslations } from "next-intl";
-import { useBodyScrollLock } from "@/hooks/useBodyScrollLock";
+import AccessibleDialog from "@/components/AccessibleDialog/AccessibleDialog";
 
 interface AccountSettingsModalProps {
   isOpen: boolean;
@@ -22,8 +22,6 @@ export default function AccountSettingsModal({ isOpen, onClose, username }: Acco
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [isSaving, setIsSaving] = useState(false);
-
-  useBodyScrollLock(isOpen);
 
   if (!isOpen) return null;
 
@@ -86,11 +84,11 @@ export default function AccountSettingsModal({ isOpen, onClose, username }: Acco
   };
 
   return (
-    <div className={styles.modalOverlay} onClick={onClose}>
-      <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+    <AccessibleDialog isOpen={isOpen} onClose={onClose} labelledBy="account-settings-dialog-title" className={styles.modalOverlay}>
+      <div className={styles.modalContent}>
         <div className={styles.modalHeader}>
-          <h2 className={styles.modalTitle}>{t("accountSettingsTitle")}</h2>
-          <button className={styles.closeBtn} onClick={onClose} aria-label={common("close")}>&times;</button>
+          <h2 id="account-settings-dialog-title" className={styles.modalTitle}>{t("accountSettingsTitle")}</h2>
+          <button type="button" data-dialog-initial-focus className={styles.closeBtn} onClick={onClose} aria-label={common("close")}>&times;</button>
         </div>
 
         <div className={styles.tabsContainer}>
@@ -159,6 +157,6 @@ export default function AccountSettingsModal({ isOpen, onClose, username }: Acco
           </div>
         )}
       </div>
-    </div>
+    </AccessibleDialog>
   );
 }

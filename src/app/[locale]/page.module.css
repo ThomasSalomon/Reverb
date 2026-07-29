@@ -41,6 +41,95 @@
   margin-top: 16px;
   display: flex;
   justify-content: center;
+  align-items: center;
+  gap: 10px;
+}
+
+.searchContainer :global(.input-field) {
+  width: 100%;
+  max-width: 500px;
+  min-width: 0;
+  flex: 1 1 240px;
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.searchMode {
+  gap: 32px;
+}
+
+.searchHero {
+  align-items: stretch;
+  padding: 12px 0 0;
+}
+
+.searchHero .searchContainer {
+  margin-top: 0;
+}
+
+.searchSection {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+.searchHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--border);
+}
+
+.searchEyebrow {
+  margin: 0 0 4px;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.searchTitle {
+  font-size: clamp(1.8rem, 4vw, 2.6rem);
+  line-height: 1.15;
+}
+
+.clearSearchButton {
+  flex: 0 0 auto;
+  min-height: 40px;
+  padding: 8px 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-primary);
+  cursor: pointer;
+  font: inherit;
+  font-weight: 700;
+}
+
+.clearSearchButton:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.specialDayContainer {
+  max-width: 1200px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 0 1rem;
 }
 
 .contentGrid {
@@ -151,6 +240,12 @@
   gap: 36px;
 }
 
+.searchSuggestion {
+  margin: 8px 0 0;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
 .searchGroup {
   display: flex;
   flex-direction: column;
@@ -165,7 +260,7 @@
 
 .artistResults {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(var(--result-card-min, 200px), 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, var(--result-card-min, 200px)), 1fr));
   gap: var(--result-grid-gap, 32px);
 }
 
@@ -323,6 +418,25 @@
   .heroSub {
     font-size: 1rem;
   }
+  .searchMode {
+    gap: 24px;
+  }
+  .searchHeader {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .searchHeader .clearSearchButton {
+    width: 100%;
+  }
+  .searchContainer {
+    align-items: stretch;
+    flex-wrap: wrap;
+  }
+  .searchContainer .clearSearchButton {
+    flex: 1 1 auto;
+    min-width: 44px;
+  }
   .sectionTitle {
     font-size: 1.35rem;
   }
@@ -344,7 +458,11 @@
   }
   .albumCard {
     flex: 0 0 auto;
-    width: 140px;
+    width: min(46vw, 180px);
+  }
+  .artistResults {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
   }
 }
 

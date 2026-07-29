@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useTranslations } from "next-intl";
 import RatingStars from "../RatingStars/RatingStars";
 import styles from "./SliderRating.module.css";
 
@@ -7,9 +8,12 @@ interface SliderRatingProps {
   onChange: (value: number) => void;
   onChangeComplete?: (value: number) => void;
   size?: number;
+  label?: string;
+  disabled?: boolean;
 }
 
-export default function SliderRating({ value, onChange, onChangeComplete, size = 32 }: SliderRatingProps) {
+export default function SliderRating({ value, onChange, onChangeComplete, size = 32, label, disabled = false }: SliderRatingProps) {
+  const t = useTranslations("Review");
   const [localValue, setLocalValue] = useState(value);
 
   // Sync with external value if it changes
@@ -26,6 +30,12 @@ export default function SliderRating({ value, onChange, onChangeComplete, size =
   const handleDragEnd = () => {
     if (onChangeComplete) {
       onChangeComplete(localValue);
+    }
+  };
+
+  const handleKeyUp = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Home", "End"].includes(e.key)) {
+      onChangeComplete?.(parseFloat(e.currentTarget.value));
     }
   };
 
@@ -46,7 +56,11 @@ export default function SliderRating({ value, onChange, onChangeComplete, size =
           onChange={handleChange} 
           onMouseUp={handleDragEnd}
           onTouchEnd={handleDragEnd}
+          onKeyUp={handleKeyUp}
           className={styles.slider} 
+          aria-label={label ?? t("yourRating")}
+          aria-valuetext={t("ratingValue", { value: localValue })}
+          disabled={disabled}
           style={{
             // Fill background before thumb dynamically
             background: `linear-gradient(to right, var(--primary) ${((localValue || 0.5) - 0.5) / 4.5 * 100}%, rgba(255, 255, 255, 0.1) ${((localValue || 0.5) - 0.5) / 4.5 * 100}%)`

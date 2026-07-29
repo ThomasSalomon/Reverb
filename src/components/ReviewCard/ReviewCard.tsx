@@ -9,6 +9,7 @@ import Avatar from "@/components/Avatar/Avatar";
 import { useLocale, useTranslations } from "next-intl";
 
 import sharedStyles from "../SharedModal.module.css";
+import AccessibleDialog from "@/components/AccessibleDialog/AccessibleDialog";
 
 interface ReviewCardProps {
   review: {
@@ -54,6 +55,7 @@ const ReviewCard = React.memo(function ReviewCard({ review, showMusicDetails = f
   const t = useTranslations("Review");
   const common = useTranslations("Common");
   const locale = useLocale();
+  const editContentId = React.useId();
   // Local display states (allows real-time updates without reload)
   const [content, setContent] = useState(review.content);
   const [ratingValue, setRatingValue] = useState(review.ratingValue);
@@ -435,12 +437,16 @@ const ReviewCard = React.memo(function ReviewCard({ review, showMusicDetails = f
 
       {/* Side Tray Panel for Comments */}
       {commentsOpen && (
-        <>
-          <div className={styles.drawerOverlay} onClick={() => setCommentsOpen(false)} />
+        <AccessibleDialog
+          isOpen={commentsOpen}
+          onClose={() => setCommentsOpen(false)}
+          labelledBy="comments-drawer-title"
+          className={styles.drawerOverlay}
+        >
           <div className={styles.commentsDrawer}>
             <div className={styles.drawerHeader}>
-              <span className={styles.drawerTitle}>{t("comments")} ({commentsCount})</span>
-              <button className={styles.closeBtn} onClick={() => setCommentsOpen(false)} aria-label={common("close")}>
+              <span id="comments-drawer-title" className={styles.drawerTitle}>{t("comments")} ({commentsCount})</span>
+              <button type="button" data-dialog-initial-focus className={styles.closeBtn} onClick={() => setCommentsOpen(false)} aria-label={common("close")}>
                 &times;
               </button>
             </div>
@@ -530,12 +536,16 @@ const ReviewCard = React.memo(function ReviewCard({ review, showMusicDetails = f
               </div>
             )}
           </div>
-        </>
+        </AccessibleDialog>
       )}
 
       {/* Custom Comment Delete Confirm Modal Overlay */}
       {commentToDelete && (
-        <div
+        <AccessibleDialog
+          isOpen={Boolean(commentToDelete)}
+          onClose={() => setCommentToDelete(null)}
+          labelledBy="delete-comment-dialog-title"
+          role="alertdialog"
           style={{
             position: "fixed",
             top: 0,
@@ -562,7 +572,7 @@ const ReviewCard = React.memo(function ReviewCard({ review, showMusicDetails = f
               gap: "16px"
             }}
           >
-            <h4 style={{ fontSize: "1.1rem", fontWeight: 700, color: "var(--text-primary)", fontFamily: "var(--font-display)" }}>
+            <h4 id="delete-comment-dialog-title" style={{ fontSize: "1.1rem", fontWeight: 700, color: "var(--text-primary)", fontFamily: "var(--font-display)" }}>
               {t("deleteCommentTitle")}
             </h4>
             <p style={{ fontSize: "0.85rem", color: "var(--text-secondary)", lineHeight: 1.5 }}>
@@ -570,6 +580,8 @@ const ReviewCard = React.memo(function ReviewCard({ review, showMusicDetails = f
             </p>
             <div style={{ display: "flex", justifyContent: "flex-end", gap: "12px", marginTop: "8px" }}>
               <button
+                type="button"
+                data-dialog-initial-focus
                 onClick={() => setCommentToDelete(null)}
                 style={{
                   background: "transparent",
@@ -585,6 +597,7 @@ const ReviewCard = React.memo(function ReviewCard({ review, showMusicDetails = f
                 {common("cancel")}
               </button>
               <button
+                type="button"
                 onClick={() => {
                   executeDeleteComment(commentToDelete);
                   setCommentToDelete(null);
@@ -604,12 +617,16 @@ const ReviewCard = React.memo(function ReviewCard({ review, showMusicDetails = f
               </button>
             </div>
           </div>
-        </div>
+        </AccessibleDialog>
       )}
 
       {/* Custom Review Delete Confirm Modal Overlay */}
       {reviewToDelete && (
-        <div
+        <AccessibleDialog
+          isOpen={Boolean(reviewToDelete)}
+          onClose={() => setReviewToDelete(null)}
+          labelledBy="delete-review-dialog-title"
+          role="alertdialog"
           style={{
             position: "fixed",
             top: 0,
@@ -636,7 +653,7 @@ const ReviewCard = React.memo(function ReviewCard({ review, showMusicDetails = f
               gap: "16px"
             }}
           >
-            <h4 style={{ fontSize: "1.1rem", fontWeight: 700, color: "var(--text-primary)", fontFamily: "var(--font-display)" }}>
+            <h4 id="delete-review-dialog-title" style={{ fontSize: "1.1rem", fontWeight: 700, color: "var(--text-primary)", fontFamily: "var(--font-display)" }}>
               {t("deleteReviewTitle")}
             </h4>
             <p style={{ fontSize: "0.85rem", color: "var(--text-secondary)", lineHeight: 1.5 }}>
@@ -644,6 +661,8 @@ const ReviewCard = React.memo(function ReviewCard({ review, showMusicDetails = f
             </p>
             <div style={{ display: "flex", justifyContent: "flex-end", gap: "12px", marginTop: "8px" }}>
               <button
+                type="button"
+                data-dialog-initial-focus
                 onClick={() => setReviewToDelete(null)}
                 style={{
                   background: "transparent",
@@ -659,6 +678,7 @@ const ReviewCard = React.memo(function ReviewCard({ review, showMusicDetails = f
                 {common("cancel")}
               </button>
               <button
+                type="button"
                 onClick={() => {
                   executeDeleteReview();
                   setReviewToDelete(null);
@@ -678,16 +698,18 @@ const ReviewCard = React.memo(function ReviewCard({ review, showMusicDetails = f
               </button>
             </div>
           </div>
-        </div>
+        </AccessibleDialog>
       )}
 
       {/* Custom Review Edit Modal Overlay */}
       {isEditing && (
-        <div className={sharedStyles.modalOverlay}>
+        <AccessibleDialog isOpen={isEditing} onClose={() => setIsEditing(false)} labelledBy="edit-review-dialog-title" className={sharedStyles.modalOverlay}>
           <div className={sharedStyles.modalContent} style={{ maxWidth: "500px" }}>
             <div className={sharedStyles.modalHeader}>
-              <h3 className={sharedStyles.modalTitle}>{t("edit")}</h3>
+              <h3 id="edit-review-dialog-title" className={sharedStyles.modalTitle}>{t("edit")}</h3>
               <button 
+                type="button"
+                data-dialog-initial-focus
                 className={sharedStyles.closeBtn} 
                 onClick={() => setIsEditing(false)}
                 aria-label={t("closeModal")}
@@ -702,15 +724,15 @@ const ReviewCard = React.memo(function ReviewCard({ review, showMusicDetails = f
             <form onSubmit={handleSaveEdit} className={sharedStyles.formContainer}>
               {/* Rating Section */}
               <div className={sharedStyles.formGroup}>
-                <label className={sharedStyles.formLabel}>{t("yourRating")}:</label>
+                <span className={sharedStyles.formLabel}>{t("yourRating")}:</span>
                 <div style={{ display: "flex", alignItems: "center" }}>
-                  <RatingStars value={editRating} onChange={setEditRating} interactive={true} size={28} />
+                  <RatingStars value={editRating} onChange={setEditRating} interactive={true} size={28} label={t("yourRating")} disabled={savingEdit} />
                 </div>
               </div>
 
               {/* Tags Section */}
               <div className={sharedStyles.formGroup}>
-                <label className={sharedStyles.formLabel}>{t("tags")}:</label>
+                <span className={sharedStyles.formLabel}>{t("tags")}:</span>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
                   {AVAILABLE_TAGS.map(tag => {
                     const isActive = editTags.includes(tag.value);
@@ -718,6 +740,7 @@ const ReviewCard = React.memo(function ReviewCard({ review, showMusicDetails = f
                       <button
                         key={tag.value}
                         type="button"
+                        aria-pressed={isActive}
                         onClick={() => toggleEditTag(tag.value)}
                         style={{
                           background: isActive ? "rgba(0, 229, 117, 0.15)" : "rgba(255, 255, 255, 0.05)",
@@ -741,8 +764,10 @@ const ReviewCard = React.memo(function ReviewCard({ review, showMusicDetails = f
 
               {/* Content Textarea */}
               <div className={sharedStyles.formGroup}>
-                <label className={sharedStyles.formLabel}>{t("yourReview")}:</label>
+                <label htmlFor={editContentId} className={sharedStyles.formLabel}>{t("yourReview")}:</label>
                 <textarea
+                  id={editContentId}
+                  name="content"
                   value={editContent}
                   onChange={(e) => setEditContent(e.target.value)}
                   placeholder={t("editContentPlaceholder")}
@@ -786,7 +811,7 @@ const ReviewCard = React.memo(function ReviewCard({ review, showMusicDetails = f
               </div>
             </form>
           </div>
-        </div>
+        </AccessibleDialog>
       )}
     </>
   );

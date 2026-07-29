@@ -42,6 +42,16 @@
   background: rgba(255, 255, 255, 0.1);
 }
 
+.slider:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 4px;
+}
+
+.slider:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
 .slider::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
