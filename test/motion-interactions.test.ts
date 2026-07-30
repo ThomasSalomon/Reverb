@@ -10,10 +10,15 @@ test("album detail keeps decorative motion separate from rating and favorite req
   const styles = read("src/app/[locale]/albums/[id]/page.module.css");
 
   assert.match(album, /className=\{styles\.coverAura\} aria-hidden="true"/);
+  assert.match(album, /className=\{styles\.coverAuraAccent\} aria-hidden="true"/);
+  assert.match(album, /\{album\.coverUrl && \(/);
   assert.match(album, /feedbackValue=\{ratingFeedbackValue\}/);
   assert.match(album, /setRatingFeedbackId\(\(current\) => current \+ 1\)/);
   assert.match(album, /setFavoriteTrackFeedback\(\{ trackTitle, added: !isCurrentFav \}\)/);
   assert.match(styles, /pointer-events:\s*none/);
+  assert.match(styles, /\.coverAuraAccent/);
+  assert.match(styles, /blur\(38px\)/);
+  assert.match(styles, /transparent 96%/);
   assert.match(styles, /@media \(prefers-reduced-motion: reduce\)/);
   assert.match(styles, /\.favTrackAdded \.heartIconActive/);
 });
@@ -43,4 +48,3 @@ test("discography cards use one viewport observer and skip entrance movement whe
   assert.match(styles, /translateY\(12px\)/);
   assert.match(styles, /@media \(prefers-reduced-motion: reduce\)/);
 });
-

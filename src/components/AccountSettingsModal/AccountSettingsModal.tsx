@@ -72,7 +72,8 @@ export default function AccountSettingsModal({ isOpen, onClose, username }: Acco
         showToast(t("accountDeleted"), "success");
         // Logout user
         await fetch("/api/auth/logout", { method: "POST" });
-        router.push("/");
+        router.replace("/");
+        router.refresh();
       } else {
         showToast(t("accountDeleteError"), "error");
       }

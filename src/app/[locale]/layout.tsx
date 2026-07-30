@@ -6,6 +6,7 @@ import BottomNav from "@/components/BottomNav/BottomNav";
 import ToastListener from "@/components/Toast/ToastListener";
 import { NextIntlClientProvider } from "next-intl";
 import { getMessages, getTranslations } from "next-intl/server";
+import { getAuthUser } from "@/utils/auth";
 import "../globals.css";
 
 const jetbrainsMono = JetBrains_Mono({ subsets: ["latin"], variable: "--font-mono" });
@@ -26,5 +27,8 @@ export async function generateMetadata({ params: { locale } }: { params: { local
 
 export default async function RootLayout({ children, params: { locale } }: Readonly<{ children: React.ReactNode; params: { locale: string } }>) {
   const messages = await getMessages();
-  return <html lang={locale}><body className={`${jetbrainsMono.variable} ${rajdhani.variable}`}><NextIntlClientProvider messages={messages}><Navbar />{children}<Footer /><BottomNav /><ToastListener /></NextIntlClientProvider></body></html>;
+  const authUser = await getAuthUser();
+  const sessionUser = authUser ? { id: authUser.userId, username: authUser.username } : null;
+
+  return <html lang={locale}><body className={`${jetbrainsMono.variable} ${rajdhani.variable}`}><NextIntlClientProvider messages={messages}><Navbar initialUser={sessionUser} />{children}<Footer /><BottomNav initialUser={sessionUser} /><ToastListener /></NextIntlClientProvider></body></html>;
 }

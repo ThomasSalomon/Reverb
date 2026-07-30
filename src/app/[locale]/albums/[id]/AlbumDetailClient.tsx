@@ -421,11 +421,16 @@ export default function AlbumDetailClient({ id }: { id: string }) {
 
         <section className={styles.leftCol}>
           <div className={styles.coverStage}>
-            <div className={styles.coverAura} aria-hidden="true">
-              {/* Decorative duplicate of the already rendered cover; it is intentionally not a second image component. */}
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={album.coverUrl} alt="" />
-            </div>
+            {album.coverUrl && (
+              <>
+                <div className={styles.coverAuraAccent} aria-hidden="true" />
+                <div className={styles.coverAura} aria-hidden="true">
+                  {/* Decorative duplicate of the already rendered cover; it is intentionally not a second image component. */}
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={album.coverUrl} alt="" />
+                </div>
+              </>
+            )}
             <div className={styles.coverForeground}>
               <Cover3D src={album.coverUrl} alt={album.title} size={320} />
             </div>

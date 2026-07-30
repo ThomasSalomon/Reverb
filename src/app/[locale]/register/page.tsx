@@ -63,7 +63,7 @@ export default function RegisterPage() {
         return;
       }
 
-      router.push("/");
+      router.replace("/");
       router.refresh();
     } catch {
       setError(t("registerFailed"));

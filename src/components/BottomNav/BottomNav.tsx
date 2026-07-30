@@ -13,25 +13,25 @@ interface User {
   profileImage?: string | null;
 }
 
-export default function BottomNav() {
+export default function BottomNav({ initialUser }: { initialUser: User | null }) {
   const t = useTranslations("Navbar");
   const pathname = usePathname();
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<User | null>(initialUser);
+  const displayedUser = user?.id === initialUser?.id ? user : initialUser;
 
   useEffect(() => {
     async function checkUser() {
       try {
-        const res = await fetch("/api/auth/me");
+        const res = await fetch("/api/auth/me", { cache: "no-store" });
+        if (!res.ok) return;
         const data = await res.json();
-        if (data.user) {
-          setUser(data.user);
-        }
+        setUser(data.user ?? null);
       } catch (e) {
         console.error("Check user error:", e);
       }
     }
     checkUser();
-  }, []);
+  }, [initialUser?.id]);
 
   const isActive = (path: string) => pathname === path || pathname.startsWith(path + '/');
   const isHomeActive = pathname === '/';
@@ -54,12 +54,12 @@ export default function BottomNav() {
         <span>{t('explore')}</span>
       </Link>
 
-      {user ? (
-        <Link href={`/users/${user.username}`} className={`${styles.navItem} ${isActive(`/users/${user.username}`) ? styles.active : ''}`}>
+      {displayedUser ? (
+        <Link href={`/users/${displayedUser.username}`} className={`${styles.navItem} ${isActive(`/users/${displayedUser.username}`) ? styles.active : ''}`}>
           <Avatar
-            username={user.username}
-            profileColor={user.profileColor}
-            profileImage={user.profileImage}
+            username={displayedUser.username}
+            profileColor={displayedUser.profileColor}
+            profileImage={displayedUser.profileImage}
             size={24}
             className={styles.miniAvatar}
             style={{ border: "none" }}

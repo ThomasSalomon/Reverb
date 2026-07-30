@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
-import { Link } from "@/i18n/routing";
+import { Link, useRouter } from "@/i18n/routing";
 import { useTranslations } from "next-intl";
 import styles from "./Navbar.module.css";
 import Avatar from "@/components/Avatar/Avatar";
@@ -15,26 +15,27 @@ interface User {
   profileImage?: string | null;
 }
 
-export default function Navbar() {
+export default function Navbar({ initialUser }: { initialUser: User | null }) {
   const t = useTranslations("Navbar");
-  const [user, setUser] = useState<User | null>(null);
+  const router = useRouter();
+  const [user, setUser] = useState<User | null>(initialUser);
   const [isVisible, setIsVisible] = useState(true);
   const lastScrollY = useRef(0);
+  const displayedUser = user?.id === initialUser?.id ? user : initialUser;
 
   useEffect(() => {
     async function checkUser() {
       try {
-        const res = await fetch("/api/auth/me");
+        const res = await fetch("/api/auth/me", { cache: "no-store" });
+        if (!res.ok) return;
         const data = await res.json();
-        if (data.user) {
-          setUser(data.user);
-        }
+        setUser(data.user ?? null);
       } catch (e) {
         console.error("Check user error:", e);
       }
     }
     checkUser();
-  }, []);
+  }, [initialUser?.id]);
 
   useEffect(() => {
     // Set initial scroll position
@@ -61,9 +62,10 @@ export default function Navbar() {
 
   const handleLogout = async () => {
     try {
-      await fetch("/api/auth/logout", { method: "POST" });
+      const res = await fetch("/api/auth/logout", { method: "POST" });
+      if (!res.ok) return;
       setUser(null);
-      window.location.reload();
+      router.refresh();
     } catch (e) {
       console.error("Logout error:", e);
     }
@@ -85,20 +87,20 @@ export default function Navbar() {
           </div>
 
           <div className={styles.auth}>
-            {user ? (
+            {displayedUser ? (
               <div className={styles.userSection} style={{ display: "flex", alignItems: "center", gap: "16px" }}>
                 <LanguageSelector />
                 <NotificationsDropdown />
-                <Link href={`/users/${user.username}`} className={styles.profileLink}>
+                <Link href={`/users/${displayedUser.username}`} className={styles.profileLink}>
                   <Avatar
-                    username={user.username}
-                    profileColor={user.profileColor}
-                    profileImage={user.profileImage}
+                    username={displayedUser.username}
+                    profileColor={displayedUser.profileColor}
+                    profileImage={displayedUser.profileImage}
                     size={30}
                     className={styles.miniAvatar}
                     style={{ border: "none", display: "inline-flex" }}
                   />
-                  <span className={styles.username}>@{user.username}</span>
+                  <span className={styles.username}>@{displayedUser.username}</span>
                 </Link>
                 <button onClick={handleLogout} className={styles.logoutBtn}>
                   {t('logout')}
