@@ -292,7 +292,7 @@
 }
 
 .artistResultImage {
-  width: 100%;
+  width: min(100%, 280px);
   aspect-ratio: 1;
   flex: 0 0 auto;
   border-radius: 50%;

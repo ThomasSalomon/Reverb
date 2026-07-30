@@ -87,9 +87,9 @@ export async function PATCH(
     let numericRating: number | undefined = undefined;
     if (ratingValue !== undefined) {
       numericRating = parseFloat(ratingValue);
-      if (isNaN(numericRating) || numericRating < 1 || numericRating > 5 || numericRating % 0.5 !== 0) {
+      if (isNaN(numericRating) || numericRating < 0.5 || numericRating > 5 || numericRating % 0.5 !== 0) {
         return NextResponse.json(
-          { error: "Calificación inválida. Debe ser entre 1 y 5 con incrementos de 0.5" },
+          { error: "Calificación inválida. Debe ser entre 0.5 y 5 con incrementos de 0.5" },
           { status: 400 }
         );
       }

@@ -180,9 +180,9 @@ export async function POST(req: Request) {
     const validTags = normalizeReviewTagsForStorage(tags);
 
     const numericRating = parseFloat(ratingValue);
-    if (isNaN(numericRating) || numericRating < 1 || numericRating > 5 || numericRating % 0.5 !== 0) {
+    if (isNaN(numericRating) || numericRating < 0.5 || numericRating > 5 || numericRating % 0.5 !== 0) {
       return NextResponse.json(
-        { error: "La calificación debe ser de 1 a 5 con incrementos de 0.5" },
+        { error: "La calificación debe ser de 0.5 a 5 con incrementos de 0.5" },
         { status: 400 }
       );
     }

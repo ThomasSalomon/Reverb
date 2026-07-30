@@ -21,9 +21,9 @@ export async function POST(req: Request) {
     }
 
     const numericValue = parseFloat(value);
-    if (isNaN(numericValue) || numericValue < 1 || numericValue > 5 || numericValue % 0.5 !== 0) {
+    if (isNaN(numericValue) || numericValue < 0.5 || numericValue > 5 || numericValue % 0.5 !== 0) {
       return NextResponse.json(
-        { error: "La calificación debe ser de 1 a 5 con incrementos de 0.5" },
+        { error: "La calificación debe ser de 0.5 a 5 con incrementos de 0.5" },
         { status: 400 }
       );
     }
