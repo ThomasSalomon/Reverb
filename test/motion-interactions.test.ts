@@ -17,8 +17,8 @@ test("album detail keeps decorative motion separate from rating and favorite req
   assert.match(album, /setFavoriteTrackFeedback\(\{ trackTitle, added: !isCurrentFav \}\)/);
   assert.match(styles, /pointer-events:\s*none/);
   assert.match(styles, /\.coverAuraAccent/);
-  assert.match(styles, /blur\(38px\)/);
-  assert.match(styles, /transparent 96%/);
+  assert.match(styles, /blur\(28px\)/);
+  assert.match(styles, /transparent 88%/);
   assert.match(styles, /@media \(prefers-reduced-motion: reduce\)/);
   assert.match(styles, /\.favTrackAdded \.heartIconActive/);
 });

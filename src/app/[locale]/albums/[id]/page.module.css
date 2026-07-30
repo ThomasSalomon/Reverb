@@ -67,35 +67,35 @@
 
 .coverAuraAccent {
   position: absolute;
-  inset: -76px -46px -76px -20px;
+  inset: -34px -26px -34px -14px;
   z-index: 0;
   border-radius: 50%;
   pointer-events: none;
-  opacity: 0.72;
+  opacity: 0.32;
   background:
-    radial-gradient(ellipse at 26% 32%, rgba(0, 229, 117, 0.14), transparent 58%),
-    radial-gradient(ellipse at 78% 72%, rgba(156, 39, 176, 0.13), transparent 62%);
-  filter: blur(24px);
+    radial-gradient(ellipse at 26% 32%, rgba(0, 229, 117, 0.1), transparent 58%),
+    radial-gradient(ellipse at 78% 72%, rgba(156, 39, 176, 0.08), transparent 62%);
+  filter: blur(18px);
 }
 
 .coverAura {
   position: absolute;
-  inset: -56px -34px -56px -18px;
+  inset: -24px -18px -24px -10px;
   z-index: 1;
   pointer-events: none;
   border-radius: 52px;
-  opacity: 0.58;
-  filter: saturate(1.28) contrast(1.08) brightness(1.08);
-  mask-image: radial-gradient(ellipse at center, #000 28%, rgba(0, 0, 0, 0.82) 58%, transparent 96%);
-  -webkit-mask-image: radial-gradient(ellipse at center, #000 28%, rgba(0, 0, 0, 0.82) 58%, transparent 96%);
+  opacity: 0.3;
+  filter: saturate(1.1) contrast(1.02) brightness(1.02);
+  mask-image: radial-gradient(ellipse at center, #000 32%, rgba(0, 0, 0, 0.6) 56%, transparent 88%);
+  -webkit-mask-image: radial-gradient(ellipse at center, #000 32%, rgba(0, 0, 0, 0.6) 56%, transparent 88%);
 }
 
 .coverAura img {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  transform: scale(1.28);
-  filter: blur(38px);
+  transform: scale(1.12);
+  filter: blur(28px);
 }
 
 .coverForeground {
@@ -476,16 +476,16 @@
   }
 
   .coverAuraAccent {
-    inset: -48px -34px -48px -18px;
-    filter: blur(18px);
+    inset: -28px -22px -28px -12px;
+    filter: blur(14px);
   }
 
   .coverAura {
-    inset: -38px -26px -38px -14px;
+    inset: -20px -16px -20px -10px;
   }
 
   .coverAura img {
-    filter: blur(30px);
+    filter: blur(22px);
   }
 }
 
