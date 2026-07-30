@@ -123,6 +123,7 @@
 }
 
 .tab {
+  position: relative;
   background: transparent;
   border: none;
   color: var(--text-secondary);
@@ -131,7 +132,7 @@
   font-weight: 600;
   border-radius: 8px;
   cursor: pointer;
-  transition: all var(--transition-fast);
+  transition: color var(--transition-fast), background-color var(--transition-fast);
   white-space: nowrap;
 }
 
@@ -141,13 +142,23 @@
 }
 
 .activeTab {
-  background: var(--primary);
-  color: #000;
+  color: var(--primary);
 }
 
 .activeTab:hover {
+  color: var(--primary);
+}
+
+.tabIndicator {
+  position: absolute;
+  bottom: 3px;
+  left: 10px;
+  right: 10px;
+  height: 2px;
+  border-radius: 999px;
   background: var(--primary);
-  color: #000;
+  box-shadow: 0 0 9px var(--primary-glow);
+  pointer-events: none;
 }
 
 @media (max-width: 768px) {

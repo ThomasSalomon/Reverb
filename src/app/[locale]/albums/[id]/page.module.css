@@ -58,6 +58,39 @@
   gap: 24px;
 }
 
+.coverStage {
+  position: relative;
+  width: 320px;
+  height: 320px;
+  isolation: isolate;
+}
+
+.coverAura {
+  position: absolute;
+  inset: -18px;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+  border-radius: 28px;
+  opacity: 0.36;
+  filter: saturate(1.15);
+  mask-image: radial-gradient(ellipse at center, #000 35%, transparent 74%);
+  -webkit-mask-image: radial-gradient(ellipse at center, #000 35%, transparent 74%);
+}
+
+.coverAura img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: scale(1.16);
+  filter: blur(22px);
+}
+
+.coverForeground {
+  position: relative;
+  z-index: 1;
+}
+
 .statsCard {
   border-radius: 12px;
   padding: 24px;
@@ -360,7 +393,36 @@
   display: none;
 }
 
+.favTrackAdded,
+.favTrackRemoved {
+  will-change: transform, filter;
+}
+
+.favTrackAdded .heartIconActive {
+  animation: favorite-confirm 420ms var(--ease-expressive);
+}
+
+.favTrackRemoved .heartIcon {
+  animation: favorite-release 220ms var(--ease-standard);
+}
+
+@keyframes favorite-confirm {
+  0% { transform: scale(1); filter: drop-shadow(0 0 0 transparent); }
+  45% { transform: scale(1.22); filter: drop-shadow(0 0 6px var(--primary)); }
+  100% { transform: scale(1); filter: drop-shadow(0 0 0 transparent); }
+}
+
+@keyframes favorite-release {
+  0% { transform: scale(1.08); opacity: 0.9; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
 @media (max-width: 768px) {
+  .coverStage {
+    width: 320px;
+    height: 320px;
+  }
+
   .ratingAction {
     width: 100%;
     justify-content: center;
@@ -392,5 +454,19 @@
     font-size: 0.85rem;
     color: var(--primary);
     font-weight: 600;
+  }
+}
+
+@media (max-width: 480px) {
+  .coverStage {
+    width: min(320px, calc(100vw - 32px));
+    height: min(320px, calc(100vw - 32px));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .favTrackAdded .heartIconActive,
+  .favTrackRemoved .heartIcon {
+    animation: none;
   }
 }

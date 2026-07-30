@@ -46,6 +46,11 @@
   transition: transform var(--duration-fast) var(--ease-entrance), color var(--duration-fast) var(--ease-standard);
 }
 
+.feedbackPulse {
+  animation: rating-confirm 420ms var(--ease-expressive);
+  transform-origin: center;
+}
+
 .ratingControl:hover .star {
   transform: scale(1.08);
 }
@@ -74,4 +79,16 @@
   clip: rect(0, 0, 0, 0);
   white-space: nowrap;
   border: 0;
+}
+
+@keyframes rating-confirm {
+  0% { transform: scale(1); filter: drop-shadow(0 0 0 transparent); }
+  48% { transform: scale(1.24); filter: drop-shadow(0 0 7px var(--primary)); }
+  100% { transform: scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .feedbackPulse {
+    animation: none;
+  }
 }

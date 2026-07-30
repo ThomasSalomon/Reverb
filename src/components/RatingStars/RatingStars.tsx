@@ -12,6 +12,8 @@ interface RatingStarsProps {
   label?: string;
   disabled?: boolean;
   invalid?: boolean;
+  feedbackValue?: number | null;
+  feedbackId?: number;
 }
 
 const RATING_VALUES = Array.from({ length: 10 }, (_, index) => (index + 1) / 2);
@@ -24,6 +26,8 @@ export default function RatingStars({
   label,
   disabled = false,
   invalid = false,
+  feedbackValue = null,
+  feedbackId = 0,
 }: RatingStarsProps) {
   const t = useTranslations("Review");
   const [hoverValue, setHoverValue] = useState<number | null>(null);
@@ -36,12 +40,13 @@ export default function RatingStars({
   const renderStars = (rating: number) => [1, 2, 3, 4, 5].map((starIndex) => {
     const difference = rating - (starIndex - 1);
     const fillClass = difference >= 1 ? styles.full : difference === 0.5 ? styles.half : styles.empty;
+    const receivesFeedback = feedbackValue !== null && Math.ceil(feedbackValue) === starIndex;
 
     return (
       <svg
-        key={starIndex}
+        key={`${starIndex}-${receivesFeedback ? feedbackId : 0}`}
         aria-hidden="true"
-        className={`${styles.star} ${fillClass}`}
+        className={`${styles.star} ${fillClass} ${receivesFeedback ? styles.feedbackPulse : ""}`}
         width={size}
         height={size}
         viewBox="0 0 24 24"

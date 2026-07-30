@@ -58,8 +58,30 @@ export default function ArtistDetailClient({
   const [loadMoreError, setLoadMoreError] = useState(false);
   const [releaseStatus, setReleaseStatus] = useState("");
   const loadMoreInFlight = useRef(false);
+  const discographyRef = useRef<HTMLDivElement>(null);
+  const [hasDiscographyEntered, setHasDiscographyEntered] = useState(false);
 
   const prefersReducedMotion = useReducedMotion();
+
+  useEffect(() => {
+    if (prefersReducedMotion) {
+      setHasDiscographyEntered(true);
+      return;
+    }
+
+    const target = discographyRef.current;
+    if (!target || hasDiscographyEntered) return;
+
+    const observer = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) {
+        setHasDiscographyEntered(true);
+        observer.disconnect();
+      }
+    }, { threshold: 0.1 });
+
+    observer.observe(target);
+    return () => observer.disconnect();
+  }, [albums.length, hasDiscographyEntered, prefersReducedMotion]);
 
   useEffect(() => {
     setData(initialData);
@@ -252,7 +274,10 @@ export default function ArtistDetailClient({
             <h2 id="artist-discography-title" className={styles.sectionTitle}>{t("discography")}</h2>
             {albums.length > 0 ? (
               <>
-                <div className={styles.albumsGrid}>
+                <div
+                  ref={discographyRef}
+                  className={`${styles.albumsGrid} ${hasDiscographyEntered ? styles.albumsGridEntered : ""}`}
+                >
                   {albums.map((album) => (
                     <article key={album.id} className={styles.albumCard}>
                       <div className={styles.albumCover}>

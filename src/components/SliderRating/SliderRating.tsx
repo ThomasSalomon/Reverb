@@ -10,9 +10,11 @@ interface SliderRatingProps {
   size?: number;
   label?: string;
   disabled?: boolean;
+  feedbackValue?: number | null;
+  feedbackId?: number;
 }
 
-export default function SliderRating({ value, onChange, onChangeComplete, size = 32, label, disabled = false }: SliderRatingProps) {
+export default function SliderRating({ value, onChange, onChangeComplete, size = 32, label, disabled = false, feedbackValue, feedbackId }: SliderRatingProps) {
   const t = useTranslations("Review");
   const [localValue, setLocalValue] = useState(value);
 
@@ -42,7 +44,7 @@ export default function SliderRating({ value, onChange, onChangeComplete, size =
   return (
     <div className={styles.container}>
       <div className={styles.starsWrapper}>
-        <RatingStars value={localValue} size={size} interactive={false} />
+        <RatingStars value={localValue} size={size} interactive={false} feedbackValue={feedbackValue} feedbackId={feedbackId} />
         <span className={styles.ratingText}>{localValue.toFixed(1)}</span>
       </div>
       

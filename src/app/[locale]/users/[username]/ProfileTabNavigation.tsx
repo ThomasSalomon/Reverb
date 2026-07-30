@@ -1,8 +1,10 @@
 "use client";
 
-import { KeyboardEvent, useEffect, useRef } from "react";
+import { KeyboardEvent, useEffect, useId, useRef } from "react";
+import { motion } from "framer-motion";
 import { useTranslations } from "next-intl";
 import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
+import { MOTION_DURATION, MOTION_EASE, reducedMotionDuration } from "@/utils/motion";
 import type { ProfileTab } from "@/utils/profile-tabs";
 import styles from "./page.module.css";
 
@@ -19,6 +21,7 @@ export default function ProfileTabNavigation({
 }: ProfileTabNavigationProps) {
   const t = useTranslations("Profile");
   const prefersReducedMotion = usePrefersReducedMotion();
+  const motionId = useId();
   const tabRefs = useRef<Record<ProfileTab, HTMLButtonElement | null>>({
     reviews: null,
     lists: null,
@@ -80,6 +83,17 @@ export default function ProfileTabNavigation({
             className={`${styles.tabBtn} ${isActive ? styles.tabBtnActive : ""}`}
           >
             {labels[tab]}
+            {isActive && (
+              <motion.span
+                aria-hidden="true"
+                className={styles.tabIndicator}
+                layoutId={`profile-tab-indicator-${motionId}`}
+                transition={{
+                  duration: reducedMotionDuration(prefersReducedMotion, MOTION_DURATION.fast),
+                  ease: MOTION_EASE.expressive,
+                }}
+              />
+            )}
           </button>
         );
       })}

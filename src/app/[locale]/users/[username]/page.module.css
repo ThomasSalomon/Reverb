@@ -839,8 +839,7 @@
   color: var(--profile-theme-color, var(--primary));
 }
 
-.tabBtnActive::after {
-  content: "";
+.tabIndicator {
   position: absolute;
   bottom: -3px;
   left: 0;
@@ -849,6 +848,7 @@
   background-color: var(--profile-theme-color, var(--primary));
   border-radius: 2px;
   box-shadow: 0 0 8px var(--profile-theme-shadow, rgba(0, 242, 254, 0.2));
+  pointer-events: none;
 }
 
 /* Stats dashboard styling */

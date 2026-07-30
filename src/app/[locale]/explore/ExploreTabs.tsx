@@ -1,18 +1,23 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { KeyboardEvent, useEffect, useId, useRef, useState } from "react";
+import { motion, useReducedMotion } from "framer-motion";
 import { Link } from "@/i18n/routing";
 import { useTranslations } from "next-intl";
 import styles from "./page.module.css";
 import Avatar from "@/components/Avatar/Avatar";
 import Cover3D from "@/components/Cover3D/Cover3D";
 import Button from "@/components/Button/Button";
+import { MOTION_DURATION, MOTION_EASE, reducedMotionDuration } from "@/utils/motion";
 
 type Tab = "albums" | "artists" | "users";
 
 export default function ExploreTabs() {
   const t = useTranslations("Explore");
   const common = useTranslations("Common");
+  const prefersReducedMotion = useReducedMotion();
+  const motionId = useId();
+  const tabRefs = useRef<Record<Tab, HTMLButtonElement | null>>({ albums: null, artists: null, users: null });
   const [activeTab, setActiveTab] = useState<Tab>("artists");
   const [searchQuery, setSearchQuery] = useState("");
   
@@ -94,6 +99,36 @@ export default function ExploreTabs() {
     return t("popularUsers");
   };
 
+  const selectTab = (tab: Tab) => {
+    setActiveTab(tab);
+    tabRefs.current[tab]?.scrollIntoView({
+      behavior: prefersReducedMotion ? "auto" : "smooth",
+      block: "nearest",
+      inline: "nearest",
+    });
+  };
+
+  const handleTabKeyDown = (event: KeyboardEvent<HTMLButtonElement>, tab: Tab) => {
+    const tabs: Tab[] = ["albums", "artists", "users"];
+    const currentIndex = tabs.indexOf(tab);
+    let nextIndex = currentIndex;
+
+    if (event.key === "ArrowRight") nextIndex = (currentIndex + 1) % tabs.length;
+    else if (event.key === "ArrowLeft") nextIndex = (currentIndex - 1 + tabs.length) % tabs.length;
+    else if (event.key === "Home") nextIndex = 0;
+    else if (event.key === "End") nextIndex = tabs.length - 1;
+    else return;
+
+    event.preventDefault();
+    tabRefs.current[tabs[nextIndex]]?.focus();
+  };
+
+  const tabs: { id: Tab; label: string }[] = [
+    { id: "albums", label: t("albums") },
+    { id: "artists", label: t("artists") },
+    { id: "users", label: t("users") },
+  ];
+
   return (
     <div className={styles.container}>
       <div className={styles.header}>
@@ -102,25 +137,38 @@ export default function ExploreTabs() {
       </div>
 
       <div className={styles.tabsContainer}>
-        <div className={styles.tabs}>
-          <button
-            className={`${styles.tab} ${activeTab === "albums" ? styles.activeTab : ""}`}
-            onClick={() => setActiveTab("albums")}
-          >
-            {t("albums")}
-          </button>
-          <button
-            className={`${styles.tab} ${activeTab === "artists" ? styles.activeTab : ""}`}
-            onClick={() => setActiveTab("artists")}
-          >
-            {t("artists")}
-          </button>
-          <button
-            className={`${styles.tab} ${activeTab === "users" ? styles.activeTab : ""}`}
-            onClick={() => setActiveTab("users")}
-          >
-            {t("users")}
-          </button>
+        <div className={styles.tabs} role="tablist" aria-label={t("title")}>
+          {tabs.map(({ id, label }) => {
+            const isActive = activeTab === id;
+
+            return (
+              <button
+                key={id}
+                ref={(element) => { tabRefs.current[id] = element; }}
+                id={`explore-tab-${id}`}
+                role="tab"
+                aria-selected={isActive}
+                aria-controls="explore-results"
+                tabIndex={isActive ? 0 : -1}
+                className={`${styles.tab} ${isActive ? styles.activeTab : ""}`}
+                onClick={() => selectTab(id)}
+                onKeyDown={(event) => handleTabKeyDown(event, id)}
+              >
+                {label}
+                {isActive && (
+                  <motion.span
+                    aria-hidden="true"
+                    className={styles.tabIndicator}
+                    layoutId={`explore-tab-indicator-${motionId}`}
+                    transition={{
+                      duration: reducedMotionDuration(Boolean(prefersReducedMotion), MOTION_DURATION.fast),
+                      ease: MOTION_EASE.expressive,
+                    }}
+                  />
+                )}
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -135,7 +183,7 @@ export default function ExploreTabs() {
         />
       </div>
 
-      <div>
+      <div id="explore-results" role="tabpanel" aria-labelledby={`explore-tab-${activeTab}`}>
         <h2 className={styles.sectionTitle}>{renderSectionTitle()}</h2>
         
         {loading ? (

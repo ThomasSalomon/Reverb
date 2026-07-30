@@ -79,6 +79,12 @@ export default function AlbumDetailClient({ id }: { id: string }) {
   const [diaryRating, setDiaryRating] = useState("5");
   const [diaryNotes, setDiaryNotes] = useState("");
   const [isMobileSheetOpen, setIsMobileSheetOpen] = useState(false);
+  const [ratingFeedbackId, setRatingFeedbackId] = useState(0);
+  const [ratingFeedbackValue, setRatingFeedbackValue] = useState<number | null>(null);
+  const [favoriteTrackFeedback, setFavoriteTrackFeedback] = useState<{
+    trackTitle: string;
+    added: boolean;
+  } | null>(null);
 
   // Lazy-load the Deezer iframe only when it enters the viewport
   const deezerSrc = album
@@ -142,6 +148,8 @@ export default function AlbumDetailClient({ id }: { id: string }) {
 
       if (res.ok) {
         setCurrentUserRating(value);
+        setRatingFeedbackValue(value);
+        setRatingFeedbackId((current) => current + 1);
         showToast(t("ratingSaved"), "success");
         await fetchAlbumDetails();
       } else {
@@ -196,6 +204,7 @@ export default function AlbumDetailClient({ id }: { id: string }) {
       if (!res.ok) {
         setFavTrack(isCurrentFav ? trackTitle : null);
       } else {
+        setFavoriteTrackFeedback({ trackTitle, added: !isCurrentFav });
         // Re-fetch to pull updated community reviews with this track highlighted
         await fetchAlbumDetails();
       }
@@ -273,6 +282,8 @@ export default function AlbumDetailClient({ id }: { id: string }) {
                       onChange={handleQuickRate}
                       interactive={true}
                       size={20}
+                      feedbackValue={ratingFeedbackValue}
+                      feedbackId={ratingFeedbackId}
                     />
                   </div>
                   <div className={styles.mobileRating}>
@@ -284,6 +295,8 @@ export default function AlbumDetailClient({ id }: { id: string }) {
                       onChange={(val) => setCurrentUserRating(val)}
                       onChangeComplete={handleQuickRate}
                       size={28}
+                      feedbackValue={ratingFeedbackValue}
+                      feedbackId={ratingFeedbackId}
                     />
                   </div>
                 </div>
@@ -407,7 +420,16 @@ export default function AlbumDetailClient({ id }: { id: string }) {
         </section>
 
         <section className={styles.leftCol}>
-          <Cover3D src={album.coverUrl} alt={album.title} size={320} />
+          <div className={styles.coverStage}>
+            <div className={styles.coverAura} aria-hidden="true">
+              {/* Decorative duplicate of the already rendered cover; it is intentionally not a second image component. */}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={album.coverUrl} alt="" />
+            </div>
+            <div className={styles.coverForeground}>
+              <Cover3D src={album.coverUrl} alt={album.title} size={320} />
+            </div>
+          </div>
 
           <div className={`${styles.statsCard} glass`}>
             <div className={styles.statsValue}>
@@ -466,8 +488,11 @@ export default function AlbumDetailClient({ id }: { id: string }) {
                         {user ? (
                           <button
                             onClick={() => handleFavoriteTrackClick(track.title)}
-                            className={styles.favTrackBtn}
+                            className={`${styles.favTrackBtn} ${favoriteTrackFeedback?.trackTitle === track.title
+                              ? favoriteTrackFeedback.added ? styles.favTrackAdded : styles.favTrackRemoved
+                              : ""}`}
                             title={isFavorite ? t("unfavoriteTrack") : t("favoriteTrack")}
+                            aria-label={isFavorite ? t("unfavoriteTrack") : t("favoriteTrack")}
                           >
                             {isFavorite ? (
                               <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" className={styles.heartIconActive}>
