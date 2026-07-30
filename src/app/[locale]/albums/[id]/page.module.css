@@ -26,8 +26,7 @@
   grid-template-columns: 320px 1fr;
   grid-template-areas:
     "media identity"
-    "media content"
-    "player content";
+    "media content";
   column-gap: 60px;
   row-gap: 40px;
   align-items: start;
@@ -39,8 +38,7 @@
     grid-template-areas:
       "identity"
       "media"
-      "content"
-      "player";
+      "content";
     gap: 40px;
     justify-items: center;
   }
@@ -264,7 +262,6 @@
 }
 
 .playerCard {
-  grid-area: player;
   width: 100%;
   border-radius: 16px;
   padding: 12px;

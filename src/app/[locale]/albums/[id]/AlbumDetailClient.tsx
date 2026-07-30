@@ -419,6 +419,38 @@ export default function AlbumDetailClient({ id }: { id: string }) {
               <div>{t("reviewsCount", { count: album.stats.totalReviews })}</div>
             </div>
           </div>
+
+          {/* Deezer Album Player Widget — carga diferida con IntersectionObserver */}
+          <div
+            ref={deezerRef}
+            className={`${styles.playerCard} glass`}
+            style={{ overflow: "hidden", minHeight: "374px" }}
+          >
+            {deezerActiveSrc ? (
+              <iframe
+                title={t("playerTitle")}
+                src={deezerActiveSrc}
+                width="100%"
+                height="350"
+                frameBorder="0"
+                allowFullScreen
+                allow="encrypted-media; clipboard-write"
+                sandbox="allow-scripts allow-same-origin allow-popups"
+                style={{ borderRadius: "12px", border: "none", display: "block" }}
+              />
+            ) : (
+              <div style={{
+                height: "350px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: "var(--text-muted)",
+                fontSize: "0.85rem"
+              }}>
+                {t("loadingPlayer")}
+              </div>
+            )}
+          </div>
         </section>
 
         <section className={styles.contentCol}>
@@ -501,36 +533,6 @@ export default function AlbumDetailClient({ id }: { id: string }) {
           </section>
         </section>
 
-        <div
-          ref={deezerRef}
-          className={`${styles.playerCard} glass`}
-          style={{ overflow: "hidden", minHeight: "374px" }}
-        >
-          {deezerActiveSrc ? (
-            <iframe
-              title={t("playerTitle")}
-              src={deezerActiveSrc}
-              width="100%"
-              height="350"
-              frameBorder="0"
-              allowFullScreen
-              allow="encrypted-media; clipboard-write"
-              sandbox="allow-scripts allow-same-origin allow-popups"
-              style={{ borderRadius: "12px", border: "none", display: "block" }}
-            />
-          ) : (
-            <div style={{
-              height: "350px",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              color: "var(--text-muted)",
-              fontSize: "0.85rem"
-            }}>
-              {t("loadingPlayer")}
-            </div>
-          )}
-        </div>
       </div>
 
 
