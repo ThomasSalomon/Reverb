@@ -83,7 +83,7 @@
 .tagsSection {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 24px;
   margin: 0;
   padding: 0;
   border: 0;
