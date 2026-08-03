@@ -59,10 +59,12 @@ export async function GET(
         });
         isListenLater = !!listenLaterRecord;
 
-        const ratingRecord = await prisma.rating.findFirst({
+        const ratingRecord = await prisma.rating.findUnique({
           where: {
-            userId: currentUserId,
-            musicItemId: id,
+            userId_musicItemId: {
+              userId: currentUserId,
+              musicItemId: id,
+            },
           },
           select: { value: true },
         });

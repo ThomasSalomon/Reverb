@@ -81,7 +81,7 @@ model Rating {
   musicItem   MusicItem @relation(fields: [musicItemId], references: [id], onDelete: Cascade)
   musicItemId String
 
-  @@index([userId, musicItemId])
+  @@unique([userId, musicItemId])
 }
 
 model Follow {
@@ -166,7 +166,7 @@ model DiaryLog {
   userId      String
   musicItem   MusicItem @relation(fields: [musicItemId], references: [id], onDelete: Cascade)
   musicItemId String
-  listenCount Int       @default(1)
+  listenCount Int       @default(1) // Legacy: new rows always represent one event; values > 1 preserve known aggregate history.
 
   @@index([userId, musicItemId])
   @@index([userId, listenedAt])

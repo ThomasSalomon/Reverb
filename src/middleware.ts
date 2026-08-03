@@ -61,24 +61,10 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  // 4. Inject user details in request headers for API routes
+  // Route handlers must authenticate from the signed session cookie themselves.
+  // Middleware remains an early rejection layer, not the source of actor identity.
   if (isApiRoute) {
-    const requestHeaders = new Headers(request.headers);
-    // Prevent client header spoofing
-    requestHeaders.delete("x-user-id");
-    requestHeaders.delete("x-user-name");
-
-    if (payload) {
-      requestHeaders.set("x-user-id", payload.userId);
-      requestHeaders.set("x-user-name", payload.username);
-    }
-
-    // Re-create the next response with headers attached to the request
-    return NextResponse.next({
-      request: {
-        headers: requestHeaders,
-      },
-    });
+    return response;
   }
 
   return response;

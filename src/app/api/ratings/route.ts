@@ -1,72 +1,54 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/services/db";
+import {
+  parseMusicItemId,
+  parseRatingValue,
+  RatingError,
+  RatingService,
+} from "@/services/ratings";
+import { resolveAuthUser } from "@/utils/auth";
 
 export async function POST(req: Request) {
   try {
-    const userId = req.headers.get("x-user-id");
-    if (!userId) {
+    const auth = await resolveAuthUser(req);
+    if (!auth.ok) {
       return NextResponse.json(
         { error: "No autorizado" },
         { status: 401 }
       );
     }
+    const { userId } = auth.user;
 
-    const { musicItemId, value } = await req.json();
-
-    if (!musicItemId || value === undefined) {
+    let body: unknown;
+    try {
+      body = await req.json();
+    } catch {
       return NextResponse.json(
-        { error: "musicItemId y value son requeridos" },
-        { status: 400 }
+        { error: "El cuerpo debe contener JSON válido" },
+        { status: 400 },
       );
     }
 
-    const numericValue = parseFloat(value);
-    if (isNaN(numericValue) || numericValue < 0.5 || numericValue > 5 || numericValue % 0.5 !== 0) {
-      return NextResponse.json(
-        { error: "La calificación debe ser de 0.5 a 5 con incrementos de 0.5" },
-        { status: 400 }
-      );
+    if (typeof body !== "object" || body === null || Array.isArray(body)) {
+      throw new RatingError("El cuerpo debe ser un objeto JSON", 400);
     }
 
-    // Verify music item exists
-    const musicItem = await prisma.musicItem.findUnique({
-      where: { id: musicItemId },
+    const input = body as Record<string, unknown>;
+    const musicItemId = parseMusicItemId(input.musicItemId);
+    const numericValue = parseRatingValue(input.value);
+    const rating = await RatingService.setCurrent({
+      userId,
+      musicItemId,
+      value: numericValue,
     });
-
-    if (!musicItem) {
-      return NextResponse.json(
-        { error: "Ítem musical no encontrado" },
-        { status: 404 }
-      );
-    }
-
-    let rating = await prisma.rating.findFirst({
-      where: {
-        userId,
-        musicItemId,
-      },
-    });
-
-    if (rating) {
-      rating = await prisma.rating.update({
-        where: { id: rating.id },
-        data: { value: numericValue },
-      });
-    } else {
-      rating = await prisma.rating.create({
-        data: {
-          userId,
-          musicItemId,
-          value: numericValue,
-        },
-      });
-    }
 
     return NextResponse.json({
       message: "Calificación guardada con éxito",
       rating,
     });
   } catch (error) {
+    if (error instanceof RatingError) {
+      return NextResponse.json({ error: error.message }, { status: error.status });
+    }
     console.error("Save rating error:", error);
     return NextResponse.json(
       { error: "Error interno al guardar la calificación" },

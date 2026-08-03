@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { MusicEventService } from "@/services/music-event.service";
 import { DeezerService } from "@/services/deezer.service";
 import { AppError } from "@/utils/errors";
+import { createPlaylistImportTicket } from "@/services/playlist-import";
 
 export const dynamic = "force-dynamic";
 
@@ -26,7 +27,17 @@ export async function GET() {
       deezerService.getTopTracks(event.artistId, 20)
     ]);
 
-    return NextResponse.json({ artist, tracks });
+    const ticket = await createPlaylistImportTicket(
+      tracks.map((track) => ({
+        externalId: String(track.id),
+        type: "SONG" as const,
+        title: track.title,
+        artist: track.artist.name,
+        coverUrl: track.album.cover_xl || null,
+      })),
+    );
+
+    return NextResponse.json({ artist, tracks, ticket });
   } catch (error) {
     if (error instanceof AppError) {
       return NextResponse.json(

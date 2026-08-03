@@ -67,7 +67,6 @@ export const MusicService = {
   },
 
   async getItemById(id: string) {
-    console.log("getItemById called with id:", id, "type:", typeof id);
     let item = await prisma.musicItem.findUnique({
       where: { id },
       include: {

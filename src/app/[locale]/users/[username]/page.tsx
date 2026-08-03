@@ -222,7 +222,7 @@ export default function UserProfilePage() {
   const fetchListenLater = useCallback(async () => {
     const requestId = ++tabDataRequestIds.current["listen-later"];
     try {
-      const res = await fetch(`/api/listen-later?username=${username}`, { cache: "no-store" });
+      const res = await fetch("/api/listen-later", { cache: "no-store" });
       if (res.ok) {
         const data = await res.json();
         if (tabDataRequestIds.current["listen-later"] === requestId) {
@@ -232,7 +232,7 @@ export default function UserProfilePage() {
     } catch (e) {
       console.error(e);
     }
-  }, [username]);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -1216,6 +1216,12 @@ export default function UserProfilePage() {
                     <span style={{ fontSize: "0.8rem", color: "var(--text-secondary)" }}>
                       {t("average", { value: statsData.averageRating.toFixed(2) })} ★ ({t("ratingsCount", { count: statsData.totalRatings })})
                     </span>
+                    <span style={{ display: "block", marginTop: "6px", fontSize: "0.8rem", color: "var(--text-secondary)" }}>
+                      {t("diaryStatsSummary", {
+                        listens: statsData.totalListens ?? 0,
+                        unique: statsData.uniqueListenedItems ?? 0,
+                      })}
+                    </span>
                     
                     <div className={styles.distributionChart}>
                       {Object.entries(statsData.ratingDistribution)
@@ -1273,7 +1279,7 @@ export default function UserProfilePage() {
                 <div className={styles.listsGrid}>
                   {listenLaterItems.map((item) => (
                     <div 
-                      key={item.id} 
+                      key={item.musicItemId}
                       className="card glass" 
                       style={{ 
                         padding: "16px", 

@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { prisma } from "@/services/db";
 import { verifyToken } from "@/utils/auth";
 import { MusicService } from "@/services/music";
+import { MAX_ITEMS_PER_LIST } from "@/services/list-constraints";
 
 export const dynamic = "force-dynamic";
 
@@ -86,7 +87,7 @@ export async function POST(
     // Count current items to calculate order index
     const count = await prisma.listItem.count({ where: { listId } });
 
-    if (count >= 100) {
+    if (count >= MAX_ITEMS_PER_LIST) {
       return NextResponse.json(
         { error: "La lista ha alcanzado el límite máximo de 100 álbumes." },
         { status: 403 }

@@ -257,6 +257,7 @@
     "scoreDistribution": "Rating distribution",
     "average": "Average: {value}",
     "ratingsCount": "{count, plural, one {# rating} other {# ratings}}",
+    "diaryStatsSummary": "{listens, plural, one {# listen} other {# listens}} · {unique, plural, one {# unique item} other {# unique items}}",
     "topArtists": "Most reviewed artists",
     "topArtistsSubtitle": "Your reviews by artist",
     "reviewsCount": "{count, plural, one {# review} other {# reviews}}",

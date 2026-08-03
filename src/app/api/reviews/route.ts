@@ -1,7 +1,13 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { prisma } from "@/services/db";
-import { verifyToken } from "@/utils/auth";
+import {
+  parseMusicItemId,
+  parseRatingValue,
+  RatingError,
+  RatingService,
+} from "@/services/ratings";
+import { resolveAuthUser, verifyToken } from "@/utils/auth";
 import { normalizeReviewTagsForStorage } from "@/utils/review-tags";
 
 export const dynamic = "force-dynamic";
@@ -155,20 +161,35 @@ export async function GET(req: Request) {
   }
 }
 
-// Create or update a review (and also upsert the corresponding rating entry)
+// Create a review and atomically upsert the corresponding current rating.
 export async function POST(req: Request) {
   try {
-    const userId = req.headers.get("x-user-id");
-    if (!userId) {
+    const auth = await resolveAuthUser(req);
+    if (!auth.ok) {
       return NextResponse.json(
         { error: "No autorizado" },
         { status: 401 }
       );
     }
+    const { userId } = auth.user;
 
-    const { musicItemId, content, ratingValue, tags } = await req.json();
+    let body: unknown;
+    try {
+      body = await req.json();
+    } catch {
+      return NextResponse.json(
+        { error: "El cuerpo debe contener JSON válido" },
+        { status: 400 },
+      );
+    }
 
-    if (!musicItemId || !content || ratingValue === undefined) {
+    if (typeof body !== "object" || body === null || Array.isArray(body)) {
+      throw new RatingError("El cuerpo debe ser un objeto JSON", 400);
+    }
+
+    const { musicItemId, content, ratingValue, tags } = body as Record<string, unknown>;
+
+    if (typeof musicItemId !== "string" || typeof content !== "string" || !content.trim() || ratingValue === undefined) {
       return NextResponse.json(
         { error: "musicItemId, content y ratingValue son requeridos" },
         { status: 400 }
@@ -179,25 +200,8 @@ export async function POST(req: Request) {
     // Known moods are persisted as stable keys; free-form tags keep their user-provided text.
     const validTags = normalizeReviewTagsForStorage(tags);
 
-    const numericRating = parseFloat(ratingValue);
-    if (isNaN(numericRating) || numericRating < 0.5 || numericRating > 5 || numericRating % 0.5 !== 0) {
-      return NextResponse.json(
-        { error: "La calificación debe ser de 0.5 a 5 con incrementos de 0.5" },
-        { status: 400 }
-      );
-    }
-
-    // Verify item exists
-    const musicItem = await prisma.musicItem.findUnique({
-      where: { id: musicItemId },
-    });
-
-    if (!musicItem) {
-      return NextResponse.json(
-        { error: "Ítem musical no encontrado" },
-        { status: 404 }
-      );
-    }
+    const normalizedMusicItemId = parseMusicItemId(musicItemId);
+    const numericRating = parseRatingValue(ratingValue);
 
     // --- SECURITY 007: Rate Limiting ---
     // Limit to 20 reviews per user per day to prevent DoS via SQLite flooding
@@ -220,53 +224,23 @@ export async function POST(req: Request) {
       );
     }
 
-    // Handle rating: create or update
-    let existingRating = await prisma.rating.findFirst({
-      where: {
-        userId,
-        musicItemId,
-      },
+    const { review, rating } = await prisma.$transaction(async (tx) => {
+      const currentRating = await RatingService.setCurrent(
+        { userId, musicItemId: normalizedMusicItemId, value: numericRating },
+        tx,
+      );
+      const createdReview = await tx.review.create({
+        data: {
+          userId,
+          musicItemId: normalizedMusicItemId,
+          content: content.trim(),
+          ratingValue: numericRating,
+          tags: validTags,
+        },
+      });
+
+      return { review: createdReview, rating: currentRating };
     });
-
-    let review;
-    let rating;
-
-    if (existingRating) {
-      [review, rating] = await prisma.$transaction([
-        prisma.review.create({
-          data: {
-            userId,
-            musicItemId,
-            content,
-            ratingValue: numericRating,
-            tags: validTags,
-          },
-        }),
-        prisma.rating.update({
-          where: { id: existingRating.id },
-          data: { value: numericRating },
-        }),
-      ]);
-    } else {
-      [review, rating] = await prisma.$transaction([
-        prisma.review.create({
-          data: {
-            userId,
-            musicItemId,
-            content,
-            ratingValue: numericRating,
-            tags: validTags,
-          },
-        }),
-        prisma.rating.create({
-          data: {
-            userId,
-            musicItemId,
-            value: numericRating,
-          },
-        }),
-      ]);
-    }
 
     // Check if it's the user's first review to award "FIRST_REVIEW" badge
     const reviewsCount = await prisma.review.count({
@@ -311,6 +285,9 @@ export async function POST(req: Request) {
       rating,
     });
   } catch (error) {
+    if (error instanceof RatingError) {
+      return NextResponse.json({ error: error.message }, { status: error.status });
+    }
     console.error("Save review error:", error);
     return NextResponse.json(
       { error: "Error al guardar la reseña" },

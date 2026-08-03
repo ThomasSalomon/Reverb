@@ -1,20 +1,8 @@
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
 import { prisma } from "@/services/db";
-import { verifyToken } from "@/utils/auth";
+import { resolveAuthUser } from "@/utils/auth";
 
 export const dynamic = "force-dynamic";
-
-async function getAuthUser() {
-  try {
-    const cookieStore = cookies();
-    const token = cookieStore.get("token")?.value;
-    if (!token) return null;
-    return await verifyToken(token);
-  } catch {
-    return null;
-  }
-}
 
 export async function DELETE(
   req: Request,
@@ -22,15 +10,15 @@ export async function DELETE(
 ) {
   try {
     const { musicItemId } = params;
-    const authUser = await getAuthUser();
-    if (!authUser) {
+    const auth = await resolveAuthUser(req);
+    if (!auth.ok) {
       return NextResponse.json({ error: "No autenticado" }, { status: 401 });
     }
 
     try {
       await prisma.listenLater.deleteMany({
         where: {
-          userId: authUser.userId,
+          userId: auth.user.userId,
           musicItemId,
         },
       });

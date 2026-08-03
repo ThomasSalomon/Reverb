@@ -257,6 +257,7 @@
     "scoreDistribution": "Distribución de puntuaciones",
     "average": "Promedio: {value}",
     "ratingsCount": "{count, plural, one {# valoración} other {# valoraciones}}",
+    "diaryStatsSummary": "{listens, plural, one {# escucha} other {# escuchas}} · {unique, plural, one {# elemento único} other {# elementos únicos}}",
     "topArtists": "Artistas más reseñados",
     "topArtistsSubtitle": "Tus reseñas por artista",
     "reviewsCount": "{count, plural, one {# reseña} other {# reseñas}}",

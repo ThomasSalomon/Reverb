@@ -11,7 +11,9 @@
 ## ✨ Features Destacadas
 
 ### 📖 Diario de Escucha
-Registra múltiples reseñas para un mismo álbum a lo largo del tiempo. Convierte tu perfil en un verdadero diario de tu viaje musical, recordando exactamente qué sentiste al escuchar ese disco en diferentes momentos de tu vida.
+Registra cada escucha como un evento independiente, incluso para el mismo álbum o canción. Cada entrada conserva su propia fecha, nota y puntuación para que el historial no sobrescriba recuerdos anteriores.
+
+Las calificaciones globales mantienen un único rating actual por usuario y elemento musical, protegido contra escrituras concurrentes por la base de datos. El contrato técnico y la migración se describen en [`docs/rating-integrity.md`](docs/rating-integrity.md).
 
 ### ⭐ Sistema de Calificación Híbrido
 - **Para los Críticos:** Sistema detallado de 5 estrellas (con incrementos de medias estrellas).
@@ -70,8 +72,10 @@ cp .env.example .env
 El proyecto utiliza Prisma con SQLite local (`dev.db`). Prepara la base de datos con:
 ```bash
 npx prisma generate
-npx prisma db push
+npm run db:migrate:local:deploy
 ```
+
+El historial incremental, la adopción de bases existentes y el procedimiento Turso están documentados en [docs/database-migrations.md](docs/database-migrations.md). No uses `prisma db push` para desplegar cambios compartidos.
 
 ### 5. Iniciar el servidor
 ```bash

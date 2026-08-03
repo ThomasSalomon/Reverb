@@ -8,6 +8,7 @@ import Image from "next/image";
 import { useTranslations } from "next-intl";
 import AccessibleDialog from "@/components/AccessibleDialog/AccessibleDialog";
 import { MOTION_DURATION, MOTION_EASE, reducedMotionDuration } from "@/utils/motion";
+import type { DeezerTrack } from "@/services/deezer.service";
 
 interface Props {
   artistName: string;
@@ -17,7 +18,8 @@ interface Props {
 export default function SpecialPlaylistModal({ artistName, onClose }: Props) {
   const t = useTranslations("Home");
   const common = useTranslations("Common");
-  const [tracks, setTracks] = useState<any[]>([]);
+  const [tracks, setTracks] = useState<DeezerTrack[]>([]);
+  const [importTicket, setImportTicket] = useState<string | null>(null);
   const [artistPic, setArtistPic] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -30,8 +32,9 @@ export default function SpecialPlaylistModal({ artistName, onClose }: Props) {
       try {
         const res = await fetch("/api/events/today/tracks");
         if (res.ok) {
-          const { artist, tracks } = await res.json();
+          const { artist, tracks, ticket } = await res.json();
           setTracks(tracks);
+          setImportTicket(typeof ticket === "string" ? ticket : null);
           setArtistPic(artist?.picture_xl || null);
         }
       } catch (err) {
@@ -54,7 +57,11 @@ export default function SpecialPlaylistModal({ artistName, onClose }: Props) {
         body: JSON.stringify({
           title: t("tributeListTitle", { artist: artistName }),
           description: t("tributeListDescription", { artist: artistName }),
-          tracks,
+          ticket: importTicket,
+          tracks: tracks.map((track) => ({
+            externalId: String(track.id),
+            type: "SONG",
+          })),
         }),
       });
 
@@ -128,7 +135,7 @@ export default function SpecialPlaylistModal({ artistName, onClose }: Props) {
           )}
         </div>
 
-        {!loading && tracks.length > 0 && (
+        {!loading && tracks.length > 0 && importTicket && (
           <div className={styles.footer}>
             {saved ? (
               <p className={styles.message}>{t("playlistSaved")}</p>

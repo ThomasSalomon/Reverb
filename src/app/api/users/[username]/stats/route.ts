@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/services/db";
+import { DiaryService } from "@/services/diary";
 import { unstable_cache } from "next/cache";
 
 // Cache stats for 1 hour to prevent DoS from heavy aggregation queries
@@ -76,6 +77,7 @@ const getStatsData = async (username: string) => {
       : 0;
 
   return {
+    userId,
     ratingDistribution,
     topArtists,
     totalRatings,
@@ -98,14 +100,20 @@ export async function GET(
 
     const result = await getCachedStats();
 
-    if (result.error) {
+    if ("error" in result) {
       return NextResponse.json(
         { error: result.error },
         { status: result.status }
       );
     }
 
-    return NextResponse.json(result);
+    const { userId, ...reviewAndRatingStats } = result;
+    const diaryStats = await DiaryService.getStats(userId);
+
+    return NextResponse.json({
+      ...reviewAndRatingStats,
+      ...diaryStats,
+    });
   } catch (error) {
     console.error("GET user stats error:", error);
     return NextResponse.json(

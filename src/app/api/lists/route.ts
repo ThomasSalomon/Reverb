@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { prisma } from "@/services/db";
 import { verifyToken } from "@/utils/auth";
+import { MAX_LISTS_PER_USER } from "@/services/list-constraints";
 
 export const dynamic = "force-dynamic";
 
@@ -36,7 +37,7 @@ export async function POST(req: Request) {
       where: { userId: authUser.userId },
     });
 
-    if (listsCount >= 50) {
+    if (listsCount >= MAX_LISTS_PER_USER) {
       return NextResponse.json(
         { error: "Has alcanzado el límite máximo de 50 listas." },
         { status: 403 }

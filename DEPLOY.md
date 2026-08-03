@@ -51,14 +51,11 @@ Esta aplicación utiliza Prisma como ORM junto con una base de datos local SQLit
 # Generar el cliente Prisma en tu máquina local
 npx prisma generate
 
-# Crear la base de datos SQLite (dev.db) y sincronizar el esquema de tablas
-npx prisma db push
+# Crear o actualizar la base SQLite aplicando el historial versionado
+npm run db:migrate:local:deploy
 ```
 
-*(Opcional)* Si quieres pre-cargar datos de prueba (seed) en la base de datos si el proyecto cuenta con un script de semilla:
-```bash
-npx prisma db seed
-```
+No uses `prisma db push` ni `prisma db seed` como parte del despliegue. El runbook de migraciones, incluyendo bases existentes y Turso, está en [docs/database-migrations.md](docs/database-migrations.md).
 
 ---
 

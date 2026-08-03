@@ -1,152 +1,61 @@
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
 import { prisma } from "@/services/db";
-import { verifyToken } from "@/utils/auth";
-import { MusicService } from "@/services/music";
+import {
+  DiaryService,
+  parseCreateDiaryEvent,
+} from "@/services/diary";
+import { resolveAuthUser } from "@/utils/auth";
+import { diaryErrorResponse, readDiaryBody } from "./request";
 
 export const dynamic = "force-dynamic";
 
-async function getAuthUser() {
-  try {
-    const cookieStore = cookies();
-    const token = cookieStore.get("token")?.value;
-    if (!token) return null;
-    return await verifyToken(token);
-  } catch {
-    return null;
+export async function POST(request: Request) {
+  const auth = await resolveAuthUser(request);
+  if (!auth.ok) {
+    return NextResponse.json({ error: "No autenticado" }, { status: 401 });
   }
-}
 
-export async function POST(req: Request) {
   try {
-    const authUser = await getAuthUser();
-    if (!authUser) {
-      return NextResponse.json({ error: "No autenticado" }, { status: 401 });
-    }
-
-    const { musicItemId, listenedAt, ratingValue, notes } = await req.json();
-
-    if (!musicItemId) {
-      return NextResponse.json(
-        { error: "musicItemId es requerido" },
-        { status: 400 }
-      );
-    }
-
-    // Ensure item is cached locally
-    const musicItem = await MusicService.getItemById(musicItemId);
-    if (!musicItem) {
-      return NextResponse.json(
-        { error: "Álbum no encontrado en el catálogo" },
-        { status: 404 }
-      );
-    }
-
-    const loggedDate = listenedAt ? new Date(listenedAt) : new Date();
-
-    const existingLog = await prisma.diaryLog.findFirst({
-      where: {
-        userId: authUser.userId,
-        musicItemId,
-      },
-      orderBy: {
-        listenedAt: "desc"
-      }
-    });
-
-    let resultLog;
-    if (existingLog) {
-      resultLog = await prisma.diaryLog.update({
-        where: { id: existingLog.id },
-        data: {
-          listenedAt: loggedDate,
-          ratingValue: ratingValue ? parseFloat(ratingValue) : null,
-          notes: notes ? notes.trim().substring(0, 500) : null,
-          listenCount: { increment: 1 },
-        },
-        include: {
-          musicItem: true,
-        },
-      });
-    } else {
-      resultLog = await prisma.diaryLog.create({
-        data: {
-          userId: authUser.userId,
-          musicItemId,
-          listenedAt: loggedDate,
-          ratingValue: ratingValue ? parseFloat(ratingValue) : null,
-          notes: notes ? notes.trim().substring(0, 500) : null,
-          listenCount: 1,
-        },
-        include: {
-          musicItem: true,
-        },
-      });
-    }
-
-    return NextResponse.json(resultLog, { status: existingLog ? 200 : 201 });
+    const input = parseCreateDiaryEvent(await readDiaryBody(request));
+    const event = await DiaryService.createEvent(auth.user.userId, input);
+    return NextResponse.json(event, { status: 201 });
   } catch (error) {
-    console.error("POST diary log error:", error);
-    return NextResponse.json(
-      { error: "Error al registrar en la bitácora" },
-      { status: 500 }
+    return diaryErrorResponse(
+      error,
+      "POST diary event failed",
+      "Error al registrar en el diario",
     );
   }
 }
 
-export async function GET(req: Request) {
+export async function GET(request: Request) {
   try {
-    const { searchParams } = new URL(req.url);
-    const username = searchParams.get("username");
-    const authUser = await getAuthUser();
+    const { searchParams } = new URL(request.url);
+    const username = searchParams.get("username")?.trim();
+    const auth = await resolveAuthUser(request);
 
-    let targetUserId = authUser?.userId;
-
+    let targetUserId = auth.ok ? auth.user.userId : undefined;
     if (username) {
       const user = await prisma.user.findUnique({
         where: { username },
         select: { id: true },
       });
       if (!user) {
-        return NextResponse.json(
-          { error: "Usuario no encontrado" },
-          { status: 404 }
-        );
+        return NextResponse.json({ error: "Usuario no encontrado" }, { status: 404 });
       }
       targetUserId = user.id;
     }
 
     if (!targetUserId) {
-      return NextResponse.json(
-        { error: "Identificación de usuario requerida" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "No autenticado" }, { status: 401 });
     }
 
-    const logs = await prisma.diaryLog.findMany({
-      where: { userId: targetUserId },
-      orderBy: {
-        listenedAt: "desc",
-      },
-      include: {
-        musicItem: {
-          select: {
-            id: true,
-            title: true,
-            artist: true,
-            coverUrl: true,
-            type: true,
-          },
-        },
-      },
-    });
-
-    return NextResponse.json(logs);
+    return NextResponse.json(await DiaryService.listEvents(targetUserId));
   } catch (error) {
-    console.error("GET diary logs error:", error);
-    return NextResponse.json(
-      { error: "Error al obtener la bitácora" },
-      { status: 500 }
+    return diaryErrorResponse(
+      error,
+      "GET diary events failed",
+      "Error al obtener el diario",
     );
   }
 }
