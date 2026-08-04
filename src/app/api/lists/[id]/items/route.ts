@@ -4,6 +4,8 @@ import { prisma } from "@/services/db";
 import { verifyToken } from "@/utils/auth";
 import { MusicService } from "@/services/music";
 import { MAX_ITEMS_PER_LIST } from "@/services/list-constraints";
+import { parseMusicItemId, RatingError } from "@/services/ratings";
+import { readJsonObject, rejectUnknownFields, RequestBodyError } from "@/utils/request-body";
 
 export const dynamic = "force-dynamic";
 
@@ -49,13 +51,9 @@ export async function POST(
       );
     }
 
-    const { musicItemId } = await req.json();
-    if (!musicItemId) {
-      return NextResponse.json(
-        { error: "musicItemId es requerido" },
-        { status: 400 }
-      );
-    }
+    const body = await readJsonObject(req);
+    rejectUnknownFields(body, ["musicItemId"]);
+    const musicItemId = parseMusicItemId(body.musicItemId);
 
     // 2. Ensure item is imported/cached locally
     const musicItem = await MusicService.getItemById(musicItemId);
@@ -107,6 +105,9 @@ export async function POST(
 
     return NextResponse.json(newListItem, { status: 201 });
   } catch (error) {
+    if (error instanceof RequestBodyError || error instanceof RatingError) {
+      return NextResponse.json({ error: error.message }, { status: error.status });
+    }
     console.error("POST list item error:", error);
     return NextResponse.json(
       { error: "Error al añadir álbum a la lista" },

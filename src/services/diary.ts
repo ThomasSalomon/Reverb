@@ -1,6 +1,7 @@
 import type { Prisma } from "@prisma/client";
 import { prisma } from "./db";
 import { MusicService } from "./music";
+import { descendingDiaryWhere, pageResult } from "@/utils/cursor-pagination";
 
 const ALLOWED_MUSIC_TYPES = new Set(["ALBUM", "SONG"]);
 const MAX_MUSIC_ITEM_ID_LENGTH = 200;
@@ -94,21 +95,16 @@ function parseListenedAt(value: unknown): Date {
 function parseRating(value: unknown): number | null {
   if (value === null || value === undefined || value === "") return null;
 
-  const parsed = typeof value === "number"
-    ? value
-    : typeof value === "string"
-      ? Number(value)
-      : Number.NaN;
-
   if (
-    !Number.isFinite(parsed) ||
-    parsed < 0.5 ||
-    parsed > 5 ||
-    Math.abs(parsed * 2 - Math.round(parsed * 2)) > Number.EPSILON
+    typeof value !== "number" ||
+    !Number.isFinite(value) ||
+    value < 0.5 ||
+    value > 5 ||
+    Math.abs(value * 2 - Math.round(value * 2)) > Number.EPSILON
   ) {
     throw new DiaryError("ratingValue debe estar entre 0.5 y 5 en pasos de 0.5", 400);
   }
-  return parsed;
+  return value;
 }
 
 function parseNotes(value: unknown): string | null {
@@ -174,16 +170,17 @@ export const DiaryService = {
     });
   },
 
-  async listEvents(userId: string) {
-    return prisma.diaryLog.findMany({
-      where: { userId },
+  async listEvents(userId: string, limit: number, cursor: { listenedAt: string; id: string } | null) {
+    const events = await prisma.diaryLog.findMany({
+      where: { userId, ...(cursor ? { OR: descendingDiaryWhere(cursor) } : {}) },
       orderBy: [
         { listenedAt: "desc" },
-        { createdAt: "desc" },
         { id: "desc" },
       ],
+      take: limit + 1,
       select: diaryEventSelect,
     });
+    return pageResult(events, limit, "listenedAt");
   },
 
   async updateEvent(id: string, userId: string, input: UpdateDiaryEventInput) {

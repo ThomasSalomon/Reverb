@@ -3,6 +3,8 @@ import { cookies } from "next/headers";
 import { MusicService } from "@/services/music";
 import { verifyToken } from "@/utils/auth";
 import { prisma } from "@/services/db";
+import { descendingTemporalWhere, getPageLimit, pageResult, PaginationError, temporalCursor } from "@/utils/cursor-pagination";
+import { DeezerError, deezerHttpError } from "@/services/deezer-http";
 
 export async function GET(
   req: Request,
@@ -10,6 +12,9 @@ export async function GET(
 ) {
   try {
     const { id } = params;
+    const searchParams = new URL(req.url).searchParams;
+    const limit = getPageLimit(searchParams);
+    const cursor = temporalCursor(searchParams);
 
     let currentUserId: string | null = null;
     try {
@@ -25,7 +30,7 @@ export async function GET(
       console.error("Failed to verify token:", e);
     }
 
-    const item = await MusicService.getItemById(id);
+    const item = await MusicService.getItemById(id, req.signal);
 
     if (!item) {
       return NextResponse.json(
@@ -34,11 +39,19 @@ export async function GET(
       );
     }
 
+    const reviews = await prisma.review.findMany({
+      where: { musicItemId: id, ...(cursor ? { OR: descendingTemporalWhere(cursor) } : {}) },
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+      take: limit + 1,
+      include: { user: { select: { id: true, username: true, profileColor: true, profileImage: true } } },
+    });
+    const reviewPage = pageResult(reviews, limit, "createdAt");
+
     // Check if current user has marked a favorite track on this album
     let favoriteTrack: string | null = null;
     let isListenLater = false;
     let currentUserRating: number | null = null;
-    let enrichedReviews = item.reviews || [];
+    let enrichedReviews = reviewPage.items;
     try {
       if (currentUserId) {
         const record = await prisma.favoriteTrack.findFirst({
@@ -72,7 +85,7 @@ export async function GET(
       }
 
       // Fetch favorite tracks for all authors of the reviews on this album
-      const reviewUserIds = (item.reviews || []).map((r: any) => r.userId);
+      const reviewUserIds = reviewPage.items.map((review) => review.userId);
       if (reviewUserIds.length > 0) {
         const favTracks = await prisma.favoriteTrack.findMany({
           where: {
@@ -87,41 +100,31 @@ export async function GET(
         const favMap = new Map(favTracks.map((ft: any) => [ft.userId, ft.trackTitle]));
         
         // Fetch likes and comments count
-        const reviewIds = (item.reviews || []).map((r: any) => r.id);
-        const reviewLikes = await prisma.reviewLike.findMany({
-          where: { reviewId: { in: reviewIds } },
-          select: { reviewId: true, userId: true },
-        });
-        const reviewComments = await prisma.comment.findMany({
-          where: { reviewId: { in: reviewIds } },
-          select: { reviewId: true },
-        });
+        const reviewIds = reviewPage.items.map((review) => review.id);
+        const [reviewLikes, reviewComments, currentUserLikes] = await Promise.all([
+          prisma.reviewLike.groupBy({ by: ["reviewId"], where: { reviewId: { in: reviewIds } }, _count: { _all: true } }),
+          prisma.comment.groupBy({ by: ["reviewId"], where: { reviewId: { in: reviewIds } }, _count: { _all: true } }),
+          currentUserId ? prisma.reviewLike.findMany({ where: { reviewId: { in: reviewIds }, userId: currentUserId }, select: { reviewId: true } }) : [],
+        ]);
 
         // Group by reviewId
-        const likesMap = new Map<string, string[]>();
+        const likesMap = new Map<string, number>();
         const commentsCountMap = new Map<string, number>();
 
-        reviewLikes.forEach((l) => {
-          const list = likesMap.get(l.reviewId) || [];
-          list.push(l.userId);
-          likesMap.set(l.reviewId, list);
-        });
+        reviewLikes.forEach((like) => likesMap.set(like.reviewId, like._count._all));
 
-        reviewComments.forEach((c) => {
-          const count = commentsCountMap.get(c.reviewId) || 0;
-          commentsCountMap.set(c.reviewId, count + 1);
-        });
+        reviewComments.forEach((comment) => commentsCountMap.set(comment.reviewId, comment._count._all));
+        const likedReviewIds = new Set(currentUserLikes.map((like) => like.reviewId));
 
         // Authenticated user (already resolved at the beginning of the handler)
 
-        enrichedReviews = (item.reviews || []).map((r: any) => {
-          const likesList = likesMap.get(r.id) || [];
+        enrichedReviews = reviewPage.items.map((r) => {
           return {
             ...r,
             favoriteTrack: favMap.get(r.userId) || null,
-            likesCount: likesList.length,
+            likesCount: likesMap.get(r.id) || 0,
             commentsCount: commentsCountMap.get(r.id) || 0,
-            likedByUser: currentUserId ? likesList.includes(currentUserId) : false,
+            likedByUser: currentUserId ? likedReviewIds.has(r.id) : false,
           };
         });
       }
@@ -132,11 +135,19 @@ export async function GET(
     return NextResponse.json({
       ...item,
       reviews: enrichedReviews,
+      reviewsNextCursor: reviewPage.nextCursor,
+      reviewsHasNextPage: reviewPage.hasNextPage,
+      reviewsLimit: reviewPage.limit,
       favoriteTrack,
       isListenLater,
       currentUserRating,
     });
   } catch (error) {
+    if (error instanceof PaginationError) return NextResponse.json({ error: error.message }, { status: 400 });
+    if (error instanceof DeezerError) {
+      const response = deezerHttpError(error);
+      return NextResponse.json(response.body, { status: response.status, headers: response.headers });
+    }
     console.error("Fetch single music item error:", error);
     return NextResponse.json(
       { error: "Error al obtener detalles del álbum" },

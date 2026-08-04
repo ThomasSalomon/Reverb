@@ -151,8 +151,8 @@ async function setup(): Promise<TestContext> {
 }
 
 function musicItemIds(payload: unknown): string[] {
-  assert.ok(Array.isArray(payload));
-  return payload.map((entry) => entry.musicItemId).sort();
+  assert.ok(payload && typeof payload === "object" && Array.isArray((payload as { items?: unknown[] }).items));
+  return (payload as { items: Array<{ musicItemId: string }> }).items.map((entry) => entry.musicItemId).sort();
 }
 
 test("listen-later is private to the authenticated owner across reads and writes", async (t) => {
@@ -189,8 +189,8 @@ test("listen-later is private to the authenticated owner across reads and writes
 
       const payload = await response.json();
       assert.deepEqual(musicItemIds(payload), ["a-existing", "shared-item"]);
-      for (const entry of payload) {
-        assert.deepEqual(Object.keys(entry).sort(), ["musicItem", "musicItemId"]);
+      for (const entry of payload.items) {
+        assert.deepEqual(Object.keys(entry).sort(), ["createdAt", "id", "musicItem", "musicItemId"]);
         assert.deepEqual(
           Object.keys(entry.musicItem).sort(),
           ["artist", "coverUrl", "id", "title"],
@@ -242,8 +242,6 @@ test("listen-later is private to the authenticated owner across reads and writes
         const response = await context.postListenLater(
           request("POST", "http://localhost/api/listen-later", tokenA, {
             musicItemId: "new-item",
-            userId: USER_B_ID,
-            username: "bob",
           }),
         );
         assert.equal(response.status, 201);

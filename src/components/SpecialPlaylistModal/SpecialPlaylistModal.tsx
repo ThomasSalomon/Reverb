@@ -25,26 +25,29 @@ export default function SpecialPlaylistModal({ artistName, onClose }: Props) {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [needsLogin, setNeedsLogin] = useState(false);
+  const [loadError, setLoadError] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
   const prefersReducedMotion = useReducedMotion();
 
   useEffect(() => {
     async function fetchTracks() {
+      setLoadError(false);
       try {
         const res = await fetch("/api/events/today/tracks");
-        if (res.ok) {
-          const { artist, tracks, ticket } = await res.json();
-          setTracks(tracks);
-          setImportTicket(typeof ticket === "string" ? ticket : null);
-          setArtistPic(artist?.picture_xl || null);
-        }
+        if (!res.ok) throw new Error(`Playlist request failed: ${res.status}`);
+        const { artist, tracks, ticket } = await res.json();
+        setTracks(tracks);
+        setImportTicket(typeof ticket === "string" ? ticket : null);
+        setArtistPic(artist?.picture_xl || null);
       } catch (err) {
         console.error("Failed to fetch tracks", err);
+        setLoadError(true);
       } finally {
         setLoading(false);
       }
     }
     fetchTracks();
-  }, []);
+  }, [reloadKey]);
 
   const handleSavePlaylist = async () => {
     setSaving(true);
@@ -106,6 +109,11 @@ export default function SpecialPlaylistModal({ artistName, onClose }: Props) {
           {loading ? (
             <div className={styles.loader}>
               <div className={styles.spinner} />
+            </div>
+          ) : loadError ? (
+            <div className={styles.loader} role="alert">
+              <p>{t("playlistLoadError")}</p>
+              <button type="button" className={styles.saveButton} onClick={() => setReloadKey((value) => value + 1)}>{common("retry")}</button>
             </div>
           ) : (
             <div>

@@ -3,10 +3,10 @@ import { cookies } from "next/headers";
 import { prisma } from "@/services/db";
 import { verifyToken } from "@/utils/auth";
 import { MusicService } from "@/services/music";
+import { parseProfileUpdate } from "@/services/profile-input";
+import { readJsonObject, RequestBodyError } from "@/utils/request-body";
 
 export const dynamic = "force-dynamic";
-
-const ALLOWED_COLORS = ["emerald", "violet", "cobalt", "amber", "rose", "slate"];
 
 // Helper to authenticate request
 async function getAuthUser() {
@@ -134,25 +134,14 @@ export async function PUT(
       );
     }
 
-    // 3. Destructure and validate input
-    const body = await req.json();
-    const bio = typeof body.bio === "string" ? body.bio : undefined;
-    const favoriteGenre = typeof body.favoriteGenre === "string" ? body.favoriteGenre : undefined;
-    const profileColor = typeof body.profileColor === "string" ? body.profileColor : undefined;
-    const profileImage = typeof body.profileImage === "string" ? body.profileImage : undefined;
-    const favoriteAlbumsInput = Array.isArray(body.favoriteAlbums) ? body.favoriteAlbums : undefined;
+    // 3. Validate the complete DTO before performing any write.
+    const input = parseProfileUpdate(await readJsonObject(req));
+    const { bio, favoriteGenre, profileColor, profileImage, favoriteAlbums: favoriteAlbumsInput } = input;
 
     // SEC-07: Validation & length constraints
     if (bio && bio.length > 500) {
       return NextResponse.json(
         { error: "La biografía no puede superar los 500 caracteres" },
-        { status: 400 }
-      );
-    }
-
-    if (profileColor && !ALLOWED_COLORS.includes(profileColor)) {
-      return NextResponse.json(
-        { error: "Color de perfil no permitido" },
         { status: 400 }
       );
     }
@@ -201,42 +190,29 @@ export async function PUT(
       // Image cleared, will be set to null in database
     }
 
-    // Process favorite albums slots (Top 3)
+    // Resolve all requested albums before writing a slot, so an unknown or
+    // non-album item cannot leave an earlier slot update behind.
+    const requestedAlbums = await Promise.all(
+      (favoriteAlbumsInput ?? [])
+        .filter((item) => item.musicItemId !== null)
+        .map(async (item) => MusicService.getItemById(item.musicItemId!)),
+    );
+    if (requestedAlbums.some((item) => !item || item.type !== "ALBUM")) {
+      return NextResponse.json({ error: "Álbum no encontrado en el catálogo" }, { status: 404 });
+    }
+
     if (favoriteAlbumsInput) {
-      for (const item of favoriteAlbumsInput) {
-        const slot = parseInt(item.slot);
-        if (slot >= 1 && slot <= 3) {
-          const musicItemId = item.musicItemId;
-          if (musicItemId) {
-            // Cache the album locally first
-            const cachedItem = await MusicService.getItemById(musicItemId);
-            if (cachedItem) {
-              await prisma.favoriteAlbum.upsert({
-                where: {
-                  userId_slot: {
-                    userId: authUser.userId,
-                    slot,
-                  },
-                },
-                update: {
-                  musicItemId,
-                },
-                create: {
-                  userId: authUser.userId,
-                  slot,
-                  musicItemId,
-                },
-              });
-            }
-          } else {
-            // Delete slot entry if cleared
-            await prisma.favoriteAlbum.deleteMany({
-              where: {
-                userId: authUser.userId,
-                slot,
-              },
-            });
-          }
+      for (const { slot, musicItemId } of favoriteAlbumsInput) {
+        if (musicItemId !== null) {
+          await prisma.favoriteAlbum.upsert({
+            where: { userId_slot: { userId: authUser.userId, slot } },
+            update: { musicItemId },
+            create: { userId: authUser.userId, slot, musicItemId },
+          });
+        } else {
+          await prisma.favoriteAlbum.deleteMany({
+            where: { userId: authUser.userId, slot },
+          });
         }
       }
     }
@@ -278,6 +254,9 @@ export async function PUT(
       profile: updatedUser,
     });
   } catch (error) {
+    if (error instanceof RequestBodyError) {
+      return NextResponse.json({ error: error.message }, { status: error.status });
+    }
     console.error("PUT user profile error:", error);
     return NextResponse.json(
       { error: "Error al actualizar perfil de usuario" },

@@ -1,14 +1,10 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { prisma } from "@/services/db";
-import {
-  parseMusicItemId,
-  parseRatingValue,
-  RatingError,
-  RatingService,
-} from "@/services/ratings";
+import { RatingService } from "@/services/ratings";
 import { resolveAuthUser, verifyToken } from "@/utils/auth";
-import { normalizeReviewTagsForStorage } from "@/utils/review-tags";
+import { parseCreateReviewInput, isReviewInputError } from "@/services/review-input";
+import { readJsonObject } from "@/utils/request-body";
 
 export const dynamic = "force-dynamic";
 
@@ -49,9 +45,7 @@ export async function GET(req: Request) {
 
     const reviews = await prisma.review.findMany({
       where: whereClause,
-      orderBy: {
-        createdAt: "desc",
-      },
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
       include: {
         user: {
           select: {
@@ -103,29 +97,18 @@ export async function GET(req: Request) {
 
       // 2. Fetch likes and comments
       const reviewIds = reviews.map((r) => r.id);
-      const reviewLikes = await prisma.reviewLike.findMany({
-        where: { reviewId: { in: reviewIds } },
-        select: { reviewId: true, userId: true },
-      });
-      const reviewComments = await prisma.comment.findMany({
-        where: { reviewId: { in: reviewIds } },
-        select: { reviewId: true },
-      });
+      const [reviewLikes, reviewComments] = await Promise.all([
+        prisma.reviewLike.groupBy({ by: ["reviewId"], where: { reviewId: { in: reviewIds } }, _count: { _all: true } }),
+        prisma.comment.groupBy({ by: ["reviewId"], where: { reviewId: { in: reviewIds } }, _count: { _all: true } }),
+      ]);
 
       // Group likes and comments
-      const likesMap = new Map<string, string[]>();
+      const likesMap = new Map<string, number>();
       const commentsCountMap = new Map<string, number>();
 
-      reviewLikes.forEach((l) => {
-        const list = likesMap.get(l.reviewId) || [];
-        list.push(l.userId);
-        likesMap.set(l.reviewId, list);
-      });
+      reviewLikes.forEach((like) => likesMap.set(like.reviewId, like._count._all));
 
-      reviewComments.forEach((c) => {
-        const count = commentsCountMap.get(c.reviewId) || 0;
-        commentsCountMap.set(c.reviewId, count + 1);
-      });
+      reviewComments.forEach((comment) => commentsCountMap.set(comment.reviewId, comment._count._all));
 
       // Get auth token if available to set likedByUser
       let currentUserId: string | null = null;
@@ -138,15 +121,20 @@ export async function GET(req: Request) {
         }
       } catch {}
 
+      const currentUserLikes = currentUserId ? await prisma.reviewLike.findMany({
+        where: { reviewId: { in: reviewIds }, userId: currentUserId },
+        select: { reviewId: true },
+      }) : [];
+      const likedReviewIds = new Set(currentUserLikes.map((like) => like.reviewId));
+
       enrichedReviews = reviews.map((r) => {
         const key = `${r.userId}_${r.musicItemId}`;
-        const likesList = likesMap.get(r.id) || [];
         return {
           ...r,
           favoriteTrack: favMap.get(key) || null,
-          likesCount: likesList.length,
+          likesCount: likesMap.get(r.id) || 0,
           commentsCount: commentsCountMap.get(r.id) || 0,
-          likedByUser: currentUserId ? likesList.includes(currentUserId) : false,
+          likedByUser: currentUserId ? likedReviewIds.has(r.id) : false,
         };
       });
     }
@@ -173,35 +161,7 @@ export async function POST(req: Request) {
     }
     const { userId } = auth.user;
 
-    let body: unknown;
-    try {
-      body = await req.json();
-    } catch {
-      return NextResponse.json(
-        { error: "El cuerpo debe contener JSON válido" },
-        { status: 400 },
-      );
-    }
-
-    if (typeof body !== "object" || body === null || Array.isArray(body)) {
-      throw new RatingError("El cuerpo debe ser un objeto JSON", 400);
-    }
-
-    const { musicItemId, content, ratingValue, tags } = body as Record<string, unknown>;
-
-    if (typeof musicItemId !== "string" || typeof content !== "string" || !content.trim() || ratingValue === undefined) {
-      return NextResponse.json(
-        { error: "musicItemId, content y ratingValue son requeridos" },
-        { status: 400 }
-      );
-    }
-
-    // Process and validate tags
-    // Known moods are persisted as stable keys; free-form tags keep their user-provided text.
-    const validTags = normalizeReviewTagsForStorage(tags);
-
-    const normalizedMusicItemId = parseMusicItemId(musicItemId);
-    const numericRating = parseRatingValue(ratingValue);
+    const input = parseCreateReviewInput(await readJsonObject(req));
 
     // --- SECURITY 007: Rate Limiting ---
     // Limit to 20 reviews per user per day to prevent DoS via SQLite flooding
@@ -226,16 +186,16 @@ export async function POST(req: Request) {
 
     const { review, rating } = await prisma.$transaction(async (tx) => {
       const currentRating = await RatingService.setCurrent(
-        { userId, musicItemId: normalizedMusicItemId, value: numericRating },
+        { userId, musicItemId: input.musicItemId, value: input.ratingValue },
         tx,
       );
       const createdReview = await tx.review.create({
         data: {
           userId,
-          musicItemId: normalizedMusicItemId,
-          content: content.trim(),
-          ratingValue: numericRating,
-          tags: validTags,
+          musicItemId: input.musicItemId,
+          content: input.content,
+          ratingValue: input.ratingValue,
+          tags: input.tags,
         },
       });
 
@@ -285,7 +245,7 @@ export async function POST(req: Request) {
       rating,
     });
   } catch (error) {
-    if (error instanceof RatingError) {
+    if (isReviewInputError(error)) {
       return NextResponse.json({ error: error.message }, { status: error.status });
     }
     console.error("Save review error:", error);

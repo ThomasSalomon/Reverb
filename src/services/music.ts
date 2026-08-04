@@ -66,32 +66,15 @@ export const MusicService = {
     return items.map((item) => this._enrichStats(item));
   },
 
-  async getItemById(id: string) {
+  async getItemById(id: string, signal?: AbortSignal) {
     let item = await prisma.musicItem.findUnique({
       where: { id },
-      include: {
-        ratings: true,
-        reviews: {
-          include: {
-            user: {
-              select: {
-                id: true,
-                username: true,
-                profileColor: true,
-                profileImage: true,
-              },
-            },
-          },
-          orderBy: {
-            createdAt: "desc",
-          },
-        },
-      },
+      select: { id: true, title: true, artist: true, type: true, coverUrl: true, releaseYear: true, tracks: true, createdAt: true },
     });
 
     // If album doesn't exist locally, fetch from Deezer and cache it
     if (!item) {
-      const deezerAlbum = await DeezerService.getAlbumById(id);
+      const deezerAlbum = await DeezerService.getAlbumById(id, signal);
       if (!deezerAlbum) return null;
 
       try {
@@ -105,48 +88,14 @@ export const MusicService = {
             releaseYear: deezerAlbum.releaseYear,
             tracks: JSON.stringify(deezerAlbum.tracks),
           },
-          include: {
-            ratings: true,
-            reviews: {
-              include: {
-                user: {
-                  select: {
-                    id: true,
-                    username: true,
-                    profileColor: true,
-                    profileImage: true,
-                  },
-                },
-              },
-              orderBy: {
-                createdAt: "desc",
-              },
-            },
-          },
+          select: { id: true, title: true, artist: true, type: true, coverUrl: true, releaseYear: true, tracks: true, createdAt: true },
         });
       } catch (error: any) {
         // Handle race conditions in case another parallel thread inserted it first (Unique constraint failed)
         if (error.code === "P2002") {
           item = await prisma.musicItem.findUnique({
             where: { id },
-            include: {
-              ratings: true,
-              reviews: {
-                include: {
-                  user: {
-                    select: {
-                      id: true,
-                      username: true,
-                      profileColor: true,
-                      profileImage: true,
-                    },
-                  },
-                },
-                orderBy: {
-                  createdAt: "desc",
-                },
-              },
-            },
+            select: { id: true, title: true, artist: true, type: true, coverUrl: true, releaseYear: true, tracks: true, createdAt: true },
           });
         } else {
           throw error;
@@ -154,21 +103,33 @@ export const MusicService = {
       }
     }
 
-    return this._enrichStats(item);
+    if (!item) return null;
+    const [ratingStats, totalReviews] = await Promise.all([
+      prisma.rating.aggregate({ where: { musicItemId: id }, _avg: { value: true }, _count: { _all: true } }),
+      prisma.review.count({ where: { musicItemId: id } }),
+    ]);
+    let tracks: Track[] | null = null;
+    if (item.tracks) {
+      try { tracks = JSON.parse(item.tracks); } catch (error) { console.error("Failed to parse tracks for item: " + item.id, error); }
+    }
+    return {
+      ...item,
+      tracks,
+      reviews: [],
+      stats: {
+        averageRating: Math.round((ratingStats._avg.value ?? 0) * 10) / 10,
+        totalRatings: ratingStats._count._all,
+        totalReviews,
+      },
+    };
   },
 
-  async searchItems(query: string, index: number = 0, limit: number = 50) {
+  async searchItems(query: string, index: number = 0, limit: number = 50, signal?: AbortSignal) {
     if (!query || query.trim() === "") {
-      return this.getAllItems();
+      return [];
     }
 
-    // 1. Fetch from Deezer API in real-time
-    let deezerResults: DeezerAlbumSearchItem[] = [];
-    try {
-      deezerResults = await DeezerService.searchAlbums(query, index, limit);
-    } catch (err) {
-      console.error("Deezer searchAlbums failed (may be blocked on this server):", err);
-    }
+    const deezerResults = await DeezerService.searchAlbums(query, index, limit, signal);
     if (deezerResults.length === 0) return [];
 
     return this.blendExternalItems(deezerResults);
@@ -300,14 +261,8 @@ export const MusicService = {
     });
   },
 
-  async getPopularItems() {
-    // 1. Fetch popular albums from Deezer Chart
-    let popularAlbums: DeezerAlbumSearchItem[] = [];
-    try {
-      popularAlbums = await DeezerService.getPopularAlbums();
-    } catch (err) {
-      console.error("Deezer getPopularAlbums failed (may be blocked on this server):", err);
-    }
+  async getPopularItems(signal?: AbortSignal) {
+    const popularAlbums = await DeezerService.getPopularAlbums(signal);
     if (popularAlbums.length === 0) return [];
 
     // 2. Query matching local records

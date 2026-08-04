@@ -274,6 +274,12 @@ test("Rating mantiene una fila actual por usuario y elemento", async (t) => {
         (await reviewRequest(context, "a", ALBUM_A_ID, "4", "Invalid review rating")).status,
         400,
       );
+      for (const content of ["", "   ", "x".repeat(5_001)] ) {
+        assert.equal(
+          (await reviewRequest(context, "a", ALBUM_A_ID, 4, content)).status,
+          400,
+        );
+      }
       assert.equal(await context.prisma.rating.count(), 0);
       assert.equal(await context.prisma.review.count(), 0);
     });

@@ -6,6 +6,7 @@ import {
   RatingService,
 } from "@/services/ratings";
 import { resolveAuthUser } from "@/utils/auth";
+import { rejectUnknownFields, RequestBodyError, readJsonObject } from "@/utils/request-body";
 
 export async function POST(req: Request) {
   try {
@@ -18,21 +19,8 @@ export async function POST(req: Request) {
     }
     const { userId } = auth.user;
 
-    let body: unknown;
-    try {
-      body = await req.json();
-    } catch {
-      return NextResponse.json(
-        { error: "El cuerpo debe contener JSON válido" },
-        { status: 400 },
-      );
-    }
-
-    if (typeof body !== "object" || body === null || Array.isArray(body)) {
-      throw new RatingError("El cuerpo debe ser un objeto JSON", 400);
-    }
-
-    const input = body as Record<string, unknown>;
+    const input = await readJsonObject(req);
+    rejectUnknownFields(input, ["musicItemId", "value"]);
     const musicItemId = parseMusicItemId(input.musicItemId);
     const numericValue = parseRatingValue(input.value);
     const rating = await RatingService.setCurrent({
@@ -46,7 +34,7 @@ export async function POST(req: Request) {
       rating,
     });
   } catch (error) {
-    if (error instanceof RatingError) {
+    if (error instanceof RatingError || error instanceof RequestBodyError) {
       return NextResponse.json({ error: error.message }, { status: error.status });
     }
     console.error("Save rating error:", error);

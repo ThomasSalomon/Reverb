@@ -49,6 +49,8 @@ interface MusicItemDetail {
   releaseYear: number;
   tracks: Track[] | null;
   reviews: Review[];
+  reviewsNextCursor?: string | null;
+  reviewsHasNextPage?: boolean;
   stats: {
     averageRating: number;
     totalRatings: number;
@@ -85,6 +87,7 @@ export default function AlbumDetailClient({ id }: { id: string }) {
     trackTitle: string;
     added: boolean;
   } | null>(null);
+  const [loadingMoreReviews, setLoadingMoreReviews] = useState(false);
 
   // Lazy-load the Deezer iframe only when it enters the viewport
   const deezerSrc = album
@@ -92,14 +95,15 @@ export default function AlbumDetailClient({ id }: { id: string }) {
     : "";
   const { containerRef: deezerRef, activeSrc: deezerActiveSrc } = useLazyIframe(deezerSrc);
 
-  const fetchAlbumDetails = useCallback(async () => {
+  const fetchAlbumDetails = useCallback(async (cursor?: string | null, append = false) => {
     try {
-      const res = await fetch(`/api/music/${id}?t=${Date.now()}`, { cache: "no-store" });
+      const query = cursor ? `&cursor=${encodeURIComponent(cursor)}` : "";
+      const res = await fetch(`/api/music/${id}?t=${Date.now()}${query}`, { cache: "no-store" });
       if (!res.ok) {
         throw new Error(t("notFound"));
       }
       const data = await res.json();
-      setAlbum(data);
+      setAlbum((previous) => append && previous ? { ...data, reviews: [...previous.reviews, ...data.reviews] } : data);
       setFavTrack(data.favoriteTrack || null);
       setIsListenLater(data.isListenLater || false);
       setCurrentUserRating(data.currentUserRating || null);
@@ -107,6 +111,12 @@ export default function AlbumDetailClient({ id }: { id: string }) {
       setError(t("notFound"));
     }
   }, [id, t]);
+
+  const loadMoreReviews = async () => {
+    if (!album?.reviewsHasNextPage || !album.reviewsNextCursor || loadingMoreReviews) return;
+    setLoadingMoreReviews(true);
+    try { await fetchAlbumDetails(album.reviewsNextCursor, true); } finally { setLoadingMoreReviews(false); }
+  };
 
   const handleListenLaterToggle = async () => {
     if (!user) {
@@ -559,6 +569,11 @@ export default function AlbumDetailClient({ id }: { id: string }) {
                   <ReviewCard key={rev.id} review={rev} showMusicDetails={false} />
                 ))}
               </div>
+            )}
+            {album.reviewsHasNextPage && (
+              <button type="button" className="secondary-btn" onClick={loadMoreReviews} disabled={loadingMoreReviews}>
+                {loadingMoreReviews ? "Cargando…" : "Cargar más reseñas"}
+              </button>
             )}
           </section>
         </section>

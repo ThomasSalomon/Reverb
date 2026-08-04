@@ -18,23 +18,20 @@ export default async function ArtistPage({
   const { DeezerService } = await import("@/services/deezer");
   
   const decodedId = decodeURIComponent(id);
-  const artist = await DeezerService.getArtist(decodedId);
-  
   let initialData = null;
-  if (artist) {
-    const artistId = artist.id;
-    const [topTracks, albumsPage, related] = await Promise.all([
-      DeezerService.getArtistTopTracks(artistId),
-      DeezerService.getArtistAlbumsPage(artistId, 0, ARTIST_DISCOGRAPHY_PAGE_SIZE.initial),
-      DeezerService.getRelatedArtists(artistId)
-    ]);
-    initialData = {
-      artist,
-      topTracks,
-      albums: albumsPage.albums,
-      nextAlbumOffset: albumsPage.nextIndex,
-      related
-    };
+  try {
+    const artist = await DeezerService.getArtist(decodedId);
+    if (artist) {
+      const artistId = artist.id;
+      const [topTracks, albumsPage, related] = await Promise.all([
+        DeezerService.getArtistTopTracks(artistId),
+        DeezerService.getArtistAlbumsPage(artistId, 0, ARTIST_DISCOGRAPHY_PAGE_SIZE.initial),
+        DeezerService.getRelatedArtists(artistId)
+      ]);
+      initialData = { artist, topTracks, albums: albumsPage.albums, nextAlbumOffset: albumsPage.nextIndex, related };
+    }
+  } catch (error) {
+    console.error("Artist SSR preload failed", { code: error instanceof Error ? error.message : "UNKNOWN" });
   }
 
   return <ArtistDetailClient id={id} initialData={initialData} />;

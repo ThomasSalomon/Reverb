@@ -3,6 +3,8 @@ import { cookies } from "next/headers";
 import { prisma } from "@/services/db";
 import { verifyToken } from "@/utils/auth";
 import { MAX_LISTS_PER_USER } from "@/services/list-constraints";
+import { readJsonObject, rejectUnknownFields, RequestBodyError } from "@/utils/request-body";
+import { descendingTemporalWhere, getPageLimit, pageResult, PaginationError, temporalCursor } from "@/utils/cursor-pagination";
 
 export const dynamic = "force-dynamic";
 
@@ -24,9 +26,11 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "No autenticado" }, { status: 401 });
     }
 
-    const { title, description, isPublic } = await req.json();
+    const body = await readJsonObject(req);
+    rejectUnknownFields(body, ["title", "description", "isPublic"]);
+    const { title, description, isPublic } = body;
 
-    if (!title || typeof title !== "string" || title.trim() === "") {
+    if (typeof title !== "string" || title.trim() === "") {
       return NextResponse.json(
         { error: "El título de la lista es requerido" },
         { status: 400 }
@@ -44,8 +48,11 @@ export async function POST(req: Request) {
       );
     }
 
-    const sanitizedTitle = title.trim().substring(0, 100).replace(/</g, "&lt;").replace(/>/g, "&gt;");
-    const sanitizedDesc = description ? description.trim().substring(0, 500).replace(/</g, "&lt;").replace(/>/g, "&gt;") : null;
+    if (title.length > 100 || (description !== undefined && description !== null && typeof description !== "string") || (typeof description === "string" && description.length > 500) || (isPublic !== undefined && typeof isPublic !== "boolean")) {
+      return NextResponse.json({ error: "Los campos de la lista no son válidos" }, { status: 400 });
+    }
+    const sanitizedTitle = title.trim().replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    const sanitizedDesc = typeof description === "string" && description.trim() !== "" ? description.trim().replace(/</g, "&lt;").replace(/>/g, "&gt;") : null;
 
     const newList = await prisma.list.create({
       data: {
@@ -58,6 +65,9 @@ export async function POST(req: Request) {
 
     return NextResponse.json(newList, { status: 201 });
   } catch (error) {
+    if (error instanceof RequestBodyError) {
+      return NextResponse.json({ error: error.message }, { status: error.status });
+    }
     console.error("POST list error:", error);
     return NextResponse.json(
       { error: "Error al crear la lista" },
@@ -69,6 +79,8 @@ export async function POST(req: Request) {
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
+    const limit = getPageLimit(searchParams);
+    const cursor = temporalCursor(searchParams);
     const username = searchParams.get("username");
     const authUser = await getAuthUser();
 
@@ -98,10 +110,9 @@ export async function GET(req: Request) {
     }
 
     const lists = await prisma.list.findMany({
-      where: whereClause,
-      orderBy: {
-        createdAt: "desc",
-      },
+      where: { ...whereClause, ...(cursor ? { OR: descendingTemporalWhere(cursor) } : {}) },
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+      take: limit + 1,
       include: {
         user: {
           select: {
@@ -122,8 +133,9 @@ export async function GET(req: Request) {
       },
     });
 
-    return NextResponse.json(lists);
+    return NextResponse.json(pageResult(lists, limit, "createdAt"));
   } catch (error) {
+    if (error instanceof PaginationError) return NextResponse.json({ error: error.message }, { status: 400 });
     console.error("GET lists error:", error);
     return NextResponse.json(
       { error: "Error al obtener las listas" },

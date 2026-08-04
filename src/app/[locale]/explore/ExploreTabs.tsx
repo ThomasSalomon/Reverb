@@ -26,6 +26,7 @@ export default function ExploreTabs() {
   const [artists, setArtists] = useState<any[]>([]);
   
   const [loading, setLoading] = useState(false);
+  const [loadError, setLoadError] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
   const [page, setPage] = useState(0);
   const [hasMore, setHasMore] = useState(false);
@@ -41,6 +42,7 @@ export default function ExploreTabs() {
   const fetchData = async (tab: Tab, query: string, pageIndex: number) => {
     try {
       setLoading(true);
+      setLoadError(false);
       const isQueryEmpty = query.trim().length === 0;
       setIsSearching(!isQueryEmpty);
 
@@ -51,30 +53,28 @@ export default function ExploreTabs() {
       if (tab === "users") {
         const url = `/api/users/search?q=${encodeURIComponent(query)}&${queryParams}`;
         const res = await fetch(url, { cache: "no-store" });
-        if (res.ok) {
-          const data = await res.json();
-          setUsers(pageIndex === 0 ? data : (prev) => [...prev, ...data]);
-          setHasMore(data.length === limit);
-        }
+        if (!res.ok) throw new Error(`User search failed: ${res.status}`);
+        const data = await res.json();
+        setUsers(pageIndex === 0 ? data : (prev) => [...prev, ...data]);
+        setHasMore(data.length === limit);
       } else if (tab === "albums") {
         const url = isQueryEmpty ? `/api/music?${queryParams}` : `/api/music?q=${encodeURIComponent(query)}&${queryParams}`;
         const res = await fetch(url, { cache: "no-store" });
-        if (res.ok) {
-          const data = await res.json();
-          setAlbums(pageIndex === 0 ? data : (prev) => [...prev, ...data]);
-          setHasMore(data.length === limit);
-        }
+        if (!res.ok) throw new Error(`Album search failed: ${res.status}`);
+        const data = await res.json();
+        setAlbums(pageIndex === 0 ? data : (prev) => [...prev, ...data]);
+        setHasMore(data.length === limit);
       } else if (tab === "artists") {
         const url = isQueryEmpty ? `/api/artists/search?${queryParams}` : `/api/artists/search?q=${encodeURIComponent(query)}&${queryParams}`;
         const res = await fetch(url, { cache: "no-store" });
-        if (res.ok) {
-          const data = await res.json();
-          setArtists(pageIndex === 0 ? data : (prev) => [...prev, ...data]);
-          setHasMore(data.length === limit);
-        }
+        if (!res.ok) throw new Error(`Artist search failed: ${res.status}`);
+        const data = await res.json();
+        setArtists(pageIndex === 0 ? data : (prev) => [...prev, ...data]);
+        setHasMore(data.length === limit);
       }
     } catch (e) {
       console.error(e);
+      setLoadError(true);
     } finally {
       setLoading(false);
     }
@@ -188,6 +188,10 @@ export default function ExploreTabs() {
         
         {loading ? (
           <div className="loader" style={{ margin: "40px auto" }}>{common("loading")}</div>
+        ) : loadError ? (
+          <div style={{ color: "var(--text-secondary)", marginTop: "20px" }} role="alert">
+            {common("error")} <button type="button" onClick={() => fetchData(activeTab, searchQuery, page)}>{common("retry")}</button>
+          </div>
         ) : (
           <>
             {activeTab === "users" && users.length === 0 && (

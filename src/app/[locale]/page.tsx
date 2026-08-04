@@ -86,6 +86,8 @@ export default function HomePage() {
   const [searchError, setSearchError] = useState(false);
   const [searchRetryKey, setSearchRetryKey] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [catalogError, setCatalogError] = useState(false);
+  const [catalogRetryKey, setCatalogRetryKey] = useState(0);
   const [reviewsLoading, setReviewsLoading] = useState(true);
   const [currentUser, setCurrentUser] = useState<{ id: string; username: string } | null>(null);
   const [activeFeed, setActiveFeed] = useState<"global" | "following">("global");
@@ -140,6 +142,7 @@ export default function HomePage() {
 
     const controller = new AbortController();
     setLoading(true);
+    setCatalogError(false);
 
     async function initData() {
       try {
@@ -147,6 +150,7 @@ export default function HomePage() {
           fetch("/api/music", { cache: "no-store", signal: controller.signal }),
           fetch("/api/auth/me", { cache: "no-store", signal: controller.signal }),
         ]);
+        if (!musicRes.ok) throw new Error(`Catalog request failed: ${musicRes.status}`);
         const musicData = await musicRes.json();
         if (!controller.signal.aborted) setItems(musicData);
 
@@ -155,7 +159,10 @@ export default function HomePage() {
           setCurrentUser(meData.user);
         }
       } catch (error) {
-        if (!controller.signal.aborted) console.error("Initialization error:", error);
+        if (!controller.signal.aborted) {
+          console.error("Initialization error:", error);
+          setCatalogError(true);
+        }
       } finally {
         if (!controller.signal.aborted) setLoading(false);
       }
@@ -163,7 +170,7 @@ export default function HomePage() {
 
     initData();
     return () => controller.abort();
-  }, [isSearchMode]);
+  }, [catalogRetryKey, isSearchMode]);
 
   useEffect(() => {
     if (isSearchMode) {
@@ -330,6 +337,13 @@ export default function HomePage() {
                   {t("retrySearch")}
                 </button>
               </div>
+            ) : searchResponse?.partial && !hasSearchResults ? (
+              <div className={styles.searchStatus} role="alert">
+                <span>{t("searchError")}</span>
+                <button type="button" className={styles.retryButton} onClick={() => setSearchRetryKey((key) => key + 1)}>
+                  {t("retrySearch")}
+                </button>
+              </div>
             ) : !hasSearchResults ? (
               <div className={styles.noResults}>
                 <p>{t("noSearchResults", { query: activeSearchQuery })}</p>
@@ -373,7 +387,7 @@ export default function HomePage() {
           <div className={styles.contentGrid}>
             <section className={styles.musicSection}>
               <h2 className={styles.sectionTitle}>{t("popularAlbums")}</h2>
-              {loading ? <div className={styles.loader}>{t("loadingCatalog")}</div> :
+              {loading ? <div className={styles.loader}>{t("loadingCatalog")}</div> : catalogError ? <div className={styles.searchStatus} role="alert"><span>{t("searchError")}</span><button type="button" className={styles.retryButton} onClick={() => setCatalogRetryKey((key) => key + 1)}>{t("retrySearch")}</button></div> :
                 items.length === 0 ? <div className={styles.noResults}>{t("noAlbums")}</div> :
                 <AlbumGrid items={items} />}
             </section>

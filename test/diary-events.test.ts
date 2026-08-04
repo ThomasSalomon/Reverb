@@ -203,8 +203,8 @@ test("diary rows are independent historical listening events", async (t) => {
         request("GET", "http://localhost/api/diary?username=alice"),
       );
       assert.equal(firstRead.status, 200);
-      const firstHistory = await json(firstRead);
-      const secondHistory = await json(secondRead);
+      const firstHistory = (await json(firstRead)).items;
+      const secondHistory = (await json(secondRead)).items;
       assert.deepEqual(
         firstHistory.map((entry: any) => entry.id),
         secondHistory.map((entry: any) => entry.id),
@@ -214,12 +214,11 @@ test("diary rows are independent historical listening events", async (t) => {
       for (let index = 1; index < firstHistory.length; index += 1) {
         const previous = firstHistory[index - 1];
         const current = firstHistory[index];
-        const previousKey = [previous.listenedAt, previous.createdAt, previous.id];
-        const currentKey = [current.listenedAt, current.createdAt, current.id];
+        const previousKey = [previous.listenedAt, previous.id];
+        const currentKey = [current.listenedAt, current.id];
         assert.ok(
           previousKey[0] > currentKey[0] ||
-          (previousKey[0] === currentKey[0] && previousKey[1] > currentKey[1]) ||
-          (previousKey[0] === currentKey[0] && previousKey[1] === currentKey[1] && previousKey[2] >= currentKey[2]),
+          (previousKey[0] === currentKey[0] && previousKey[1] >= currentKey[1]),
         );
       }
     });
@@ -311,6 +310,7 @@ test("diary rows are independent historical listening events", async (t) => {
         { musicItemId: "album-1", listenedAt: "2026-02-30T10:00:00.000Z", ratingValue: 4 },
         { musicItemId: "album-1", listenedAt: 1785686400000, ratingValue: 4 },
         { musicItemId: "album-1", ratingValue: 0 },
+        { musicItemId: "album-1", ratingValue: "4" },
         { musicItemId: "album-1", ratingValue: 5.25 },
         { musicItemId: "album-1", ratingValue: 6 },
         { musicItemId: "album-1", notes: { text: "invalid" } },

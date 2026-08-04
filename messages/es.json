@@ -84,7 +84,8 @@
     "playlistSaved": "¡Lista guardada en tu perfil!",
     "loginToSave": "Iniciá sesión para guardar",
     "savePlaylist": "Guardar lista",
-    "savingPlaylist": "Guardando..."
+    "savingPlaylist": "Guardando...",
+    "playlistLoadError": "No se pudo cargar la playlist."
   },
   "Explore": {
     "title": "Explorar",

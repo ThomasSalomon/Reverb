@@ -87,6 +87,7 @@ export default function UserProfilePage() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [stats, setStats] = useState<ProfileStats | null>(null);
   const [isFollowing, setIsFollowing] = useState(false);
+  const [followPending, setFollowPending] = useState(false);
   const [reviews, setReviews] = useState<any[]>([]);
 
   // Auth state
@@ -181,7 +182,7 @@ export default function UserProfilePage() {
       if (res.ok) {
         const data = await res.json();
         if (tabDataRequestIds.current.lists === requestId) {
-          setLists(data);
+          setLists(data.items || []);
         }
       }
     } catch (e) {
@@ -196,7 +197,7 @@ export default function UserProfilePage() {
       if (res.ok) {
         const data = await res.json();
         if (tabDataRequestIds.current.diary === requestId) {
-          setDiaryLogs(data);
+          setDiaryLogs(data.items || []);
         }
       }
     } catch (e) {
@@ -226,7 +227,7 @@ export default function UserProfilePage() {
       if (res.ok) {
         const data = await res.json();
         if (tabDataRequestIds.current["listen-later"] === requestId) {
-          setListenLaterItems(data);
+          setListenLaterItems(data.items || []);
         }
       }
     } catch (e) {
@@ -454,12 +455,12 @@ export default function UserProfilePage() {
       setListSearching(true);
       try {
         const res = await fetch(`/api/music?q=${encodeURIComponent(listItemQuery)}`);
-        if (res.ok) {
-          const data = await res.json();
-          setListSearchResults(data.slice(0, 5));
-        }
+        if (!res.ok) throw new Error(`Music search failed: ${res.status}`);
+        const data = await res.json();
+        setListSearchResults(data.slice(0, 5));
       } catch (e) {
         console.error(e);
+        showToast(common("connectionError"), "error");
       } finally {
         setListSearching(false);
       }
@@ -477,12 +478,12 @@ export default function UserProfilePage() {
       setDiarySearching(true);
       try {
         const res = await fetch(`/api/music?q=${encodeURIComponent(diarySearchQuery)}`);
-        if (res.ok) {
-          const data = await res.json();
-          setDiarySearchResults(data.slice(0, 5));
-        }
+        if (!res.ok) throw new Error(`Music search failed: ${res.status}`);
+        const data = await res.json();
+        setDiarySearchResults(data.slice(0, 5));
       } catch (e) {
         console.error(e);
+        showToast(common("connectionError"), "error");
       } finally {
         setDiarySearching(false);
       }
@@ -552,22 +553,26 @@ export default function UserProfilePage() {
       return;
     }
 
+    if (followPending) return;
+    setFollowPending(true);
     try {
       const method = isFollowing ? "DELETE" : "POST";
       const res = await fetch(`/api/users/${username}/follow`, { method });
       if (res.ok) {
-        setIsFollowing(!isFollowing);
-        // Optimistic stats update
+        const data = await res.json();
+        setIsFollowing(data.following);
         setStats((prev) => {
           if (!prev) return null;
           return {
             ...prev,
-            followersCount: prev.followersCount + (isFollowing ? -1 : 1)
+            followersCount: data.followersCount,
           };
         });
       }
     } catch (e) {
       console.error("Follow error:", e);
+    } finally {
+      setFollowPending(false);
     }
   };
 
@@ -666,6 +671,7 @@ export default function UserProfilePage() {
             ) : (
               <button
                 onClick={handleFollowToggle}
+                disabled={followPending}
                 className={`${styles.actionBtn} ${
                   isFollowing ? styles.unfollowBtn : styles.followBtn
                 }`}

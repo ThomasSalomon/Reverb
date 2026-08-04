@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { MusicEventService } from "@/services/music-event.service";
 import { DeezerService } from "@/services/deezer.service";
+import { DeezerError, deezerHttpError } from "@/services/deezer-http";
 
 export const dynamic = "force-dynamic";
 
@@ -19,6 +20,10 @@ export async function GET() {
 
     return NextResponse.json({ ...event, artistPicture: artist.picture_xl });
   } catch (error) {
+    if (error instanceof DeezerError) {
+      const response = deezerHttpError(error);
+      return NextResponse.json(response.body, { status: response.status, headers: response.headers });
+    }
     console.error("GET /api/events/today error:", error);
     return NextResponse.json(
       { error: "Internal Server Error" },

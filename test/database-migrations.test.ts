@@ -11,6 +11,7 @@ import { createClient } from "@libsql/client";
 const projectRoot = resolve(import.meta.dirname, "..");
 const baselineName = "00000000000000_baseline";
 const ratingMigrationName = "20260802183000_unique_current_rating";
+const commentIdempotencyMigrationName = "20260804120000_comment_idempotency";
 const baselinePath = join(
   projectRoot,
   "prisma",
@@ -96,7 +97,7 @@ async function assertDatabaseShape(url: string): Promise<void> {
     const foreignKeyProblems = await client.execute("PRAGMA foreign_key_check");
 
     assert.equal(tables.rows.length, 16);
-    assert.equal(indexes.rows.length, 19);
+    assert.equal(indexes.rows.length, 20);
     assert.deepEqual(foreignKeyProblems.rows, []);
   } finally {
     client.close();
@@ -292,6 +293,17 @@ test("el runner Turso controla orden, adopción, checksum e idempotencia", async
     const reapplyRatingMigration = runRemoteRunner(["apply", ratingMigrationName], empty.url);
     assertSucceeded(reapplyRatingMigration);
     assert.match(commandOutput(reapplyRatingMigration), /ya está aplicada/i);
+    const applyCommentMigration = runRemoteRunner(
+      ["apply", commentIdempotencyMigrationName],
+      empty.url,
+    );
+    assertSucceeded(applyCommentMigration);
+    const reapplyCommentMigration = runRemoteRunner(
+      ["apply", commentIdempotencyMigrationName],
+      empty.url,
+    );
+    assertSucceeded(reapplyCommentMigration);
+    assert.match(commandOutput(reapplyCommentMigration), /ya está aplicada/i);
     await assertDatabaseShape(empty.url);
 
     const baselineSql = await readFile(baselinePath, "utf8");
@@ -321,6 +333,11 @@ test("el runner Turso controla orden, adopción, checksum e idempotencia", async
       existing.url,
     );
     assertSucceeded(applyExistingRatingMigration);
+    const applyExistingCommentMigration = runRemoteRunner(
+      ["apply", commentIdempotencyMigrationName],
+      existing.url,
+    );
+    assertSucceeded(applyExistingCommentMigration);
     await assertRepresentativeData(
       existing.url,
       "remote-existing",
@@ -331,6 +348,10 @@ test("el runner Turso controla orden, adopción, checksum e idempotencia", async
     assertSucceeded(status);
     assert.match(commandOutput(status), new RegExp(`applied\\s+${baselineName}`));
     assert.match(commandOutput(status), new RegExp(`applied\\s+${ratingMigrationName}`));
+    assert.match(
+      commandOutput(status),
+      new RegExp(`applied\\s+${commentIdempotencyMigrationName}`),
+    );
 
     const mismatchClient = createClient({ url: existing.url });
     await mismatchClient.execute(

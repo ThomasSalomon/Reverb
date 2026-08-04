@@ -223,7 +223,18 @@ async function schemaSnapshot(client: Client): Promise<unknown> {
     });
   }
 
-  return snapshot;
+  const triggers = await client.execute(
+    "SELECT name, tbl_name, sql FROM sqlite_schema WHERE type = 'trigger' ORDER BY name",
+  );
+
+  return {
+    tables: snapshot,
+    triggers: triggers.rows.map((row) => ({
+      name: String(row.name),
+      table: String(row.tbl_name),
+      sql: String(row.sql),
+    })),
+  };
 }
 
 async function assertIntegrity(client: Client): Promise<void> {

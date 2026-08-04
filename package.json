@@ -16,11 +16,15 @@
     "db:migrate:remote:apply": "tsx scripts/turso-migrate.ts apply",
     "db:migrate:remote:adopt": "tsx scripts/turso-migrate.ts adopt",
     "db:migrate:compensation-plan": "tsx scripts/migration-compensation.ts",
-    "db:migrate:test": "tsx --test test/database-migrations.test.ts test/rating-migration.test.ts",
+    "db:migrate:test": "npm run db:migrate:test:history && npm run db:migrate:test:ratings && npm run db:migrate:test:comments",
+    "db:migrate:test:history": "tsx --test test/database-migrations.test.ts",
+    "db:migrate:test:ratings": "tsx --test test/rating-migration.test.ts",
+    "db:migrate:test:comments": "tsx --test test/comment-idempotency-migration.test.ts",
     "db:ratings:diagnose": "tsx scripts/rating-duplicates.ts",
     "test:diary": "tsx --test test/diary-events.test.ts",
     "test:ratings": "tsx --test test/rating-integrity.test.ts",
     "test:playlists": "tsx --test test/playlist-import.test.ts",
+    "test:social": "tsx --test test/social-actions.test.ts",
     "postinstall": "prisma generate"
   },
   "dependencies": {

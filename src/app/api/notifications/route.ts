@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/services/db";
 import { getAuthUser } from "@/utils/auth";
+import { descendingTemporalWhere, getPageLimit, pageResult, PaginationError, temporalCursor } from "@/utils/cursor-pagination";
 
 export async function GET(req: Request) {
   try {
@@ -10,39 +11,34 @@ export async function GET(req: Request) {
     }
 
     const { searchParams } = new URL(req.url);
-    const limit = parseInt(searchParams.get("limit") || "20", 10);
+    const limit = getPageLimit(searchParams);
+    const cursor = temporalCursor(searchParams);
     const unreadOnly = searchParams.get("unreadOnly") === "true";
 
     const whereClause: any = { userId: authUser.userId };
     if (unreadOnly) {
       whereClause.isRead = false;
     }
+    if (cursor) whereClause.OR = descendingTemporalWhere(cursor);
 
     const notifications = await prisma.notification.findMany({
       where: whereClause,
-      orderBy: { createdAt: "desc" },
-      take: limit,
-      include: {
-        user: { select: { username: true, profileImage: true, profileColor: true } }
-      }
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+      take: limit + 1,
+      select: { id: true, type: true, message: true, isRead: true, createdAt: true, sourceUserId: true, link: true, userId: true },
     });
 
-    // For source user details
-    const enrichedNotifications = await Promise.all(
-      notifications.map(async (n) => {
-        let sourceUser = null;
-        if (n.sourceUserId) {
-          sourceUser = await prisma.user.findUnique({
-            where: { id: n.sourceUserId },
-            select: { username: true, profileImage: true, profileColor: true }
-          });
-        }
-        return {
-          ...n,
-          sourceUser
-        };
-      })
-    );
+    const page = pageResult(notifications, limit, "createdAt");
+    const sourceUserIds = Array.from(new Set(page.items.map((notification) => notification.sourceUserId).filter((id): id is string => Boolean(id))));
+    const sourceUsers = sourceUserIds.length === 0 ? [] : await prisma.user.findMany({
+      where: { id: { in: sourceUserIds } },
+      select: { id: true, username: true, profileImage: true, profileColor: true },
+    });
+    const sourceUsersById = new Map(sourceUsers.map((user) => [user.id, user]));
+    const enrichedNotifications = page.items.map((notification) => ({
+      ...notification,
+      sourceUser: notification.sourceUserId ? sourceUsersById.get(notification.sourceUserId) ?? null : null,
+    }));
 
     const unreadCount = await prisma.notification.count({
       where: { userId: authUser.userId, isRead: false },
@@ -51,8 +47,12 @@ export async function GET(req: Request) {
     return NextResponse.json({
       notifications: enrichedNotifications,
       unreadCount,
+      nextCursor: page.nextCursor,
+      hasNextPage: page.hasNextPage,
+      limit: page.limit,
     });
   } catch (error) {
+    if (error instanceof PaginationError) return NextResponse.json({ error: error.message }, { status: 400 });
     console.error("GET notifications error:", error);
     return NextResponse.json(
       { error: "Error al obtener notificaciones" },

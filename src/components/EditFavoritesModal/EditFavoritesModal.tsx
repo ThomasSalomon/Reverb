@@ -77,12 +77,12 @@ export default function EditFavoritesModal({ isOpen, onClose, profile, onSave }:
       setSlotSearching(prev => ({ ...prev, 1: true }));
       try {
         const res = await fetch(`/api/music?q=${encodeURIComponent(query)}`);
-        if (res.ok) {
-          const data = await res.json();
-          setSlotSearchResults(prev => ({ ...prev, 1: data.slice(0, 20) }));
-        }
+        if (!res.ok) throw new Error(`Music search failed: ${res.status}`);
+        const data = await res.json();
+        setSlotSearchResults(prev => ({ ...prev, 1: data.slice(0, 20) }));
       } catch (e) {
         console.error(e);
+        showToast(common("connectionError"), "error");
       } finally {
         setSlotSearching(prev => ({ ...prev, 1: false }));
       }
@@ -100,12 +100,12 @@ export default function EditFavoritesModal({ isOpen, onClose, profile, onSave }:
       setSlotSearching(prev => ({ ...prev, 2: true }));
       try {
         const res = await fetch(`/api/music?q=${encodeURIComponent(query)}`);
-        if (res.ok) {
-          const data = await res.json();
-          setSlotSearchResults(prev => ({ ...prev, 2: data.slice(0, 20) }));
-        }
+        if (!res.ok) throw new Error(`Music search failed: ${res.status}`);
+        const data = await res.json();
+        setSlotSearchResults(prev => ({ ...prev, 2: data.slice(0, 20) }));
       } catch (e) {
         console.error(e);
+        showToast(common("connectionError"), "error");
       } finally {
         setSlotSearching(prev => ({ ...prev, 2: false }));
       }
@@ -123,12 +123,12 @@ export default function EditFavoritesModal({ isOpen, onClose, profile, onSave }:
       setSlotSearching(prev => ({ ...prev, 3: true }));
       try {
         const res = await fetch(`/api/music?q=${encodeURIComponent(query)}`);
-        if (res.ok) {
-          const data = await res.json();
-          setSlotSearchResults(prev => ({ ...prev, 3: data.slice(0, 20) }));
-        }
+        if (!res.ok) throw new Error(`Music search failed: ${res.status}`);
+        const data = await res.json();
+        setSlotSearchResults(prev => ({ ...prev, 3: data.slice(0, 20) }));
       } catch (e) {
         console.error(e);
+        showToast(common("connectionError"), "error");
       } finally {
         setSlotSearching(prev => ({ ...prev, 3: false }));
       }

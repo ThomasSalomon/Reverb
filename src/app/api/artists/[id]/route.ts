@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { DeezerService } from "@/services/deezer";
 import { ARTIST_DISCOGRAPHY_PAGE_SIZE } from "@/utils/artist-discography";
+import { DeezerError, deezerHttpError } from "@/services/deezer-http";
 
 function getAlbumsOffset(request: Request): number | null | "invalid" {
   const value = new URL(request.url).searchParams.get("albumsOffset");
@@ -32,7 +33,8 @@ export async function GET(
       const albumsPage = await DeezerService.getArtistAlbumsPage(
         decodedId,
         albumsOffset,
-        ARTIST_DISCOGRAPHY_PAGE_SIZE.loadMore
+        ARTIST_DISCOGRAPHY_PAGE_SIZE.loadMore,
+        req.signal,
       );
 
       return NextResponse.json({
@@ -41,7 +43,7 @@ export async function GET(
       });
     }
 
-    const artist = await DeezerService.getArtist(decodedId);
+    const artist = await DeezerService.getArtist(decodedId, req.signal);
     
     if (!artist) {
       return NextResponse.json({ error: "Artist not found" }, { status: 404 });
@@ -53,7 +55,8 @@ export async function GET(
       const albumsPage = await DeezerService.getArtistAlbumsPage(
         artistId,
         albumsOffset,
-        ARTIST_DISCOGRAPHY_PAGE_SIZE.loadMore
+        ARTIST_DISCOGRAPHY_PAGE_SIZE.loadMore,
+        req.signal,
       );
 
       return NextResponse.json({
@@ -64,9 +67,9 @@ export async function GET(
 
     // Fetch all other data in parallel for speed
     const [topTracks, albumsPage, related] = await Promise.all([
-      DeezerService.getArtistTopTracks(artistId),
-      DeezerService.getArtistAlbumsPage(artistId, 0, ARTIST_DISCOGRAPHY_PAGE_SIZE.initial),
-      DeezerService.getRelatedArtists(artistId)
+      DeezerService.getArtistTopTracks(artistId, req.signal),
+      DeezerService.getArtistAlbumsPage(artistId, 0, ARTIST_DISCOGRAPHY_PAGE_SIZE.initial, req.signal),
+      DeezerService.getRelatedArtists(artistId, req.signal)
     ]);
 
     return NextResponse.json({
@@ -77,6 +80,10 @@ export async function GET(
       related
     });
   } catch (error) {
+    if (error instanceof DeezerError) {
+      const response = deezerHttpError(error);
+      return NextResponse.json(response.body, { status: response.status, headers: response.headers });
+    }
     console.error("Error in artist API route:", error);
     return NextResponse.json(
       { error: "Failed to load artist data" },

@@ -3,6 +3,8 @@ import { cookies } from "next/headers";
 import { prisma } from "@/services/db";
 import { verifyToken } from "@/utils/auth";
 import { MusicService } from "@/services/music";
+import { parseFavoriteTrack } from "@/services/review-input";
+import { readJsonObject, rejectUnknownFields, RequestBodyError } from "@/utils/request-body";
 
 export const dynamic = "force-dynamic";
 
@@ -32,13 +34,10 @@ export async function POST(
     }
 
     // 2. Validate input
-    const { trackTitle } = await req.json();
-    if (!trackTitle || typeof trackTitle !== "string") {
-      return NextResponse.json(
-        { error: "trackTitle es requerido" },
-        { status: 400 }
-      );
-    }
+    const body = await readJsonObject(req);
+    rejectUnknownFields(body, ["trackTitle"]);
+    const trackTitle = parseFavoriteTrack(body.trackTitle);
+    if (trackTitle === null) return NextResponse.json({ error: "trackTitle es requerido" }, { status: 400 });
 
     // 3. Ensure album exists locally (imports if not)
     const musicItem = await MusicService.getItemById(musicItemId);
@@ -77,6 +76,9 @@ export async function POST(
       favoriteTrack: trackTitle,
     });
   } catch (error) {
+    if (error instanceof RequestBodyError) {
+      return NextResponse.json({ error: error.message }, { status: error.status });
+    }
     console.error("POST favorite track error:", error);
     return NextResponse.json(
       { error: "Error al guardar canción favorita" },

@@ -6,6 +6,7 @@ import {
 } from "@/services/diary";
 import { resolveAuthUser } from "@/utils/auth";
 import { diaryErrorResponse, readDiaryBody } from "./request";
+import { diaryCursor, getPageLimit, PaginationError } from "@/utils/cursor-pagination";
 
 export const dynamic = "force-dynamic";
 
@@ -31,6 +32,8 @@ export async function POST(request: Request) {
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
+    const limit = getPageLimit(searchParams);
+    const cursor = diaryCursor(searchParams);
     const username = searchParams.get("username")?.trim();
     const auth = await resolveAuthUser(request);
 
@@ -50,8 +53,9 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: "No autenticado" }, { status: 401 });
     }
 
-    return NextResponse.json(await DiaryService.listEvents(targetUserId));
+    return NextResponse.json(await DiaryService.listEvents(targetUserId, limit, cursor));
   } catch (error) {
+    if (error instanceof PaginationError) return NextResponse.json({ error: error.message }, { status: 400 });
     return diaryErrorResponse(
       error,
       "GET diary events failed",

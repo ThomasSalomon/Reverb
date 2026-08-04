@@ -69,6 +69,8 @@ model Review {
   comments    Comment[]
 
   @@index([userId, musicItemId])
+  @@index([musicItemId, createdAt, id])
+  @@index([createdAt, id])
 }
 
 model Rating {
@@ -118,6 +120,9 @@ model List {
   user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId      String
   items       ListItem[]
+
+  @@index([userId, createdAt, id])
+  @@index([isPublic, createdAt, id])
 }
 
 model ListItem {
@@ -131,11 +136,13 @@ model ListItem {
 
   @@unique([listId, musicItemId])
   @@index([listId])
+  @@index([listId, order, id])
 }
 
 model Comment {
   id        String   @id @default(uuid())
   content   String
+  operationId String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -143,7 +150,8 @@ model Comment {
   review    Review   @relation(fields: [reviewId], references: [id], onDelete: Cascade)
   reviewId  String
 
-  @@index([reviewId])
+  @@index([reviewId, createdAt, id])
+  @@unique([userId, operationId])
 }
 
 model ReviewLike {
@@ -170,6 +178,7 @@ model DiaryLog {
 
   @@index([userId, musicItemId])
   @@index([userId, listenedAt])
+  @@index([userId, listenedAt, id])
 }
 
 model ListenLater {
@@ -181,6 +190,7 @@ model ListenLater {
   musicItemId String
 
   @@unique([userId, musicItemId])
+  @@index([userId, createdAt, id])
 }
 
 model FavoriteAlbum {
@@ -208,6 +218,8 @@ model Notification {
 
   @@index([userId, isRead])
   @@index([createdAt])
+  @@index([userId, createdAt, id])
+  @@index([userId, isRead, createdAt, id])
 }
 
 model EarnedBadge {

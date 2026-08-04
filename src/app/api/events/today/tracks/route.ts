@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { MusicEventService } from "@/services/music-event.service";
 import { DeezerService } from "@/services/deezer.service";
-import { AppError } from "@/utils/errors";
+import { DeezerError, deezerHttpError } from "@/services/deezer-http";
 import { createPlaylistImportTicket } from "@/services/playlist-import";
 
 export const dynamic = "force-dynamic";
@@ -39,11 +39,9 @@ export async function GET() {
 
     return NextResponse.json({ artist, tracks, ticket });
   } catch (error) {
-    if (error instanceof AppError) {
-      return NextResponse.json(
-        { error: error.message },
-        { status: error.statusCode }
-      );
+    if (error instanceof DeezerError) {
+      const response = deezerHttpError(error);
+      return NextResponse.json(response.body, { status: response.status, headers: response.headers });
     }
     console.error("GET /api/events/today/tracks error:", error);
     return NextResponse.json(

@@ -48,7 +48,7 @@ export default function AddToListModal({ isOpen, onClose, musicItemId, username 
       const res = await fetch(`/api/lists?username=${username}`);
       if (res.ok) {
         const data = await res.json();
-        setLists(data);
+        setLists(data.items || []);
       }
     } catch (error) {
       console.error("Error fetching lists", error);

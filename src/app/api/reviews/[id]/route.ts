@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import { resolveAuthUser } from "@/utils/auth";
 import { prisma } from "@/services/db";
-import { parseRatingValue, RatingError, RatingService } from "@/services/ratings";
-import { normalizeReviewTagsForStorage } from "@/utils/review-tags";
+import { RatingService } from "@/services/ratings";
+import { isReviewInputError, parseUpdateReviewInput } from "@/services/review-input";
+import { readJsonObject } from "@/utils/request-body";
 
 export async function DELETE(
   request: Request,
@@ -84,48 +85,7 @@ export async function PATCH(
       );
     }
 
-    let body: unknown;
-    try {
-      body = await request.json();
-    } catch {
-      return NextResponse.json(
-        { error: "El cuerpo debe contener JSON válido" },
-        { status: 400 },
-      );
-    }
-    if (typeof body !== "object" || body === null || Array.isArray(body)) {
-      return NextResponse.json(
-        { error: "El cuerpo debe ser un objeto JSON" },
-        { status: 400 },
-      );
-    }
-    const { content, ratingValue, tags, favoriteTrack } = body as Record<string, unknown>;
-
-    // Validations
-    let numericRating: number | undefined = undefined;
-    if (ratingValue !== undefined) {
-      numericRating = parseRatingValue(ratingValue);
-    }
-
-    if (content !== undefined && (typeof content !== "string" || !content.trim())) {
-      return NextResponse.json(
-        { error: "El contenido de la reseña no puede estar vacío" },
-        { status: 400 }
-      );
-    }
-
-    if (
-      favoriteTrack !== undefined &&
-      favoriteTrack !== null &&
-      typeof favoriteTrack !== "string"
-    ) {
-      return NextResponse.json(
-        { error: "La canción favorita debe ser texto" },
-        { status: 400 },
-      );
-    }
-
-    const validTags = tags !== undefined ? normalizeReviewTagsForStorage(tags) : null;
+    const input = parseUpdateReviewInput(await readJsonObject(request));
 
     const musicItemId = review.musicItemId;
     const userId = user.userId;
@@ -135,21 +95,21 @@ export async function PATCH(
       const updated = await tx.review.update({
         where: { id: reviewId },
         data: {
-          content: typeof content === "string" ? content.trim() : undefined,
-          ratingValue: numericRating !== undefined ? numericRating : undefined,
-          tags: tags !== undefined ? validTags : undefined,
+          content: input.content,
+          ratingValue: input.ratingValue,
+          tags: input.tags,
         },
       });
 
-      if (numericRating !== undefined) {
+      if (input.ratingValue !== undefined) {
         await RatingService.setCurrent(
-          { userId, musicItemId, value: numericRating },
+          { userId, musicItemId, value: input.ratingValue },
           tx,
         );
       }
 
-      if (favoriteTrack !== undefined) {
-        if (favoriteTrack === null || favoriteTrack.trim() === "") {
+      if (input.favoriteTrack !== undefined) {
+        if (input.favoriteTrack === null) {
           try {
             await tx.favoriteTrack.deleteMany({
               where: {
@@ -172,14 +132,14 @@ export async function PATCH(
           if (existingFav) {
             await tx.favoriteTrack.update({
               where: { id: existingFav.id },
-              data: { trackTitle: favoriteTrack.trim() },
+              data: { trackTitle: input.favoriteTrack },
             });
           } else {
             await tx.favoriteTrack.create({
               data: {
                 userId,
                 musicItemId,
-                trackTitle: favoriteTrack.trim(),
+                trackTitle: input.favoriteTrack,
               },
             });
           }
@@ -193,12 +153,12 @@ export async function PATCH(
       success: true,
       review: {
         ...updatedReview,
-        favoriteTrack: favoriteTrack !== undefined ? (favoriteTrack || null) : undefined,
+        favoriteTrack: input.favoriteTrack,
       }
     }, { status: 200 });
 
   } catch (error) {
-    if (error instanceof RatingError) {
+    if (isReviewInputError(error)) {
       return NextResponse.json({ error: error.message }, { status: error.status });
     }
     console.error("Patch review error:", error);

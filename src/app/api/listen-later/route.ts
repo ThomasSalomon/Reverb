@@ -2,6 +2,9 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/services/db";
 import { resolveAuthUser } from "@/utils/auth";
 import { MusicService } from "@/services/music";
+import { parseMusicItemId, RatingError } from "@/services/ratings";
+import { readJsonObject, rejectUnknownFields, RequestBodyError } from "@/utils/request-body";
+import { descendingTemporalWhere, getPageLimit, pageResult, PaginationError, temporalCursor } from "@/utils/cursor-pagination";
 
 export const dynamic = "force-dynamic";
 
@@ -12,13 +15,9 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "No autenticado" }, { status: 401 });
     }
 
-    const { musicItemId } = await req.json();
-    if (!musicItemId) {
-      return NextResponse.json(
-        { error: "musicItemId es requerido" },
-        { status: 400 }
-      );
-    }
+    const body = await readJsonObject(req);
+    rejectUnknownFields(body, ["musicItemId"]);
+    const musicItemId = parseMusicItemId(body.musicItemId);
 
     // Ensure item is cached locally
     const musicItem = await MusicService.getItemById(musicItemId);
@@ -45,6 +44,9 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ message: "Álbum guardado para después" }, { status: 201 });
   } catch (error) {
+    if (error instanceof RequestBodyError || error instanceof RatingError) {
+      return NextResponse.json({ error: error.message }, { status: error.status });
+    }
     console.error("POST listen-later error:", error);
     return NextResponse.json(
       { error: "Error al registrar en la lista de deseos" },
@@ -60,12 +62,16 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: "No autenticado" }, { status: 401 });
     }
 
+    const searchParams = new URL(req.url).searchParams;
+    const limit = getPageLimit(searchParams);
+    const cursor = temporalCursor(searchParams);
     const list = await prisma.listenLater.findMany({
-      where: { userId: auth.user.userId },
-      orderBy: {
-        createdAt: "desc",
-      },
+      where: { userId: auth.user.userId, ...(cursor ? { OR: descendingTemporalWhere(cursor) } : {}) },
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+      take: limit + 1,
       select: {
+        id: true,
+        createdAt: true,
         musicItemId: true,
         musicItem: {
           select: {
@@ -78,8 +84,9 @@ export async function GET(req: Request) {
       },
     });
 
-    return NextResponse.json(list);
+    return NextResponse.json(pageResult(list, limit, "createdAt"));
   } catch (error) {
+    if (error instanceof PaginationError) return NextResponse.json({ error: error.message }, { status: 400 });
     console.error("GET listen-later logs error:", error);
     return NextResponse.json(
       { error: "Error al obtener la lista de deseos" },

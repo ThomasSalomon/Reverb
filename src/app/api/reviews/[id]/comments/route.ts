@@ -1,98 +1,68 @@
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
 import { prisma } from "@/services/db";
-import { verifyToken } from "@/utils/auth";
+import {
+  parseCreateCommentInput,
+  SocialActionError,
+  SocialActionService,
+} from "@/services/social-actions";
+import { resolveAuthUser } from "@/utils/auth";
+import { ascendingTemporalWhere, getPageLimit, pageResult, PaginationError, temporalCursor } from "@/utils/cursor-pagination";
 
 export const dynamic = "force-dynamic";
 
-async function getAuthUser() {
-  try {
-    const cookieStore = cookies();
-    const token = cookieStore.get("token")?.value;
-    if (!token) return null;
-    return await verifyToken(token);
-  } catch {
-    return null;
-  }
+function socialErrorResponse(error: SocialActionError) {
+  return NextResponse.json(
+    { error: error.message, code: error.code },
+    { status: error.status },
+  );
 }
-
 export async function POST(
   req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: { id: string } },
 ) {
   try {
-    const reviewId = params.id;
-    const authUser = await getAuthUser();
-    if (!authUser) {
-      return NextResponse.json({ error: "No autenticado" }, { status: 401 });
-    }
-
-    const { content } = await req.json();
-    if (!content || typeof content !== "string" || content.trim() === "") {
+    const auth = await resolveAuthUser(req);
+    if (!auth.ok) {
       return NextResponse.json(
-        { error: "El contenido del comentario es requerido" },
-        { status: 400 }
+        { error: "No autenticado", code: "UNAUTHENTICATED" },
+        { status: 401 },
       );
     }
 
-    const commentContent = content.trim().substring(0, 500);
-
-    const comment = await prisma.comment.create({
-      data: {
-        content: commentContent,
-        userId: authUser.userId,
-        reviewId,
-      },
-      include: {
-        user: {
-          select: {
-            username: true,
-            profileColor: true,
-            profileImage: true,
-          },
-        },
-      },
-    });
-
-    const review = await prisma.review.findUnique({
-      where: { id: reviewId },
-      select: { userId: true, musicItemId: true }
-    });
-
-    if (review && review.userId !== authUser.userId) {
-      await prisma.notification.create({
-        data: {
-          userId: review.userId,
-          sourceUserId: authUser.userId,
-          type: "NEW_COMMENT",
-          message: `${authUser.username} ha comentado en tu reseña.`,
-          link: `/albums/${review.musicItemId}`
-        }
-      });
+    let body: unknown;
+    try {
+      body = await req.json();
+    } catch {
+      throw new SocialActionError("INVALID_JSON", "El body debe contener JSON válido", 400);
     }
-
-    return NextResponse.json(comment, { status: 201 });
+    const input = parseCreateCommentInput(body);
+    const result = await SocialActionService.comment(auth.user, params.id, input);
+    return NextResponse.json(
+      { ...result.comment, changed: result.changed, commentsCount: result.commentsCount },
+      { status: result.changed ? 201 : 200 },
+    );
   } catch (error) {
+    if (error instanceof SocialActionError) return socialErrorResponse(error);
     console.error("POST comment error:", error);
     return NextResponse.json(
-      { error: "Error al agregar comentario" },
-      { status: 500 }
+      { error: "Error al agregar comentario", code: "COMMENT_FAILED" },
+      { status: 500 },
     );
   }
 }
 
 export async function GET(
   req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: { id: string } },
 ) {
   try {
-    const reviewId = params.id;
-
+    const searchParams = new URL(req.url).searchParams;
+    const limit = getPageLimit(searchParams);
+    const cursor = temporalCursor(searchParams);
     const comments = await prisma.comment.findMany({
-      where: { reviewId },
-      orderBy: {
-        createdAt: "asc",
-      },
+      where: { reviewId: params.id, ...(cursor ? { OR: ascendingTemporalWhere(cursor) } : {}) },
+      orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+      take: limit + 1,
       include: {
         user: {
           select: {
@@ -104,12 +74,13 @@ export async function GET(
       },
     });
 
-    return NextResponse.json(comments);
+    return NextResponse.json(pageResult(comments, limit, "createdAt"));
   } catch (error) {
+    if (error instanceof PaginationError) return NextResponse.json({ error: error.message }, { status: 400 });
     console.error("GET comments error:", error);
     return NextResponse.json(
       { error: "Error al obtener comentarios" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

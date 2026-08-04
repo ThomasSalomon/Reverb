@@ -1,114 +1,67 @@
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
-import { prisma } from "@/services/db";
-import { verifyToken } from "@/utils/auth";
+import {
+  SocialActionError,
+  SocialActionService,
+} from "@/services/social-actions";
+import { resolveAuthUser } from "@/utils/auth";
 
 export const dynamic = "force-dynamic";
 
-async function getAuthUser() {
-  try {
-    const cookieStore = cookies();
-    const token = cookieStore.get("token")?.value;
-    if (!token) return null;
-    return await verifyToken(token);
-  } catch {
-    return null;
-  }
+function socialErrorResponse(error: SocialActionError) {
+  return NextResponse.json(
+    { error: error.message, code: error.code },
+    { status: error.status },
+  );
 }
-
 export async function POST(
   req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: { id: string } },
 ) {
   try {
-    const reviewId = params.id;
-    const authUser = await getAuthUser();
-    if (!authUser) {
-      return NextResponse.json({ error: "No autenticado" }, { status: 401 });
-    }
-
-    // Ensure review exists
-    const review = await prisma.review.findUnique({
-      where: { id: reviewId },
-      select: { id: true, userId: true, musicItemId: true },
-    });
-
-    if (!review) {
+    const auth = await resolveAuthUser(req);
+    if (!auth.ok) {
       return NextResponse.json(
-        { error: "Reseña no encontrada" },
-        { status: 404 }
+        { error: "No autenticado", code: "UNAUTHENTICATED" },
+        { status: 401 },
       );
     }
 
-    // Create like (upsert style or create ignoring unique constraint)
-    try {
-      await prisma.reviewLike.create({
-        data: {
-          userId: authUser.userId,
-          reviewId,
-        },
-      });
-
-      if (review.userId !== authUser.userId) {
-        await prisma.notification.create({
-          data: {
-            userId: review.userId,
-            sourceUserId: authUser.userId,
-            type: "NEW_LIKE",
-            message: `${authUser.username} le ha dado like a tu reseña.`,
-            link: `/albums/${review.musicItemId}`
-          }
-        });
-      }
-    } catch (e: any) {
-      // P2002 Unique constraint failed (already liked). Ignore
-      if (e.code !== "P2002") {
-        throw e;
-      }
-    }
-
-    return NextResponse.json({ message: "Reseña gustada con éxito" });
+    const result = await SocialActionService.like(auth.user, params.id);
+    return NextResponse.json(
+      { message: "Reseña gustada con éxito", ...result },
+      { status: result.changed ? 201 : 200 },
+    );
   } catch (error) {
+    if (error instanceof SocialActionError) return socialErrorResponse(error);
     console.error("POST like error:", error);
     return NextResponse.json(
-      { error: "Error al registrar like" },
-      { status: 500 }
+      { error: "Error al registrar like", code: "LIKE_FAILED" },
+      { status: 500 },
     );
   }
 }
 
 export async function DELETE(
   req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: { id: string } },
 ) {
   try {
-    const reviewId = params.id;
-    const authUser = await getAuthUser();
-    if (!authUser) {
-      return NextResponse.json({ error: "No autenticado" }, { status: 401 });
+    const auth = await resolveAuthUser(req);
+    if (!auth.ok) {
+      return NextResponse.json(
+        { error: "No autenticado", code: "UNAUTHENTICATED" },
+        { status: 401 },
+      );
     }
 
-    try {
-      await prisma.reviewLike.delete({
-        where: {
-          userId_reviewId: {
-            userId: authUser.userId,
-            reviewId,
-          },
-        },
-      });
-    } catch (e: any) {
-      if (e.code !== "P2025") {
-        throw e;
-      }
-    }
-
-    return NextResponse.json({ message: "Like removido con éxito" });
+    const result = await SocialActionService.unlike(auth.user.userId, params.id);
+    return NextResponse.json({ message: "Like removido con éxito", ...result });
   } catch (error) {
+    if (error instanceof SocialActionError) return socialErrorResponse(error);
     console.error("DELETE like error:", error);
     return NextResponse.json(
-      { error: "Error al remover like" },
-      { status: 500 }
+      { error: "Error al remover like", code: "UNLIKE_FAILED" },
+      { status: 500 },
     );
   }
 }

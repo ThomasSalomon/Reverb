@@ -1,76 +1,44 @@
-import { AppError, NotFoundError } from "../utils/errors";
+import { deezerArray, deezerObject, DeezerError, getDeezerJson, requireDeezerId } from "./deezer-http";
 
 export interface DeezerTrack {
   id: number;
   title: string;
   preview: string;
-  artist: {
-    id: number;
-    name: string;
-  };
-  album: {
-    id: number;
-    title: string;
-    cover_xl: string;
-  };
+  artist: { id: number; name: string };
+  album: { id: number; title: string; cover_xl: string };
 }
 
-export interface DeezerArtist {
-  id: number;
-  name: string;
-  picture_xl: string;
+export interface DeezerArtist { id: number; name: string; picture_xl: string; }
+
+function asNumber(value: unknown, operation: string): number {
+  const parsed = typeof value === "number" ? value : typeof value === "string" ? Number(value) : Number.NaN;
+  if (!Number.isSafeInteger(parsed) || parsed < 0) throw new DeezerError("DEEZER_INVALID_PAYLOAD", operation, 502);
+  return parsed;
+}
+
+function asText(value: unknown, operation: string): string {
+  if (typeof value !== "string" || value.trim() === "") throw new DeezerError("DEEZER_INVALID_PAYLOAD", operation, 502);
+  return value;
 }
 
 export class DeezerService {
-  private baseUrl = "https://api.deezer.com";
-
-  async getArtist(artistId: string): Promise<DeezerArtist> {
-    try {
-      const response = await fetch(`${this.baseUrl}/artist/${artistId}`, {
-        next: { revalidate: 86400 },
-      });
-      if (!response.ok) throw new AppError("Failed to fetch artist", response.status);
-      const data = await response.json();
-      if (data.error) throw new AppError(data.error.message, 400);
-      return data;
-    } catch (error) {
-      throw new AppError("Internal error communicating with Deezer", 500);
-    }
+  async getArtist(artistId: string, signal?: AbortSignal): Promise<DeezerArtist> {
+    const operation = "event-artist";
+    const data = deezerObject(await getDeezerJson(`/artist/${requireDeezerId(artistId, operation)}`, { operation, signal, revalidate: 86_400 }), operation);
+    return { id: asNumber(data.id, operation), name: asText(data.name, operation), picture_xl: asText(data.picture_xl, operation) };
   }
 
-  async getTopTracks(artistId: string, limit: number = 20): Promise<DeezerTrack[]> {
-    try {
-      const response = await fetch(`${this.baseUrl}/artist/${artistId}/top?limit=50`, {
-        next: {
-          revalidate: 86400, // Cache for 24 hours (86400 seconds)
-        },
-      });
-
-      if (!response.ok) {
-        if (response.status === 404) {
-          throw new NotFoundError("Artist not found on Deezer");
-        }
-        throw new AppError("Failed to fetch from Deezer", response.status);
-      }
-
-      const data = await response.json();
-
-      if (data.error) {
-        throw new AppError(data.error.message, 400);
-      }
-
-      const tracks: DeezerTrack[] = data.data || [];
-      
-      // Shuffle tracks to provide a randomized playlist
-      for (let i = tracks.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [tracks[i], tracks[j]] = [tracks[j], tracks[i]];
-      }
-
-      return tracks.slice(0, limit);
-    } catch (error) {
-      if (error instanceof AppError) throw error;
-      throw new AppError("Internal error communicating with Deezer", 500);
-    }
+  async getTopTracks(artistId: string, limit = 20, signal?: AbortSignal): Promise<DeezerTrack[]> {
+    const operation = "event-top-tracks";
+    if (!Number.isSafeInteger(limit) || limit < 1 || limit > 50) throw new DeezerError("DEEZER_INVALID_INPUT", operation, 400);
+    const payload = await getDeezerJson(`/artist/${requireDeezerId(artistId, operation)}/top`, { operation, params: { limit }, signal, revalidate: 86_400 });
+    return deezerArray(deezerObject(payload, operation).data, operation).map((track) => {
+      const artist = deezerObject(track.artist, operation); const album = deezerObject(track.album, operation);
+      return {
+        id: asNumber(track.id, operation), title: asText(track.title, operation), preview: typeof track.preview === "string" ? track.preview : "",
+        artist: { id: asNumber(artist.id, operation), name: asText(artist.name, operation) },
+        album: { id: asNumber(album.id, operation), title: asText(album.title, operation), cover_xl: typeof album.cover_xl === "string" ? album.cover_xl : "" },
+      };
+    });
   }
 }

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/services/db";
 import { getAuthUser } from "@/utils/auth";
 import { hashPassword, comparePassword } from "@/utils/crypto";
+import { readJsonObject, rejectUnknownFields, RequestBodyError } from "@/utils/request-body";
 
 export async function PATCH(
   req: Request,
@@ -30,9 +31,11 @@ export async function PATCH(
       );
     }
 
-    const { currentPassword, newPassword } = await req.json();
+    const body = await readJsonObject(req);
+    rejectUnknownFields(body, ["currentPassword", "newPassword"]);
+    const { currentPassword, newPassword } = body;
 
-    if (!currentPassword || !newPassword) {
+    if (typeof currentPassword !== "string" || typeof newPassword !== "string" || !currentPassword || !newPassword) {
       return NextResponse.json(
         { error: "La contraseña actual y la nueva son requeridas" },
         { status: 400 }
@@ -63,6 +66,9 @@ export async function PATCH(
 
     return NextResponse.json({ message: "Contraseña actualizada con éxito" }, { status: 200 });
   } catch (error) {
+    if (error instanceof RequestBodyError) {
+      return NextResponse.json({ error: error.message }, { status: error.status });
+    }
     console.error("PATCH password error:", error);
     return NextResponse.json(
       { error: "Error interno al cambiar la contraseña" },

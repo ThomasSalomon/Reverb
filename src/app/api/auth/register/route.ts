@@ -3,6 +3,7 @@ import { prisma } from "@/services/db";
 import { signToken } from "@/utils/auth";
 import { hashPassword } from "@/utils/crypto";
 import { rateLimit, getIP } from "@/utils/rateLimit";
+import { readJsonObject, rejectUnknownFields, RequestBodyError } from "@/utils/request-body";
 
 export async function POST(req: Request) {
   try {
@@ -13,9 +14,11 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Demasiados registros desde esta IP. Intenta más tarde." }, { status: 429 });
     }
 
-    const { username, email, password } = await req.json();
+    const body = await readJsonObject(req);
+    rejectUnknownFields(body, ["username", "email", "password"]);
+    const { username, email, password } = body;
 
-    if (!username || !email || !password) {
+    if (typeof username !== "string" || typeof email !== "string" || typeof password !== "string" || !username || !email || !password) {
       return NextResponse.json(
         { error: "Todos los campos son obligatorios" },
         { status: 400 }
@@ -94,6 +97,9 @@ export async function POST(req: Request) {
 
     return response;
   } catch (error) {
+    if (error instanceof RequestBodyError) {
+      return NextResponse.json({ error: error.message }, { status: error.status });
+    }
     console.error("Registration error:", error);
     return NextResponse.json(
       { error: "Error interno del servidor" },

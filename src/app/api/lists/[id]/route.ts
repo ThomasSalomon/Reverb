@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { prisma } from "@/services/db";
 import { verifyToken } from "@/utils/auth";
+import { readJsonObject, rejectUnknownFields, RequestBodyError } from "@/utils/request-body";
+import { ascendingListItemWhere, getPageLimit, listItemCursor, listItemPageResult, PaginationError } from "@/utils/cursor-pagination";
 
 export const dynamic = "force-dynamic";
 
@@ -22,6 +24,9 @@ export async function GET(
 ) {
   try {
     const listId = params.id;
+    const searchParams = new URL(req.url).searchParams;
+    const limit = getPageLimit(searchParams);
+    const cursor = listItemCursor(searchParams);
     const authUser = await getAuthUser();
 
     const list = await prisma.list.findUnique({
@@ -34,9 +39,9 @@ export async function GET(
           },
         },
         items: {
-          orderBy: {
-            order: "asc",
-          },
+          where: cursor ? { OR: ascendingListItemWhere(cursor) } : undefined,
+          orderBy: [{ order: "asc" }, { id: "asc" }],
+          take: limit + 1,
           include: {
             musicItem: true,
           },
@@ -59,8 +64,10 @@ export async function GET(
       );
     }
 
-    return NextResponse.json(list);
+    const itemPage = listItemPageResult(list.items, limit);
+    return NextResponse.json({ ...list, items: itemPage.items, itemsNextCursor: itemPage.nextCursor, itemsHasNextPage: itemPage.hasNextPage, itemsLimit: itemPage.limit });
   } catch (error) {
+    if (error instanceof PaginationError) return NextResponse.json({ error: error.message }, { status: 400 });
     console.error("GET list detail error:", error);
     return NextResponse.json(
       { error: "Error al obtener detalles de la lista" },
@@ -100,26 +107,35 @@ export async function PUT(
       );
     }
 
-    const { title, description, isPublic } = await req.json();
+    const body = await readJsonObject(req);
+    rejectUnknownFields(body, ["title", "description", "isPublic"]);
+    const { title, description, isPublic } = body;
 
-    if (!title || typeof title !== "string" || title.trim() === "") {
+    if (typeof title !== "string" || title.trim() === "") {
       return NextResponse.json(
         { error: "El título de la lista es requerido" },
         { status: 400 }
       );
     }
 
+    if (title.length > 100 || (description !== undefined && description !== null && typeof description !== "string") || (typeof description === "string" && description.length > 500) || (isPublic !== undefined && typeof isPublic !== "boolean")) {
+      return NextResponse.json({ error: "Los campos de la lista no son válidos" }, { status: 400 });
+    }
+
     const updatedList = await prisma.list.update({
       where: { id: listId },
       data: {
-        title: title.trim().substring(0, 100),
-        description: description ? description.trim().substring(0, 500) : null,
+        title: title.trim(),
+        description: typeof description === "string" && description.trim() !== "" ? description.trim() : null,
         isPublic: typeof isPublic === "boolean" ? isPublic : true,
       },
     });
 
     return NextResponse.json(updatedList);
   } catch (error) {
+    if (error instanceof RequestBodyError) {
+      return NextResponse.json({ error: error.message }, { status: error.status });
+    }
     console.error("PUT list error:", error);
     return NextResponse.json(
       { error: "Error al actualizar la lista" },

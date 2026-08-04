@@ -1,352 +1,139 @@
-export interface DeezerAlbumSearchItem {
-  id: string;
-  title: string;
-  artist: string;
-  coverUrl: string;
-  releaseYear: number;
+import {
+  deezerArray,
+  deezerObject,
+  DeezerError,
+  getDeezerJson,
+  requireDeezerId,
+  requireDeezerPage,
+  requireDeezerQuery,
+} from "./deezer-http";
+
+export interface DeezerAlbumSearchItem { id: string; title: string; artist: string; coverUrl: string; releaseYear: number; }
+export interface DeezerArtistSearchItem { id: string; name: string; pictureUrl: string; }
+export interface DeezerTrack { title: string; duration: string; preview?: string; }
+export interface DeezerAlbumDetail { id: string; title: string; artist: string; coverUrl: string; releaseYear: number; tracks: DeezerTrack[]; }
+export interface DeezerArtistDetail { id: string; name: string; pictureUrl: string; pictureXlUrl: string; nb_fan: number; nb_album: number; }
+export interface DeezerArtistTopTrack { id: string; title: string; duration: string; album: { id: string; title: string }; }
+export interface DeezerRelatedArtist { id: string; name: string; pictureUrl: string; }
+export interface DeezerArtistAlbumsPage { albums: DeezerAlbumSearchItem[]; nextIndex: number | null; }
+
+const placeholder = "/covers/placeholder.png";
+const text = (value: unknown): string | null => typeof value === "string" && value.trim() ? value : null;
+const numericId = (value: unknown): string | null => (typeof value === "number" || typeof value === "string") && /^\d+$/.test(String(value)) ? String(value) : null;
+const numberOr = (value: unknown, fallback: number) => typeof value === "number" && Number.isFinite(value) ? value : fallback;
+const formatDuration = (seconds: unknown) => {
+  const value = Math.max(0, Math.floor(numberOr(seconds, 0)));
+  return `${Math.floor(value / 60)}:${String(value % 60).padStart(2, "0")}`;
+};
+const image = (item: Record<string, unknown>) => text(item.cover_medium) ?? text(item.cover) ?? text(item.picture_medium) ?? text(item.picture) ?? placeholder;
+
+function collection(payload: unknown, operation: string) {
+  const root = deezerObject(payload, operation);
+  if ("error" in root) throw new DeezerError("DEEZER_INVALID_PAYLOAD", operation, 502);
+  return deezerArray(root.data, operation);
 }
 
-export interface DeezerArtistSearchItem {
-  id: string;
-  name: string;
-  pictureUrl: string;
+function album(item: Record<string, unknown>, operation: string): DeezerAlbumSearchItem {
+  const id = numericId(item.id); const title = text(item.title);
+  const artist = deezerObject(item.artist, operation); const artistName = text(artist.name);
+  if (!id || !title || !artistName) throw new DeezerError("DEEZER_INVALID_PAYLOAD", operation, 502);
+  const release = text(item.release_date);
+  return { id, title, artist: artistName, coverUrl: image(item), releaseYear: release && /^\d{4}/.test(release) ? Number(release.slice(0, 4)) : 2000 };
 }
 
-export interface DeezerTrack {
-  title: string;
-  duration: string;
-  preview?: string;
-}
-
-export interface DeezerAlbumDetail {
-  id: string;
-  title: string;
-  artist: string;
-  coverUrl: string;
-  releaseYear: number;
-  tracks: DeezerTrack[];
-}
-
-export interface DeezerArtistDetail {
-  id: string;
-  name: string;
-  pictureUrl: string;
-  pictureXlUrl: string;
-  nb_fan: number;
-  nb_album: number;
-}
-
-export interface DeezerArtistTopTrack {
-  id: string;
-  title: string;
-  duration: string;
-  album: {
-    id: string;
-    title: string;
-  };
-}
-
-export interface DeezerRelatedArtist {
-  id: string;
-  name: string;
-  pictureUrl: string;
-}
-
-export interface DeezerArtistAlbumsPage {
-  albums: DeezerAlbumSearchItem[];
-  nextIndex: number | null;
-}
-
-function formatDuration(seconds: number): string {
-  const mins = Math.floor(seconds / 60);
-  const secs = seconds % 60;
-  return `${mins}:${secs.toString().padStart(2, "0")}`;
+function artistSummary(item: Record<string, unknown>, operation: string): DeezerArtistSearchItem {
+  const id = numericId(item.id); const name = text(item.name);
+  if (!id || !name) throw new DeezerError("DEEZER_INVALID_PAYLOAD", operation, 502);
+  return { id, name, pictureUrl: image(item) };
 }
 
 export const DeezerService = {
-  async searchAlbums(query: string, index: number = 0, limit: number = 50): Promise<DeezerAlbumSearchItem[]> {
-    if (!query || query.trim() === "") return [];
+  async searchAlbums(query: string, index = 0, limit = 50, signal?: AbortSignal): Promise<DeezerAlbumSearchItem[]> {
+    const operation = "search-albums";
+    const q = requireDeezerQuery(query, operation); const page = requireDeezerPage(index, limit, operation);
+    return collection(await getDeezerJson("/search/album", { operation, params: { q, ...page }, signal }), operation).map((item) => album(item, operation));
+  },
 
+  async getAlbumById(id: string, signal?: AbortSignal): Promise<DeezerAlbumDetail | null> {
+    const operation = "album-detail";
     try {
-      const response = await fetch(
-        `https://api.deezer.com/search/album?q=${encodeURIComponent(query)}&index=${index}&limit=${limit}`,
-        { cache: "no-store" }
-      );
-      if (!response.ok) {
-        throw new Error(`Deezer API search error: ${response.statusText}`);
-      }
-
-      const data = await response.json();
-      if (!data.data || !Array.isArray(data.data)) return [];
-
-      return data.data.map((item: any) => {
-        // Deezer doesn't return release year in generic search, we fallback to 2000 or get it on details.
-        // But some search results might have release_date or we can default to a standard placeholder.
-        return {
-          id: String(item.id),
-          title: item.title,
-          artist: item.artist?.name || "Artista Desconocido",
-          coverUrl: item.cover_medium || item.cover || "/covers/placeholder.png",
-          releaseYear: 2000, // Default for search preview
-        };
+      const payload = deezerObject(await getDeezerJson(`/album/${requireDeezerId(id, operation)}`, { operation, signal }), operation);
+      const base = album(payload, operation);
+      const tracksRoot = deezerObject(payload.tracks, operation);
+      const tracks = deezerArray(tracksRoot.data, operation).map((track) => {
+        const title = text(track.title); if (!title) throw new DeezerError("DEEZER_INVALID_PAYLOAD", operation, 502);
+        return { title, duration: formatDuration(track.duration), ...(text(track.preview) ? { preview: text(track.preview)! } : {}) };
       });
+      return { ...base, tracks };
     } catch (error) {
-      console.error("Error in DeezerService.searchAlbums:", error);
+      if (error instanceof DeezerError && error.code === "DEEZER_NOT_FOUND") return null;
       throw error;
     }
   },
 
-  async getAlbumById(id: string): Promise<DeezerAlbumDetail | null> {
-    if (!id) return null;
-
-    try {
-      const response = await fetch(`https://api.deezer.com/album/${id}`, {
-        cache: "no-store",
-      });
-      if (!response.ok) {
-        throw new Error(`Deezer API album details error: ${response.statusText}`);
-      }
-
-      const data = await response.json();
-      if (data.error) {
-        throw new Error(`Deezer API error: ${data.error.message}`);
-      }
-
-      const releaseYear = data.release_date
-        ? parseInt(data.release_date.substring(0, 4), 10)
-        : 2000;
-
-      const tracks: DeezerTrack[] =
-        data.tracks?.data?.map((track: any) => ({
-          title: track.title,
-          duration: formatDuration(track.duration || 0),
-          preview: track.preview,
-        })) || [];
-
-      return {
-        id: String(data.id),
-        title: data.title,
-        artist: data.artist?.name || "Artista Desconocido",
-        coverUrl: data.cover_medium || data.cover || "/covers/placeholder.png",
-        releaseYear,
-        tracks,
-      };
-    } catch (error) {
-      console.error("Error in DeezerService.getAlbumById:", error);
-      return null;
-    }
+  async getPopularAlbums(signal?: AbortSignal) {
+    const operation = "popular-albums";
+    return collection(await getDeezerJson("/chart/0/albums", { operation, signal }), operation).map((item) => album(item, operation));
   },
 
-  async getPopularAlbums(): Promise<DeezerAlbumSearchItem[]> {
-    try {
-      const response = await fetch("https://api.deezer.com/chart/0/albums", {
-        cache: "no-store",
-      });
-      if (!response.ok) {
-        throw new Error(`Deezer API chart error: ${response.statusText}`);
-      }
-
-      const data = await response.json();
-      if (!data.data || !Array.isArray(data.data)) return [];
-
-      return data.data.map((item: any) => ({
-        id: String(item.id),
-        title: item.title,
-        artist: item.artist?.name || "Artista Desconocido",
-        coverUrl: item.cover_medium || item.cover || "/covers/placeholder.png",
-        releaseYear: 2000,
-      }));
-    } catch (error) {
-      console.error("Error in DeezerService.getPopularAlbums:", error);
-      return [];
-    }
+  async getPopularArtists(signal?: AbortSignal) {
+    const operation = "popular-artists";
+    return collection(await getDeezerJson("/chart/0/artists", { operation, signal }), operation).map((item) => artistSummary(item, operation));
   },
 
-  async getPopularArtists(): Promise<any[]> {
-    try {
-      const response = await fetch("https://api.deezer.com/chart/0/artists", {
-        cache: "no-store",
-      });
-      if (!response.ok) {
-        throw new Error(`Deezer API chart error: ${response.statusText}`);
-      }
-
-      const data = await response.json();
-      if (!data.data || !Array.isArray(data.data)) return [];
-
-      return data.data.map((item: any) => ({
-        id: String(item.id),
-        name: item.name,
-        pictureUrl: item.picture_medium || item.picture || "/covers/placeholder.png",
-      }));
-    } catch (error) {
-      console.error("Error in DeezerService.getPopularArtists:", error);
-      return [];
-    }
+  async searchArtists(query: string, index = 0, limit = 50, signal?: AbortSignal) {
+    const operation = "search-artists";
+    const q = requireDeezerQuery(query, operation); const page = requireDeezerPage(index, limit, operation);
+    return collection(await getDeezerJson("/search/artist", { operation, params: { q, ...page }, signal }), operation).map((item) => artistSummary(item, operation));
   },
 
-  async searchArtists(query: string, index: number = 0, limit: number = 50): Promise<DeezerArtistSearchItem[]> {
-    if (!query || query.trim() === "") return [];
-
+  async getArtist(idOrName: string, signal?: AbortSignal): Promise<DeezerArtistDetail | null> {
+    const operation = "artist-detail";
+    const normalized = idOrName.trim();
+    if (!normalized || normalized.length > 200) throw new DeezerError("DEEZER_INVALID_INPUT", operation, 400);
     try {
-      const response = await fetch(`https://api.deezer.com/search/artist?q=${encodeURIComponent(query)}&index=${index}&limit=${limit}`, {
-        cache: "no-store",
-      });
-      if (!response.ok) {
-        throw new Error(`Deezer API search error: ${response.statusText}`);
-      }
-
-      const data = await response.json();
-      if (!data.data || !Array.isArray(data.data)) return [];
-
-      return data.data.map((item: any) => ({
-        id: String(item.id),
-        name: item.name,
-        pictureUrl: item.picture_medium || item.picture || "/covers/placeholder.png",
-      }));
-    } catch (error) {
-      console.error("Error in DeezerService.searchArtists:", error);
-      throw error;
-    }
-  },
-
-  async getArtist(idOrName: string): Promise<DeezerArtistDetail | null> {
-    if (!idOrName || idOrName.trim() === "") return null;
-
-    try {
-      let url = "";
-      // Check if it's a numeric ID or a name
-      if (/^\d+$/.test(idOrName)) {
-        url = `https://api.deezer.com/artist/${idOrName}`;
+      let detail: Record<string, unknown>;
+      if (/^\d+$/.test(normalized)) {
+        detail = deezerObject(await getDeezerJson(`/artist/${requireDeezerId(normalized, operation)}`, { operation, signal }), operation);
       } else {
-        url = `https://api.deezer.com/search/artist?q=${encodeURIComponent(idOrName)}&limit=1`;
+        const found = collection(await getDeezerJson("/search/artist", { operation, params: { q: requireDeezerQuery(normalized, operation), limit: 1 }, signal }), operation)[0];
+        if (!found) return null;
+        detail = deezerObject(await getDeezerJson(`/artist/${requireDeezerId(numericId(found.id) ?? "", operation)}`, { operation, signal }), operation);
       }
-
-      const response = await fetch(url, { cache: "no-store" });
-      if (!response.ok) throw new Error(`Deezer API artist error: ${response.statusText}`);
-
-      const data = await response.json();
-      if (data.error) throw new Error(`Deezer API error: ${data.error.message}`);
-
-      // If it was a search, the actual artist object is inside data.data[0]
-      const artistData = data.data && data.data.length > 0 ? data.data[0] : data;
-
-      if (!artistData.id) return null;
-
-      // If we searched by name, we might want to fetch the full artist profile to get nb_fan if it's missing from search result
-      let fullArtistData = artistData;
-      if (data.data && data.data.length > 0) {
-          const fullRes = await fetch(`https://api.deezer.com/artist/${artistData.id}`, { cache: "no-store" });
-          fullArtistData = await fullRes.json();
-      }
-
-      return {
-        id: String(fullArtistData.id),
-        name: fullArtistData.name,
-        pictureUrl: fullArtistData.picture_medium || fullArtistData.picture || "/covers/placeholder.png",
-        pictureXlUrl: fullArtistData.picture_xl || fullArtistData.picture_medium || "/covers/placeholder.png",
-        nb_fan: fullArtistData.nb_fan || 0,
-        nb_album: fullArtistData.nb_album || 0,
-      };
+      const summary = artistSummary(detail, operation);
+      return { ...summary, pictureXlUrl: text(detail.picture_xl) ?? summary.pictureUrl, nb_fan: numberOr(detail.nb_fan, 0), nb_album: numberOr(detail.nb_album, 0) };
     } catch (error) {
-      console.error("Error in DeezerService.getArtist:", error);
-      return null;
-    }
-  },
-
-  async getArtistTopTracks(artistId: string): Promise<DeezerArtistTopTrack[]> {
-    if (!artistId) return [];
-    try {
-      const response = await fetch(`https://api.deezer.com/artist/${artistId}/top?limit=5`, { cache: "no-store" });
-      if (!response.ok) throw new Error("API Error");
-      const data = await response.json();
-      if (!data.data) return [];
-      
-      return data.data.map((track: any) => ({
-        id: String(track.id),
-        title: track.title,
-        duration: formatDuration(track.duration || 0),
-        album: {
-          id: String(track.album.id),
-          title: track.album.title
-        }
-      }));
-    } catch (error) {
-      console.error("Error getting artist top tracks:", error);
-      return [];
-    }
-  },
-
-  async getArtistAlbums(artistId: string, limit: number = 50): Promise<DeezerAlbumSearchItem[]> {
-    if (!artistId) return [];
-    try {
-      const response = await fetch(`https://api.deezer.com/artist/${artistId}/albums?limit=${limit}`, { cache: "no-store" });
-      if (!response.ok) throw new Error("API Error");
-      const data = await response.json();
-      if (!data.data) return [];
-
-      return data.data.map((item: any) => ({
-        id: String(item.id),
-        title: item.title,
-        artist: item.artist?.name || "Artista Desconocido",
-        coverUrl: item.cover_medium || item.cover || "/covers/placeholder.png",
-        releaseYear: item.release_date ? parseInt(item.release_date.substring(0, 4), 10) : 2000,
-      }));
-    } catch (error) {
-      console.error("Error getting artist albums:", error);
-      return [];
-    }
-  },
-
-  async getArtistAlbumsPage(
-    artistId: string,
-    index: number,
-    limit: number
-  ): Promise<DeezerArtistAlbumsPage> {
-    if (!artistId) return { albums: [], nextIndex: null };
-
-    try {
-      const response = await fetch(
-        `https://api.deezer.com/artist/${artistId}/albums?index=${index}&limit=${limit}`,
-        { cache: "no-store" }
-      );
-      if (!response.ok) throw new Error("API Error");
-      const data = await response.json();
-      const sourceAlbums = Array.isArray(data.data) ? data.data : [];
-      const albums = sourceAlbums.map((item: any) => ({
-        id: String(item.id),
-        title: item.title,
-        artist: item.artist?.name || "Artista Desconocido",
-        coverUrl: item.cover_medium || item.cover || "/covers/placeholder.png",
-        releaseYear: item.release_date ? parseInt(item.release_date.substring(0, 4), 10) : 2000,
-      }));
-
-      return {
-        albums,
-        nextIndex: data.next && sourceAlbums.length > 0 ? index + sourceAlbums.length : null,
-      };
-    } catch (error) {
-      console.error("Error getting artist albums page:", error);
+      if (error instanceof DeezerError && error.code === "DEEZER_NOT_FOUND") return null;
       throw error;
     }
   },
 
-  async getRelatedArtists(artistId: string): Promise<DeezerRelatedArtist[]> {
-    if (!artistId) return [];
-    try {
-      const response = await fetch(`https://api.deezer.com/artist/${artistId}/related?limit=6`, { cache: "no-store" });
-      if (!response.ok) throw new Error("API Error");
-      const data = await response.json();
-      if (!data.data) return [];
+  async getArtistTopTracks(artistId: string, signal?: AbortSignal): Promise<DeezerArtistTopTrack[]> {
+    const operation = "artist-top-tracks";
+    const data = collection(await getDeezerJson(`/artist/${requireDeezerId(artistId, operation)}/top`, { operation, params: { limit: 5 }, signal }), operation);
+    return data.map((track) => {
+      const id = numericId(track.id); const title = text(track.title); const albumData = deezerObject(track.album, operation); const albumId = numericId(albumData.id); const albumTitle = text(albumData.title);
+      if (!id || !title || !albumId || !albumTitle) throw new DeezerError("DEEZER_INVALID_PAYLOAD", operation, 502);
+      return { id, title, duration: formatDuration(track.duration), album: { id: albumId, title: albumTitle } };
+    });
+  },
 
-      return data.data.map((item: any) => ({
-        id: String(item.id),
-        name: item.name,
-        pictureUrl: item.picture_medium || item.picture || "/covers/placeholder.png",
-      }));
-    } catch (error) {
-      console.error("Error getting related artists:", error);
-      return [];
-    }
-  }
+  async getArtistAlbums(artistId: string, limit = 50, signal?: AbortSignal) {
+    const operation = "artist-albums";
+    requireDeezerPage(0, limit, operation);
+    return collection(await getDeezerJson(`/artist/${requireDeezerId(artistId, operation)}/albums`, { operation, params: { limit }, signal }), operation).map((item) => album(item, operation));
+  },
+
+  async getArtistAlbumsPage(artistId: string, index: number, limit: number, signal?: AbortSignal): Promise<DeezerArtistAlbumsPage> {
+    const operation = "artist-albums-page";
+    const page = requireDeezerPage(index, limit, operation);
+    const root = deezerObject(await getDeezerJson(`/artist/${requireDeezerId(artistId, operation)}/albums`, { operation, params: page, signal }), operation);
+    const albums = deezerArray(root.data, operation).map((item) => album(item, operation));
+    return { albums, nextIndex: text(root.next) && albums.length > 0 ? index + albums.length : null };
+  },
+
+  async getRelatedArtists(artistId: string, signal?: AbortSignal) {
+    const operation = "related-artists";
+    return collection(await getDeezerJson(`/artist/${requireDeezerId(artistId, operation)}/related`, { operation, params: { limit: 6 }, signal }), operation).map((item) => artistSummary(item, operation));
+  },
 };

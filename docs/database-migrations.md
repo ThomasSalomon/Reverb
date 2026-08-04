@@ -31,7 +31,7 @@ El runner Turso:
 - requiere una URL `libsql://` y token por variables de entorno;
 - exige que `MUSICBOX_MIGRATION_CONFIRM` coincida exactamente con el host de destino para `apply` y `adopt`;
 - valida orden y SHA-256 de cada archivo;
-- compara el esquema remoto con el estado anterior esperado y ejecuta `quick_check`/`foreign_key_check` antes de mutar;
+- compara el esquema remoto con el estado anterior esperado (tablas, columnas, FKs, índices y triggers) y ejecuta `quick_check`/`foreign_key_check` antes de mutar;
 - aplica SQL compatible y registra el checksum en una misma transacción;
 - no vuelve a aplicar una migración ya registrada con igual checksum;
 - rechaza checksums cambiados, migraciones previas faltantes y nombres remotos desconocidos;

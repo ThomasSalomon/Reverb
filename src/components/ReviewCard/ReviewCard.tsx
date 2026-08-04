@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { Link } from "@/i18n/routing";
 import RatingStars from "../RatingStars/RatingStars";
 import styles from "./ReviewCard.module.css";
@@ -79,12 +79,18 @@ const ReviewCard = React.memo(function ReviewCard({ review, showMusicDetails = f
   // Interaction states
   const [likesCount, setLikesCount] = useState(review.likesCount || 0);
   const [liked, setLiked] = useState(review.likedByUser || false);
+  const [likePending, setLikePending] = useState(false);
   const [commentsCount, setCommentsCount] = useState(review.commentsCount || 0);
   
   const [commentsOpen, setCommentsOpen] = useState(false);
   const [comments, setComments] = useState<any[]>([]);
   const [newCommentText, setNewCommentText] = useState("");
+  const [postingComment, setPostingComment] = useState(false);
+  const commentRequestInFlightRef = useRef(false);
+  const pendingCommentOperationRef = useRef<{ id: string; content: string } | null>(null);
   const [loadingComments, setLoadingComments] = useState(false);
+  const [commentsNextCursor, setCommentsNextCursor] = useState<string | null>(null);
+  const [hasMoreComments, setHasMoreComments] = useState(false);
   const [currentUser, setCurrentUser] = useState<{ userId: string; username: string } | null>(null);
   const [commentToDelete, setCommentToDelete] = useState<string | null>(null);
   const [reviewToDelete, setReviewToDelete] = useState<string | null>(null);
@@ -149,27 +155,34 @@ const ReviewCard = React.memo(function ReviewCard({ review, showMusicDetails = f
       return;
     }
 
+    if (likePending) return;
+    setLikePending(true);
     try {
       const method = liked ? "DELETE" : "POST";
       const res = await fetch(`/api/reviews/${review.id}/like`, { method });
       if (res.ok) {
-        setLiked(!liked);
-        setLikesCount(likesCount + (liked ? -1 : 1));
+        const data = await res.json();
+        setLiked(data.liked);
+        setLikesCount(data.likesCount);
       }
     } catch (error) {
       console.error("Like toggle error:", error);
+    } finally {
+      setLikePending(false);
     }
   };
 
   // Fetch comments list
-  const fetchComments = useCallback(async () => {
+  const fetchComments = useCallback(async (cursor?: string | null, append = false) => {
     try {
       setLoadingComments(true);
-      const res = await fetch(`/api/reviews/${review.id}/comments`, { cache: "no-store" });
+      const query = cursor ? `?cursor=${encodeURIComponent(cursor)}` : "";
+      const res = await fetch(`/api/reviews/${review.id}/comments${query}`, { cache: "no-store" });
       if (res.ok) {
         const data = await res.json();
-        setComments(data);
-        setCommentsCount(data.length);
+        setComments((previous) => append ? [...previous, ...data.items] : data.items);
+        setCommentsNextCursor(data.nextCursor);
+        setHasMoreComments(data.hasNextPage);
       }
     } catch (error) {
       console.error("Fetch comments error:", error);
@@ -181,30 +194,48 @@ const ReviewCard = React.memo(function ReviewCard({ review, showMusicDetails = f
   // Open comments side tray
   const handleOpenComments = () => {
     setCommentsOpen(true);
-    fetchComments();
+    fetchComments(null, false);
   };
 
   // Submit comment
   const handlePostComment = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newCommentText.trim()) return;
+    const content = newCommentText.trim();
+    if (!content || commentRequestInFlightRef.current) return;
+
+    if (!pendingCommentOperationRef.current?.id || pendingCommentOperationRef.current.content !== content) {
+      pendingCommentOperationRef.current = {
+        id: crypto.randomUUID(),
+        content,
+      };
+    }
+    const operationId = pendingCommentOperationRef.current.id;
+    commentRequestInFlightRef.current = true;
+    setPostingComment(true);
 
     try {
       const res = await fetch(`/api/reviews/${review.id}/comments`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content: newCommentText }),
+        body: JSON.stringify({ content, operationId }),
       });
 
       if (res.ok) {
+        const data = await res.json();
+        pendingCommentOperationRef.current = null;
         setNewCommentText("");
+        setCommentsCount(data.commentsCount);
         await fetchComments();
       } else {
-        const data = await res.json();
+        if (res.status < 500) pendingCommentOperationRef.current = null;
         showToast(t("postCommentError"), "error");
       }
     } catch (error) {
       console.error("Post comment error:", error);
+      showToast(t("postCommentError"), "error");
+    } finally {
+      commentRequestInFlightRef.current = false;
+      setPostingComment(false);
     }
   };
 
@@ -411,6 +442,7 @@ const ReviewCard = React.memo(function ReviewCard({ review, showMusicDetails = f
         <div className={styles.actionsRow}>
           <button 
             onClick={handleLikeToggle}
+            disabled={likePending}
             className={`${styles.actionBtn} ${liked ? styles.liked : ""}`}
             style={liked ? { "--profile-theme-color": themeColor } as React.CSSProperties : undefined}
           >
@@ -499,6 +531,11 @@ const ReviewCard = React.memo(function ReviewCard({ review, showMusicDetails = f
                   {t("commentsEmpty")}
                 </div>
               )}
+              {hasMoreComments && (
+                <button type="button" className={styles.actionBtn} onClick={() => fetchComments(commentsNextCursor, true)} disabled={loadingComments}>
+                  Cargar más comentarios
+                </button>
+              )}
             </div>
 
             {/* Comment Form */}
@@ -516,7 +553,7 @@ const ReviewCard = React.memo(function ReviewCard({ review, showMusicDetails = f
                   <span style={{ fontSize: "0.75rem", color: "var(--text-secondary)" }}>
                     {newCommentText.length}/300
                   </span>
-                  <Button type="submit" variant="neon" size="compact">
+                  <Button type="submit" variant="neon" size="compact" disabled={postingComment}>
                     {t("postComment")}
                   </Button>
                 </div>

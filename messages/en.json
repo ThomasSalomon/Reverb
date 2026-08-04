@@ -84,7 +84,8 @@
     "playlistSaved": "List saved to your profile!",
     "loginToSave": "Log in to save",
     "savePlaylist": "Save list",
-    "savingPlaylist": "Saving..."
+    "savingPlaylist": "Saving...",
+    "playlistLoadError": "The playlist could not be loaded."
   },
   "Explore": {
     "title": "Explore",
