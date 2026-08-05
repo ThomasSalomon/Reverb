@@ -175,7 +175,7 @@ npm run db:migrate:test
 La suite usa archivos temporales y fuerza las variables Turso a valores locales controlados. Verifica:
 
 - despliegue desde cero, estado sin pendientes y ausencia de drift contra Prisma;
-- 16 tablas, 19 índices y `foreign_key_check` limpio;
+- 17 tablas, 31 índices y `foreign_key_check` limpio tras aplicar todo el historial actual;
 - lectura/escritura mediante Prisma;
 - preservación de múltiples `Rating` y `DiaryLog` para el mismo usuario/ítem;
 - adopción local con `migrate resolve` sin ejecutar el baseline;

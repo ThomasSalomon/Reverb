@@ -33,11 +33,11 @@ test("persistent navigation receives its authentication state from the server co
 
 test("the login response keeps the session token in a strict HttpOnly cookie", () => {
   const loginRoute = read("src/app/api/auth/login/route.ts");
+  const auth = read("src/utils/auth.ts");
 
-  assert.match(loginRoute, /response\.cookies\.set\("token", token, \{/);
-  assert.match(loginRoute, /httpOnly:\s*true/);
-  assert.match(loginRoute, /sameSite:\s*"strict"/);
-  assert.match(loginRoute, /path:\s*"\/"/);
+  assert.match(loginRoute, /setAuthCookie\(response, token\)/);
+  assert.match(auth, /httpOnly:\s*true/);
+  assert.match(auth, /sameSite:\s*"strict"/);
+  assert.match(auth, /path:\s*"\/"/);
   assert.doesNotMatch(loginRoute, /token:\s*token/);
 });
-

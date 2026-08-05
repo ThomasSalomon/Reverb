@@ -60,6 +60,9 @@ async function setup(): Promise<Context> {
     "utf8",
   );
   await seedClient.executeMultiple(`PRAGMA foreign_keys = ON;\n${baseline}`);
+  await seedClient.executeMultiple(
+    await readFile(resolve("prisma/migrations/20260804140000_revocable_sessions/migration.sql"), "utf8"),
+  );
 
   for (const user of [USER_A, USER_B, USER_C, USER_D]) {
     await seedClient.execute({
@@ -340,17 +343,17 @@ test("diary rows are independent historical listening events", async (t) => {
       const originalConsoleError = console.error;
       globalThis.fetch = async () => new Response(
         JSON.stringify({ error: { message: "missing" } }),
-        { status: 200, headers: { "content-type": "application/json" } },
+        { status: 404, headers: { "content-type": "application/json" } },
       );
       console.error = () => undefined;
       try {
         const missing = await context.post(
           request("POST", "http://localhost/api/diary", tokens.bob, {
-            musicItemId: "missing-catalog-item",
+            musicItemId: "999999999",
             ratingValue: 4,
           }),
         );
-        assert.equal(missing.status, 404);
+        assert.equal(missing.status, 404, await missing.text());
       } finally {
         globalThis.fetch = originalFetch;
         console.error = originalConsoleError;

@@ -62,12 +62,23 @@ async function setup(): Promise<TestContext> {
       "username" TEXT NOT NULL UNIQUE,
       "email" TEXT NOT NULL UNIQUE,
       "password" TEXT NOT NULL,
+      "credentialsVersion" INTEGER NOT NULL DEFAULT 0,
       "bio" TEXT,
       "favoriteGenre" TEXT,
       "profileImage" TEXT,
       "profileColor" TEXT DEFAULT 'emerald',
       "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
       "updatedAt" DATETIME NOT NULL
+    );
+
+    CREATE TABLE "AuthSession" (
+      "id" TEXT NOT NULL PRIMARY KEY,
+      "userId" TEXT NOT NULL,
+      "credentialsVersion" INTEGER NOT NULL,
+      "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      "expiresAt" DATETIME NOT NULL,
+      "revokedAt" DATETIME,
+      FOREIGN KEY ("userId") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE
     );
 
     CREATE TABLE "MusicItem" (

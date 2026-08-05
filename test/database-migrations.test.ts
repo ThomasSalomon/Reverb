@@ -84,7 +84,10 @@ function assertSucceeded(result: CommandResult): void {
   assert.equal(result.status, 0, commandOutput(result));
 }
 
-async function assertDatabaseShape(url: string): Promise<void> {
+async function assertDatabaseShape(
+  url: string,
+  expected: { tables: number; indexes: number } = { tables: 17, indexes: 31 },
+): Promise<void> {
   const client = createClient({ url });
   try {
     const tables = await client.execute(
@@ -96,8 +99,8 @@ async function assertDatabaseShape(url: string): Promise<void> {
     );
     const foreignKeyProblems = await client.execute("PRAGMA foreign_key_check");
 
-    assert.equal(tables.rows.length, 16);
-    assert.equal(indexes.rows.length, 20);
+    assert.equal(tables.rows.length, expected.tables);
+    assert.equal(indexes.rows.length, expected.indexes);
     assert.deepEqual(foreignKeyProblems.rows, []);
   } finally {
     client.close();
@@ -109,18 +112,17 @@ async function writeRepresentativeData(
   suffix: string,
   withDuplicateRating: boolean,
 ): Promise<void> {
+  const seedClient = createClient({ url });
+  const userId = `user-${suffix}`;
+  const musicItemId = `album-${suffix}`;
+  await seedClient.execute({
+    sql: 'INSERT INTO "User" ("id", "username", "email", "password", "updatedAt") VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)',
+    args: [userId, `listener-${suffix}`, `${suffix}@example.test`, "not-a-real-secret"],
+  });
+  seedClient.close();
+
   const prisma = new PrismaClient({ adapter: new PrismaLibSql({ url }) });
   try {
-    const userId = `user-${suffix}`;
-    const musicItemId = `album-${suffix}`;
-    await prisma.user.create({
-      data: {
-        id: userId,
-        username: `listener-${suffix}`,
-        email: `${suffix}@example.test`,
-        password: "not-a-real-secret",
-      },
-    });
     await prisma.musicItem.create({
       data: {
         id: musicItemId,
@@ -304,7 +306,7 @@ test("el runner Turso controla orden, adopción, checksum e idempotencia", async
     );
     assertSucceeded(reapplyCommentMigration);
     assert.match(commandOutput(reapplyCommentMigration), /ya está aplicada/i);
-    await assertDatabaseShape(empty.url);
+    await assertDatabaseShape(empty.url, { tables: 16, indexes: 20 });
 
     const baselineSql = await readFile(baselinePath, "utf8");
     const client = createClient({ url: existing.url });

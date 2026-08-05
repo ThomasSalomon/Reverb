@@ -32,11 +32,7 @@ function requestFor(body: Record<string, unknown>, token?: string): Request {
   return new Request("http://localhost/api/protected", {
     method: "POST",
     headers,
-    body: JSON.stringify({
-      ...body,
-      userId: USER_B_ID,
-      username: "bob",
-    }),
+    body: JSON.stringify(body),
   });
 }
 
@@ -69,12 +65,23 @@ async function setup(): Promise<TestContext> {
       "username" TEXT NOT NULL UNIQUE,
       "email" TEXT NOT NULL UNIQUE,
       "password" TEXT NOT NULL,
+      "credentialsVersion" INTEGER NOT NULL DEFAULT 0,
       "bio" TEXT,
       "favoriteGenre" TEXT,
       "profileImage" TEXT,
       "profileColor" TEXT DEFAULT 'emerald',
       "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
       "updatedAt" DATETIME NOT NULL
+    );
+
+    CREATE TABLE "AuthSession" (
+      "id" TEXT NOT NULL PRIMARY KEY,
+      "userId" TEXT NOT NULL,
+      "credentialsVersion" INTEGER NOT NULL,
+      "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      "expiresAt" DATETIME NOT NULL,
+      "revokedAt" DATETIME,
+      FOREIGN KEY ("userId") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE
     );
 
     CREATE TABLE "MusicItem" (
@@ -174,20 +181,22 @@ test("protected review and rating handlers derive their actor from the verified 
       assert.deepEqual(invalid, { ok: false, reason: "invalid" });
 
       const expiredToken = await createSignedToken(
-        { userId: USER_A_ID, username: "alice" },
+        { userId: USER_A_ID, username: "alice", sessionId: "expired", credentialsVersion: 0 },
         TEST_SECRET,
         "1 second ago",
       );
       const expired = await context.resolveAuthUser(requestFor({}, expiredToken));
       assert.deepEqual(expired, { ok: false, reason: "expired" });
 
-      const incompleteToken = await createSignedToken({ userId: USER_A_ID });
+      const incompleteToken = await createSignedToken({ userId: USER_A_ID, sessionId: "missing-claims", credentialsVersion: 0 });
       const incomplete = await context.resolveAuthUser(requestFor({}, incompleteToken));
       assert.deepEqual(incomplete, { ok: false, reason: "invalid" });
 
       const tokenWithoutExpiration = await new SignJWT({
         userId: USER_A_ID,
         username: "alice",
+        sessionId: "without-expiration",
+        credentialsVersion: 0,
       })
         .setProtectedHeader({ alg: "HS256" })
         .setIssuedAt()
@@ -204,11 +213,11 @@ test("protected review and rating handlers derive their actor from the verified 
         context.prisma.rating.count(),
       ]);
       const invalidSignature = await createSignedToken(
-        { userId: USER_A_ID, username: "alice" },
+        { userId: USER_A_ID, username: "alice", sessionId: "bad-signature", credentialsVersion: 0 },
         "different-test-secret",
       );
       const expired = await createSignedToken(
-        { userId: USER_A_ID, username: "alice" },
+        { userId: USER_A_ID, username: "alice", sessionId: "expired-write", credentialsVersion: 0 },
         TEST_SECRET,
         "1 second ago",
       );
@@ -230,7 +239,7 @@ test("protected review and rating handlers derive their actor from the verified 
       assert.deepEqual(after, before);
     });
 
-    await t.test("a valid session for user A overrides forged identity in headers and body", async () => {
+    await t.test("a valid session for user A overrides forged identity in headers", async () => {
       const token = await context.signToken({ userId: USER_A_ID, username: "alice" });
 
       const reviewResponse = await context.postReview(

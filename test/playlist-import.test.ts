@@ -87,7 +87,7 @@ async function setup(): Promise<Context> {
 
   const client = createClient({ url: dbUrl });
   const migrationsRoot = resolve(import.meta.dirname, "..", "prisma", "migrations");
-  for (const name of ["00000000000000_baseline", "20260802183000_unique_current_rating"]) {
+  for (const name of ["00000000000000_baseline", "20260802183000_unique_current_rating", "20260804140000_revocable_sessions"]) {
     await client.executeMultiple(
       await readFile(resolve(migrationsRoot, name, "migration.sql"), "utf8"),
     );

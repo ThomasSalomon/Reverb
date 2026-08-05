@@ -52,6 +52,7 @@ async function setup(): Promise<Context> {
     "00000000000000_baseline",
     "20260802183000_unique_current_rating",
     "20260804120000_comment_idempotency",
+    "20260804140000_revocable_sessions",
   ]) {
     await client.executeMultiple(
       await readFile(resolve(migrations, name, "migration.sql"), "utf8"),

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/services/db";
-import { signToken } from "@/utils/auth";
+import { setAuthCookie, signToken } from "@/utils/auth";
 import { comparePassword } from "@/utils/crypto";
 import { rateLimit, getIP } from "@/utils/rateLimit";
 import { readJsonObject, rejectUnknownFields, RequestBodyError } from "@/utils/request-body";
@@ -55,7 +55,11 @@ export async function POST(req: Request) {
     }
 
     // Generate JWT token
-    const token = await signToken({ userId: user.id, username: user.username });
+    const token = await signToken({
+      userId: user.id,
+      username: user.username,
+      credentialsVersion: user.credentialsVersion,
+    });
 
     const response = NextResponse.json({
       message: "Inicio de sesión exitoso",
@@ -66,14 +70,7 @@ export async function POST(req: Request) {
       },
     });
 
-    // Set cookie
-    response.cookies.set("token", token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
-      maxAge: 60 * 60 * 24 * 7, // 7 days
-      path: "/",
-    });
+    setAuthCookie(response, token);
 
     return response;
   } catch (error) {

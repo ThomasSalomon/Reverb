@@ -46,6 +46,8 @@ export default function AccountSettingsModal({ isOpen, onClose, username }: Acco
         showToast(t("passwordUpdated"), "success");
         setCurrentPassword("");
         setNewPassword("");
+        router.replace("/login");
+        router.refresh();
       } else {
         showToast(t("passwordUpdateError"), "error");
       }

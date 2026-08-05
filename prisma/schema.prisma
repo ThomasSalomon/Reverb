@@ -15,6 +15,7 @@ model User {
   username            String   @unique
   email               String   @unique
   password            String   // bcrypt hash
+  credentialsVersion  Int      @default(0)
   bio                 String?
   favoriteGenre       String?
   profileImage        String?
@@ -34,6 +35,20 @@ model User {
   listenLaterList     ListenLater[]
   notifications       Notification[]
   earnedBadges        EarnedBadge[]
+  authSessions        AuthSession[]
+}
+
+model AuthSession {
+  id                 String   @id
+  userId             String
+  credentialsVersion Int
+  createdAt          DateTime @default(now())
+  expiresAt          DateTime
+  revokedAt          DateTime?
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, revokedAt])
+  @@index([expiresAt])
 }
 
 model MusicItem {
