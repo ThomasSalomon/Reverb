@@ -1,10 +1,43 @@
 # Auditoría integral del backend — Ride The Music
 
+> **Estado de remediación verificado el 2026-08-06.** El contenido detallado de cada
+> hallazgo conserva la evidencia de la auditoría original. La tabla siguiente y la
+> referencia añadida bajo cada título describen el estado actual del repositorio.
+
+## Estado actual de los hallazgos
+
+| Estado | Cantidad | Hallazgos |
+|---|---:|---|
+| ✅ Corregido y cubierto por pruebas | 13 | RTM-SEC-001, RTM-SEC-002, RTM-FUNC-003, RTM-DATA-004, RTM-SEC-005, RTM-DATA-006, RTM-FUNC-007, RTM-DATA-008, RTM-PERF-009, RTM-INT-010, RTM-OPS-011, RTM-TEST-012 y RTM-CONTRACT-015 |
+| 🟡 Parcialmente cubierto | 1 | RTM-ARCH-013 |
+| ⬜ Pendiente | 2 | RTM-CACHE-014 y RTM-DEBT-016 |
+
+**Conclusión:** se corrigieron hallazgos hasta `RTM-CONTRACT-015`, pero no de forma
+correlativa: `RTM-ARCH-013` permanece parcial y `RTM-CACHE-014` continúa pendiente.
+El último hallazgo, `RTM-DEBT-016`, también sigue pendiente.
+
+### Referencias de entregas
+
+- `eeb2271` — migraciones reproducibles, rating único, diario histórico, privacidad
+  de listen-later, autenticación en handlers e importación atómica de playlists.
+- `8279823` — acciones sociales, invariantes de datos, colecciones paginadas y
+  optimizadas, y cliente Deezer resiliente.
+- `a9a456b` — sesiones revocables en servidor.
+
+Los estados se respaldan con los archivos y pruebas indicados en cada hallazgo. No
+implican que las migraciones hayan sido aplicadas en Turso o producción.
+
 ## Hallazgos P0 y P1
 
 No se identificaron hallazgos confirmados P0 dentro del alcance revisado. Esto no garantiza ausencia de vulnerabilidades críticas.
 
 ### RTM-SEC-001 — Next.js vulnerable permite omitir middleware y falsificar identidad
+
+- **Estado actual:** ✅ **Corregido.** Next.js está en `14.2.35`; reviews y ratings
+  resuelven la identidad desde la sesión con `resolveAuthUser`, sin aceptar los
+  headers `x-user-id`/`x-user-name` como autoridad. Referencias:
+  `package.json`, `src/utils/auth.ts`, `src/app/api/reviews/route.ts`,
+  `src/app/api/ratings/route.ts` y `test/auth-route-handlers.test.ts`.
 
 - **Severidad:** P1 — Alta
 - **Categoría:** Vulnerabilidad confirmada
@@ -23,6 +56,10 @@ No se identificaron hallazgos confirmados P0 dentro del alcance revisado. Esto n
 
 ### RTM-SEC-002 — La lista privada “escuchar después” es legible por cualquier usuario
 
+- **Estado actual:** ✅ **Corregido.** La ruta exige sesión y restringe el acceso al
+  propietario. Referencias: `src/app/api/listen-later/route.ts` y
+  `test/listen-later-authorization.test.ts`.
+
 - **Severidad:** P1 — Alta
 - **Categoría:** Vulnerabilidad confirmada
 - **Confianza:** Alta
@@ -39,6 +76,11 @@ No se identificaron hallazgos confirmados P0 dentro del alcance revisado. Esto n
 - **Dependencias:** RTM-TEST-012.
 
 ### RTM-FUNC-003 — El diario sobrescribe la escucha anterior
+
+- **Estado actual:** ✅ **Corregido.** Cada escucha crea un evento independiente y
+  conserva fecha, nota y rating; las escrituras concurrentes están caracterizadas.
+  Referencias: `src/services/diary.ts`, `src/app/api/diary/route.ts`,
+  `test/diary-events.test.ts` y `docs/diary-events.md`.
 
 - **Severidad:** P1 — Alta
 - **Categoría:** Defecto confirmado
@@ -57,6 +99,12 @@ No se identificaron hallazgos confirmados P0 dentro del alcance revisado. Esto n
 
 ### RTM-DATA-004 — Ratings duplicables por carrera de concurrencia
 
+- **Estado actual:** ✅ **Corregido.** La base protege
+  `UNIQUE(userId, musicItemId)` y el servicio reconcilia escrituras concurrentes.
+  Referencias: `prisma/migrations/20260802183000_unique_current_rating/`,
+  `src/services/ratings.ts`, `test/rating-integrity.test.ts` y
+  `test/rating-migration.test.ts`.
+
 - **Severidad:** P1 — Alta
 - **Categoría:** Defecto confirmado de integridad
 - **Confianza:** Alta
@@ -72,9 +120,9 @@ No se identificaron hallazgos confirmados P0 dentro del alcance revisado. Esto n
 - **Pruebas requeridas:** Inserciones concurrentes, migración con duplicados, un único rating final y promedio correcto.
 - **Dependencias:** RTM-OPS-011. La base local pequeña no contiene duplicados actualmente.
 
-## Resumen ejecutivo
+## Resumen ejecutivo de la auditoría original (histórico)
 
-El backend tiene buenos controles locales, pero no está listo para considerarse endurecido para producción debido a cuatro hallazgos P1: bypass de autenticación, exposición de una lista privada, pérdida del historial del diario y una invariante de ratings no protegida.
+Al momento de la auditoría original, el backend tenía buenos controles locales, pero no estaba listo para considerarse endurecido para producción debido a cuatro hallazgos P1: bypass de autenticación, exposición de una lista privada, pérdida del historial del diario y una invariante de ratings no protegida. Los cuatro figuran actualmente como corregidos en la tabla de remediación.
 
 | Severidad | Cantidad |
 |---|---:|
@@ -93,9 +141,9 @@ El backend tiene buenos controles locales, pero no está listo para considerarse
 - TypeScript estricto, lint operativo y una suite rápida determinista.
 - `.env` y bases locales no están versionados.
 
-Los cinco riesgos principales son RTM-SEC-001, RTM-SEC-002, RTM-FUNC-003, RTM-DATA-004 y la ingesta no acotada/no atómica de playlists.
+Los cinco riesgos principales identificados originalmente fueron RTM-SEC-001, RTM-SEC-002, RTM-FUNC-003, RTM-DATA-004 y la ingesta no acotada/no atómica de playlists. Todos figuran actualmente como corregidos.
 
-### Evaluación general
+### Evaluación general original
 
 - **Mantenibilidad:** Media-baja; handlers extensos, 28 módulos con Prisma directo y autenticación duplicada en 14 handlers.
 - **Seguridad:** Insuficiente para producción hasta resolver los P1 y actualizar Next.js.
@@ -133,6 +181,13 @@ Esto es una corrección razonable, pero no está verificada conductualmente. El 
 
 ### RTM-SEC-005 — Las sesiones no pueden revocarse
 
+- **Estado actual:** ✅ **Corregido.** Las sesiones se persisten y pueden revocarse
+  individualmente en logout o globalmente al cambiar la contraseña; los tokens
+  legacy se rechazan. Referencias: `src/utils/auth.ts`,
+  `prisma/migrations/20260804140000_revocable_sessions/`,
+  `test/revocable-sessions.test.ts`, `test/revocable-sessions-migration.test.ts`
+  y `docs/revocable-sessions.md`.
+
 - **Severidad:** P2
 - **Categoría:** Riesgo potencial
 - **Confianza:** Alta sobre el control ausente; media sobre explotación
@@ -149,6 +204,11 @@ Esto es una corrección razonable, pero no está verificada conductualmente. El 
 - **Dependencias:** Requiere decisión de producto sobre sesiones múltiples.
 
 ### RTM-DATA-006 — Guardar playlists acepta carga no acotada y deja estados parciales
+
+- **Estado actual:** ✅ **Corregido.** La importación valida, limita, deduplica y
+  escribe playlist e ítems en una transacción. Referencias:
+  `src/services/playlist-import.ts`, `src/services/list-constraints.ts`,
+  `test/playlist-import.test.ts` y `docs/playlist-import.md`.
 
 - **Severidad:** P2
 - **Categoría:** Riesgo potencial y defecto de atomicidad
@@ -167,6 +227,13 @@ Esto es una corrección razonable, pero no está verificada conductualmente. El 
 
 ### RTM-FUNC-007 — Acciones sociales no son idempotentes ni atómicas
 
+- **Estado actual:** ✅ **Corregido.** Follow, like y comentario coordinan acción y
+  notificación en una transacción; los reintentos no duplican efectos y comentarios
+  admiten `operationId`. Referencias: `src/services/social-actions.ts`,
+  `prisma/migrations/20260804120000_comment_idempotency/`,
+  `test/social-actions.test.ts`, `test/comment-idempotency-migration.test.ts` y
+  `docs/social-actions-consistency.md`.
+
 - **Severidad:** P2
 - **Categoría:** Defecto confirmado
 - **Confianza:** Alta
@@ -184,6 +251,14 @@ Esto es una corrección razonable, pero no está verificada conductualmente. El 
 
 ### RTM-DATA-008 — Validación y constraints no protegen invariantes
 
+- **Estado actual:** ✅ **Corregido para las invariantes inventariadas.** Los DTOs
+  validan ratings, fechas, notas, reviews, tipos y slots; triggers SQLite/libSQL
+  protegen las reglas que pueden expresarse de forma fiable en persistencia.
+  Referencias: `src/services/diary.ts`, `src/services/review-input.ts`,
+  `src/services/profile-input.ts`,
+  `prisma/migrations/20260804123000_data_invariants/`,
+  `test/data-invariants-migration.test.ts` y `docs/data-invariants.md`.
+
 - **Severidad:** P2
 - **Categoría:** Riesgo de integridad
 - **Confianza:** Alta
@@ -200,6 +275,15 @@ Esto es una corrección razonable, pero no está verificada conductualmente. El 
 - **Dependencias:** RTM-OPS-011. La DB local no contiene actualmente valores inválidos.
 
 ### RTM-PERF-009 — Colecciones sin cota, N+1 y consultas que ordenan temporalmente
+
+- **Estado actual:** ✅ **Corregido en las colecciones priorizadas y medido
+  localmente.** Se incorporaron cursores/límites, proyecciones acotadas, carga
+  batched de actores de notificaciones e índices para los planes medidos.
+  Referencias: `src/utils/cursor-pagination.ts`,
+  `prisma/migrations/20260804130000_collection_query_indexes/`,
+  `scripts/perf-collections.ts`, `test/cursor-pagination.test.ts` y
+  `docs/performance-collections.md`. Las métricas de producción siguen sin
+  verificarse.
 
 - **Severidad:** P2
 - **Categoría:** Oportunidad de rendimiento
@@ -219,6 +303,11 @@ Esto es una corrección razonable, pero no está verificada conductualmente. El 
 
 ### RTM-INT-010 — Deezer carece de timeout y tiene contratos de fallo contradictorios
 
+- **Estado actual:** ✅ **Corregido.** Los clientes comparten timeout, validación,
+  límites y traducción estable de errores. Referencias: `src/services/deezer-http.ts`,
+  `src/services/deezer.ts`, `src/services/deezer.service.ts`,
+  `test/deezer-http.test.ts` y `test/deezer-routes.test.ts`.
+
 - **Severidad:** P2
 - **Categoría:** Riesgo potencial
 - **Confianza:** Alta
@@ -235,6 +324,12 @@ Esto es una corrección razonable, pero no está verificada conductualmente. El 
 - **Dependencias:** RTM-ARCH-013.
 
 ### RTM-OPS-011 — No existe historial de migraciones reproducible
+
+- **Estado actual:** ✅ **Corregido en el repositorio.** Existe baseline, historial
+  incremental, ledger/checksums para Turso, adopción, verificación y planes de
+  compensación. Referencias: `prisma/migrations/`, `scripts/turso-migrate.ts`,
+  `scripts/migration-compensation.ts`, `test/database-migrations.test.ts` y
+  `docs/database-migrations.md`. La aplicación sobre producción no fue verificada.
 
 - **Severidad:** P2
 - **Categoría:** Riesgo de datos y operación
@@ -253,6 +348,15 @@ Esto es una corrección razonable, pero no está verificada conductualmente. El 
 
 ### RTM-TEST-012 — La suite no ejerce el backend real
 
+- **Estado actual:** ✅ **Corregido para las superficies críticas remediadas.** La
+  suite invoca handlers y servicios contra SQLite/libSQL efímero y cubre auth,
+  permisos, migraciones, concurrencia, rollback e integridad. Referencias:
+  `test/auth-route-handlers.test.ts`, `test/listen-later-authorization.test.ts`,
+  `test/diary-events.test.ts`, `test/rating-integrity.test.ts`,
+  `test/playlist-import.test.ts`, `test/social-actions.test.ts` y
+  `test/database-migrations.test.ts`. El E2E en navegador continúa fuera de esta
+  cobertura.
+
 - **Severidad:** P2
 - **Categoría:** Deuda técnica
 - **Confianza:** Alta
@@ -270,6 +374,13 @@ Esto es una corrección razonable, pero no está verificada conductualmente. El 
 
 ### RTM-ARCH-013 — Autenticación, Prisma y errores están dispersos
 
+- **Estado actual:** 🟡 **Parcialmente cubierto.** La identidad se centralizó en
+  `resolveAuthUser` y los casos multiescritura principales se movieron a servicios,
+  pero numerosos handlers todavía acceden a Prisma directamente y no existe una
+  política uniforme de errores para toda la API. Referencias del avance:
+  `src/utils/auth.ts`, `src/services/diary.ts`, `src/services/ratings.ts`,
+  `src/services/playlist-import.ts` y `src/services/social-actions.ts`.
+
 - **Severidad:** P2
 - **Categoría:** Deuda técnica
 - **Confianza:** Alta
@@ -286,6 +397,11 @@ Esto es una corrección razonable, pero no está verificada conductualmente. El 
 - **Dependencias:** RTM-TEST-012.
 
 ### RTM-CACHE-014 — Stats y recap permanecen obsoletos hasta una hora
+
+- **Estado actual:** ⬜ **Pendiente.** `stats` y `recap` siguen usando
+  `unstable_cache` con `revalidate: 3600` y tags globales, sin invalidación tras las
+  escrituras relacionadas. Referencias: `src/app/api/users/[username]/stats/route.ts`
+  y `src/app/api/users/[username]/recap/route.ts`.
 
 - **Severidad:** P2
 - **Categoría:** Defecto potencial de consistencia
@@ -306,6 +422,13 @@ Esto es una corrección razonable, pero no está verificada conductualmente. El 
 
 ### RTM-CONTRACT-015 — Errores internos se presentan como estados válidos
 
+- **Estado actual:** ✅ **Corregido en los dos endpoints señalados.** `/auth/me`
+  diferencia una sesión ausente de un error interno, y música devuelve códigos de
+  proveedor/servidor en lugar de convertir fallos en colecciones vacías.
+  Referencias: `src/app/api/auth/me/route.ts`, `src/app/api/music/route.ts`,
+  `src/services/deezer-http.ts`, `test/auth-route-handlers.test.ts` y
+  `test/deezer-routes.test.ts`.
+
 - **Severidad:** P3
 - **Categoría:** Mejora de contrato/observabilidad
 - **Confianza:** Alta
@@ -322,6 +445,12 @@ Esto es una corrección razonable, pero no está verificada conductualmente. El 
 - **Dependencias:** RTM-INT-010 y RTM-ARCH-013.
 
 ### RTM-DEBT-016 — Dependencias y código sin consumidores
+
+- **Estado actual:** ⬜ **Pendiente.** `jsonwebtoken` y `@types/jsonwebtoken`
+  continúan en `package.json`; `getTodayEventOrThrow` y el método `findById` del
+  repositorio siguen sin consumidores estáticos confirmados. Referencias:
+  `package.json`, `src/services/music-event.service.ts` y
+  `src/repositories/music-event.repository.ts`.
 
 - **Severidad:** P3
 - **Categoría:** Mejora menor
@@ -408,7 +537,7 @@ No se consideran quick wins la migración de ratings, la revocación completa de
 - **Hallazgo:** RTM-DEBT-016.
 - **Criterio de finalización:** Dependencias y código muerto retirados con suite, type-check y build aprobados.
 
-## Validaciones ejecutadas
+## Validaciones ejecutadas durante la auditoría original (histórico)
 
 | Comando/check | Resultado |
 |---|---|
@@ -437,10 +566,10 @@ No se ejecutó `build` para evitar mutar el `.next` preexistente. Tampoco se eje
 - **Recuperación:** No existe evidencia de backup/restauración probada, RPO/RTO o retención.
 - **Consumidores externos:** Sólo se verificaron referencias dentro del repositorio; no hay especificación pública de API ni inventario externo.
 
-## Cierre
+## Cierre de la auditoría original (histórico)
 
-- **Confirmado:** El repositorio presenta cuatro hallazgos P1, diez P2 y dos P3 respaldados por código, configuración, base local o comandos ejecutados.
+- **Confirmado entonces:** El repositorio presentaba cuatro hallazgos P1, diez P2 y dos P3 respaldados por código, configuración, base local o comandos ejecutados. Consultar la tabla inicial para el estado vigente.
 - **Inferido:** El impacto de rendimiento y parte de los escenarios de abuso dependen del volumen y de la topología productiva no disponible.
 - **Supuestos:** No se asumieron tráfico, SLA, RPO/RTO ni contenido de producción.
-- **Estado:** Requiere cambios antes de producción, priorizando RTM-SEC-001 y RTM-SEC-002.
+- **Estado original:** Requería cambios antes de producción, priorizando RTM-SEC-001 y RTM-SEC-002; ambos figuran actualmente como corregidos.
 - **Integridad de la auditoría:** La auditoría original no modificó código ni datos. Este archivo es el único artefacto documental creado posteriormente por solicitud expresa.
