@@ -183,6 +183,22 @@ La suite usa archivos temporales y fuerza las variables Turso a valores locales 
 
 La suite no usa `dev.db`, no carga credenciales reales y no conecta con Turso.
 
+## Adopcion de un prefijo existente
+
+Cuando Turso no tiene `_musicbox_migrations` pero su esquema ya coincide exactamente con un punto posterior del historial, `adopt <migracion>` valida el esquema completo contra ese punto y registra todos los checksums desde el baseline hasta la migracion indicada. No ejecuta SQL funcional ni cambia filas de usuarios, credenciales, sesiones u otros datos.
+
+Por ejemplo, una base que coincide con `20260802183000_unique_current_rating` se adopta asi, despues de tener un backup verificable y detener escrituras:
+
+```powershell
+$env:MUSICBOX_MIGRATION_CONFIRM = "base-organizacion.turso.io"
+npm run db:migrate:remote:adopt -- 20260802183000_unique_current_rating
+Remove-Item Env:MUSICBOX_MIGRATION_CONFIRM
+```
+
+Luego se aplican las migraciones pendientes una por una. Si la comparacion estructural falla, el runner aborta antes de crear o modificar el ledger.
+
+La unica variante heredada aceptada corresponde a dos indices unicos de `Review` y `DiaryLog`. La migracion `20260802183100_legacy_unique_collection_indexes` elimina solamente esos indices y restaura los indices no unicos canonicos; no elimina ni actualiza filas. El runner permite ejecutarla solo si el resto del esquema coincide exactamente con el estado posterior a `20260802183000_unique_current_rating`.
+
 ## Referencias oficiales
 
 - [Prisma: baselining an existing database](https://www.prisma.io/docs/orm/prisma-migrate/workflows/baselining)

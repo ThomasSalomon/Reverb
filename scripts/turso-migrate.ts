@@ -8,6 +8,9 @@ import { createClient, type Client } from "@libsql/client";
 const migrationsRoot = resolve(process.cwd(), "prisma", "migrations");
 const ledgerTable = "_musicbox_migrations";
 const ignoredTables = new Set([ledgerTable, "_prisma_migrations"]);
+const legacyRatingMigrationName = "20260802183000_unique_current_rating";
+const legacyCollectionIndexReconciliationName =
+  "20260802183100_legacy_unique_collection_indexes";
 
 type Migration = {
   name: string;
@@ -264,13 +267,62 @@ async function expectedSnapshot(
   }
 }
 
+/**
+ * Two pre-ledger deployments used unique indexes for the collection lookups.
+ * This is the only accepted schema variant: every other object must still
+ * match the requested migration exactly. The following reconciliation migration
+ * removes these unintended uniqueness constraints without changing any rows.
+ */
+function matchesExpectedSnapshot(
+  expected: unknown,
+  actual: unknown,
+  allowLegacyCollectionIndexes = false,
+): boolean {
+  if (JSON.stringify(actual) === JSON.stringify(expected)) return true;
+  if (!allowLegacyCollectionIndexes || !actual || typeof actual !== "object") return false;
+
+  const normalized = structuredClone(actual) as {
+    tables?: Array<{ table?: string; indexes?: Array<{ name?: string; unique?: string | number }> }>;
+  };
+  const replacements = [
+    {
+      table: "DiaryLog",
+      legacyName: "DiaryLog_userId_musicItemId_key",
+      canonicalName: "DiaryLog_userId_musicItemId_idx",
+    },
+    {
+      table: "Review",
+      legacyName: "Review_userId_musicItemId_key",
+      canonicalName: "Review_userId_musicItemId_idx",
+    },
+  ];
+
+  for (const replacement of replacements) {
+    const table = normalized.tables?.find((candidate) => candidate.table === replacement.table);
+    const index = table?.indexes?.find((candidate) => candidate.name === replacement.legacyName);
+    if (!index || String(index.unique) !== "1") return false;
+    index.name = replacement.canonicalName;
+    index.unique = 0;
+    table?.indexes?.sort((left, right) => String(left.name).localeCompare(String(right.name)));
+  }
+
+  return JSON.stringify(normalized) === JSON.stringify(expected);
+}
+
 async function adopt(
   client: Client,
   migrations: Migration[],
   target: Migration,
 ): Promise<void> {
   const applied = await appliedMigrations(client);
-  assertOrder(migrations, target, applied);
+  const targetIndex = migrations.findIndex((migration) => migration.name === target.name);
+  // A pre-ledger database may already include consecutive migrations. Its
+  // schema is compared against the requested point before any checksum is
+  // recorded; this path does not execute functional migration SQL.
+  const adoptingUntrackedPrefix = applied.size === 0;
+  if (!adoptingUntrackedPrefix) {
+    assertOrder(migrations, target, applied);
+  }
   if (applied.get(target.name) === target.checksum) {
     console.log(`${target.name} ya estaba adoptada con el mismo checksum.`);
     return;
@@ -280,7 +332,7 @@ async function adopt(
     expectedSnapshot(migrations, target),
     schemaSnapshot(client),
   ]);
-  if (JSON.stringify(actual) !== JSON.stringify(expected)) {
+  if (!matchesExpectedSnapshot(expected, actual, target.name === legacyRatingMigrationName)) {
     throw new Error(
       "La estructura remota no equivale al historial hasta la migración indicada; no se registró nada.",
     );
@@ -294,10 +346,15 @@ async function adopt(
         '"name" TEXT NOT NULL PRIMARY KEY, "checksum" TEXT NOT NULL, ' +
         '"applied_at" TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)',
     );
-    await transaction.execute({
-      sql: `INSERT INTO "${ledgerTable}" (name, checksum) VALUES (?, ?)`,
-      args: [target.name, target.checksum],
-    });
+    const migrationsToRecord = adoptingUntrackedPrefix
+      ? migrations.slice(0, targetIndex + 1)
+      : [target];
+    for (const migration of migrationsToRecord) {
+      await transaction.execute({
+        sql: `INSERT INTO "${ledgerTable}" (name, checksum) VALUES (?, ?)`,
+        args: [migration.name, migration.checksum],
+      });
+    }
     await transaction.commit();
   } catch (error) {
     await transaction.rollback();
@@ -329,7 +386,9 @@ async function applyMigration(
   } else {
     const expected = await expectedSnapshot(migrations, migrations[targetIndex - 1]);
     const actual = await schemaSnapshot(client);
-    if (JSON.stringify(actual) !== JSON.stringify(expected)) {
+    const allowsLegacyCollectionIndexes =
+      target.name === legacyCollectionIndexReconciliationName;
+    if (!matchesExpectedSnapshot(expected, actual, allowsLegacyCollectionIndexes)) {
       throw new Error("El esquema remoto tiene drift respecto del historial aplicado; no se ejecutó nada.");
     }
   }

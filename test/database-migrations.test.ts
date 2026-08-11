@@ -373,3 +373,82 @@ test("el runner Turso controla orden, adopción, checksum e idempotencia", async
     await cleanup(existing.directory);
   }
 });
+
+test("the remote runner adopts an existing prefix without rerunning migration SQL", async () => {
+  const database = await temporaryDatabase("remote-prefix-adoption");
+  try {
+    const client = createClient({ url: database.url });
+    await client.executeMultiple(await readFile(baselinePath, "utf8"));
+    client.close();
+    await writeRepresentativeData(database.url, "remote-prefix", true);
+
+    const ratingSql = await readFile(
+      join(projectRoot, "prisma", "migrations", ratingMigrationName, "migration.sql"),
+      "utf8",
+    );
+    const migratedClient = createClient({ url: database.url });
+    await migratedClient.executeMultiple(ratingSql);
+    migratedClient.close();
+
+    const adopt = runRemoteRunner(["adopt", ratingMigrationName], database.url);
+    assertSucceeded(adopt);
+
+    const ledgerClient = createClient({ url: database.url });
+    const ledger = await ledgerClient.execute(
+      'SELECT name FROM "_musicbox_migrations" ORDER BY name',
+    );
+    ledgerClient.close();
+    assert.deepEqual(
+      ledger.rows.map((row) => String(row.name)),
+      [baselineName, ratingMigrationName],
+    );
+    await assertRepresentativeData(database.url, "remote-prefix", "rating-b-remote-prefix");
+  } finally {
+    await cleanup(database.directory);
+  }
+});
+
+test("the remote runner reconciles the known legacy collection indexes without deleting rows", async () => {
+  const database = await temporaryDatabase("remote-legacy-indexes");
+  const reconciliationName = "20260802183100_legacy_unique_collection_indexes";
+  try {
+    const client = createClient({ url: database.url });
+    await client.executeMultiple(await readFile(baselinePath, "utf8"));
+    client.close();
+    await writeRepresentativeData(database.url, "legacy-indexes", true);
+
+    const ratingSql = await readFile(
+      join(projectRoot, "prisma", "migrations", ratingMigrationName, "migration.sql"),
+      "utf8",
+    );
+    const migratedClient = createClient({ url: database.url });
+    await migratedClient.executeMultiple(ratingSql);
+    await migratedClient.execute('DROP INDEX "DiaryLog_userId_musicItemId_idx"');
+    await migratedClient.execute('DROP INDEX "Review_userId_musicItemId_idx"');
+    await migratedClient.execute(
+      'CREATE UNIQUE INDEX "DiaryLog_userId_musicItemId_key" ON "DiaryLog"("userId", "musicItemId")',
+    );
+    await migratedClient.execute(
+      'CREATE UNIQUE INDEX "Review_userId_musicItemId_key" ON "Review"("userId", "musicItemId")',
+    );
+    migratedClient.close();
+
+    assertSucceeded(runRemoteRunner(["adopt", ratingMigrationName], database.url));
+    assertSucceeded(runRemoteRunner(["apply", reconciliationName], database.url));
+
+    const verificationClient = createClient({ url: database.url });
+    const indexes = await verificationClient.execute(
+      "SELECT name FROM sqlite_schema WHERE type = 'index' AND name IN " +
+        "('DiaryLog_userId_musicItemId_idx', 'Review_userId_musicItemId_idx', " +
+        "'DiaryLog_userId_musicItemId_key', 'Review_userId_musicItemId_key') ORDER BY name",
+    );
+    verificationClient.close();
+    assert.deepEqual(
+      indexes.rows.map((row) => String(row.name)),
+      ["DiaryLog_userId_musicItemId_idx", "Review_userId_musicItemId_idx"],
+    );
+    await assertRepresentativeData(database.url, "legacy-indexes", "rating-b-legacy-indexes");
+  } finally {
+    await cleanup(database.directory);
+  }
+});
