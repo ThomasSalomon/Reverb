@@ -17,6 +17,26 @@ test("normalizes a valid empty Deezer collection without treating it as an error
   assert.deepEqual(await DeezerService.searchAlbums("empty", 0, 1), []);
 });
 
+test("uses the known artist as a fallback when Deezer artist albums omit item.artist", async () => {
+  globalThis.fetch = async () => new Response(JSON.stringify({
+    data: [{ id: 42, title: "Album without embedded artist", release_date: "2024-01-01" }],
+  }), { status: 200 });
+
+  assert.deepEqual(
+    await DeezerService.getArtistAlbumsPage("1562681", "Ariana Grande", 0, 1),
+    {
+      albums: [{
+        id: "42",
+        title: "Album without embedded artist",
+        artist: "Ariana Grande",
+        coverUrl: "/covers/placeholder.png",
+        releaseYear: 2024,
+      }],
+      nextIndex: null,
+    },
+  );
+});
+
 test("rejects out-of-range page inputs before starting a request", () => {
   let calls = 0;
   globalThis.fetch = async () => { calls += 1; return new Response("{}"); };
