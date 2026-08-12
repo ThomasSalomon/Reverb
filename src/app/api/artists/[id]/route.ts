@@ -29,20 +29,6 @@ export async function GET(
     // Decode URL param
     const decodedId = decodeURIComponent(id);
 
-    if (albumsOffset !== null && /^\d+$/.test(decodedId)) {
-      const albumsPage = await DeezerService.getArtistAlbumsPage(
-        decodedId,
-        albumsOffset,
-        ARTIST_DISCOGRAPHY_PAGE_SIZE.loadMore,
-        req.signal,
-      );
-
-      return NextResponse.json({
-        albums: albumsPage.albums,
-        nextAlbumOffset: albumsPage.nextIndex,
-      });
-    }
-
     const artist = await DeezerService.getArtist(decodedId, req.signal);
     
     if (!artist) {
@@ -54,6 +40,7 @@ export async function GET(
     if (albumsOffset !== null) {
       const albumsPage = await DeezerService.getArtistAlbumsPage(
         artistId,
+        artist.name,
         albumsOffset,
         ARTIST_DISCOGRAPHY_PAGE_SIZE.loadMore,
         req.signal,
@@ -68,7 +55,7 @@ export async function GET(
     // Fetch all other data in parallel for speed
     const [topTracks, albumsPage, related] = await Promise.all([
       DeezerService.getArtistTopTracks(artistId, req.signal),
-      DeezerService.getArtistAlbumsPage(artistId, 0, ARTIST_DISCOGRAPHY_PAGE_SIZE.initial, req.signal),
+      DeezerService.getArtistAlbumsPage(artistId, artist.name, 0, ARTIST_DISCOGRAPHY_PAGE_SIZE.initial, req.signal),
       DeezerService.getRelatedArtists(artistId, req.signal)
     ]);
 

@@ -27,7 +27,7 @@ export interface HomeSearchTiming {
 export interface HomeSearchProvider {
   searchArtists(query: string, index: number, limit: number): Promise<DeezerArtistSearchItem[]>;
   searchAlbums(query: string, index: number, limit: number): Promise<DeezerAlbumSearchItem[]>;
-  getArtistAlbums(artistId: string, limit: number): Promise<DeezerAlbumSearchItem[]>;
+  getArtistAlbums(artistId: string, artistName: string, limit: number): Promise<DeezerAlbumSearchItem[]>;
 }
 
 interface HomeSearchDependencies {
@@ -168,7 +168,7 @@ export async function searchHomeWithTiming(
   if (canExpandArtist) {
     const artistExpansionStartedAt = performance.now();
     const featuredResult = await Promise.allSettled([
-      dependencies.provider.getArtistAlbums(rankedArtists.value.id, HOME_SEARCH_LIMITS.artistAlbumCandidates),
+      dependencies.provider.getArtistAlbums(rankedArtists.value.id, rankedArtists.value.name, HOME_SEARCH_LIMITS.artistAlbumCandidates),
     ]);
     artistExpansionMs = performance.now() - artistExpansionStartedAt;
     if (featuredResult[0].status === "fulfilled") {

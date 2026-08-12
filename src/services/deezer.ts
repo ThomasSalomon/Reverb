@@ -33,9 +33,12 @@ function collection(payload: unknown, operation: string) {
   return deezerArray(root.data, operation);
 }
 
-function album(item: Record<string, unknown>, operation: string): DeezerAlbumSearchItem {
+function album(item: Record<string, unknown>, operation: string, fallbackArtistName?: string): DeezerAlbumSearchItem {
   const id = numericId(item.id); const title = text(item.title);
-  const artist = deezerObject(item.artist, operation); const artistName = text(artist.name);
+  let artistName = fallbackArtistName ?? null;
+  if (item.artist !== undefined) {
+    artistName = text(deezerObject(item.artist, operation).name) ?? artistName;
+  }
   if (!id || !title || !artistName) throw new DeezerError("DEEZER_INVALID_PAYLOAD", operation, 502);
   const release = text(item.release_date);
   return { id, title, artist: artistName, coverUrl: image(item), releaseYear: release && /^\d{4}/.test(release) ? Number(release.slice(0, 4)) : 2000 };
@@ -118,17 +121,19 @@ export const DeezerService = {
     });
   },
 
-  async getArtistAlbums(artistId: string, limit = 50, signal?: AbortSignal) {
+  async getArtistAlbums(artistId: string, artistName: string, limit = 50, signal?: AbortSignal) {
     const operation = "artist-albums";
     requireDeezerPage(0, limit, operation);
-    return collection(await getDeezerJson(`/artist/${requireDeezerId(artistId, operation)}/albums`, { operation, params: { limit }, signal }), operation).map((item) => album(item, operation));
+    const fallbackArtistName = requireDeezerQuery(artistName, operation);
+    return collection(await getDeezerJson(`/artist/${requireDeezerId(artistId, operation)}/albums`, { operation, params: { limit }, signal }), operation).map((item) => album(item, operation, fallbackArtistName));
   },
 
-  async getArtistAlbumsPage(artistId: string, index: number, limit: number, signal?: AbortSignal): Promise<DeezerArtistAlbumsPage> {
+  async getArtistAlbumsPage(artistId: string, artistName: string, index: number, limit: number, signal?: AbortSignal): Promise<DeezerArtistAlbumsPage> {
     const operation = "artist-albums-page";
     const page = requireDeezerPage(index, limit, operation);
+    const fallbackArtistName = requireDeezerQuery(artistName, operation);
     const root = deezerObject(await getDeezerJson(`/artist/${requireDeezerId(artistId, operation)}/albums`, { operation, params: page, signal }), operation);
-    const albums = deezerArray(root.data, operation).map((item) => album(item, operation));
+    const albums = deezerArray(root.data, operation).map((item) => album(item, operation, fallbackArtistName));
     return { albums, nextIndex: text(root.next) && albums.length > 0 ? index + albums.length : null };
   },
 

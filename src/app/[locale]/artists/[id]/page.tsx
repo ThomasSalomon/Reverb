@@ -25,7 +25,7 @@ export default async function ArtistPage({
       const artistId = artist.id;
       const [topTracks, albumsPage, related] = await Promise.all([
         DeezerService.getArtistTopTracks(artistId),
-        DeezerService.getArtistAlbumsPage(artistId, 0, ARTIST_DISCOGRAPHY_PAGE_SIZE.initial),
+        DeezerService.getArtistAlbumsPage(artistId, artist.name, 0, ARTIST_DISCOGRAPHY_PAGE_SIZE.initial),
         DeezerService.getRelatedArtists(artistId)
       ]);
       initialData = { artist, topTracks, albums: albumsPage.albums, nextAlbumOffset: albumsPage.nextIndex, related };

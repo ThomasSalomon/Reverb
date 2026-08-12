@@ -23,3 +23,20 @@ test("artist search rejects malformed paging before calling Deezer", async () =>
   assert.deepEqual(await response.json(), { error: "DEEZER_INVALID_INPUT" });
   assert.equal(calls, 0);
 });
+
+test("artist detail accepts album entries without an embedded artist", async () => {
+  const payloads = [
+    { id: 1562681, name: "Ariana Grande", picture_medium: "https://images.example/artist.jpg" },
+    { data: [{ id: 1, title: "Track", duration: 180, album: { id: 2, title: "Album" } }] },
+    { data: [{ id: 2, title: "Album", release_date: "2024-01-01" }] },
+    { data: [] },
+  ];
+  globalThis.fetch = async () => new Response(JSON.stringify(payloads.shift()), { status: 200 });
+
+  const { GET } = await import("../src/app/api/artists/[id]/route");
+  const response = await GET(new Request("http://localhost/api/artists/1562681"), { params: { id: "1562681" } });
+
+  assert.equal(response.status, 200);
+  const body = await response.json();
+  assert.equal(body.albums[0].artist, "Ariana Grande");
+});
