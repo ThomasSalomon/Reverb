@@ -24,16 +24,6 @@ Hemos dejado de lado el diseño recargado de texto de otras plataformas. Nuestra
 
 ---
 
-## 📸 Galería
-
-*(Nota: Reemplazar los enlaces de abajo con rutas a capturas reales de tu proyecto)*
-
-| Feed de Actividad | Detalle de Álbum (Efecto 3D) | Perfil de Usuario |
-| :---: | :---: | :---: |
-| ![Feed](https://via.placeholder.com/400x300?text=Captura+del+Feed) | ![Detalle](https://via.placeholder.com/400x300?text=Captura+del+Album) | ![Perfil](https://via.placeholder.com/400x300?text=Captura+del+Perfil) |
-
----
-
 ## 🛠️ Tech Stack
 
 Aunque el enfoque principal de la aplicación es brindar una experiencia visual inmersiva, cuenta con un backend robusto, modular y seguro.
