@@ -31,6 +31,13 @@ test("persistent navigation receives its authentication state from the server co
   assert.match(bottomNav, /const displayedUser = user\?\.id === initialUser\?\.id \? user : initialUser/);
 });
 
+test("album initialization preserves its auth state when auth/me fails", () => {
+  const album = read("src/app/[locale]/albums/[id]/AlbumDetailClient.tsx");
+
+  assert.match(album, /if \(userRes\.ok\) \{/);
+  assert.match(album, /setUser\(userData\.user \?\? null\)/);
+});
+
 test("the login response keeps the session token in a strict HttpOnly cookie", () => {
   const loginRoute = read("src/app/api/auth/login/route.ts");
   const auth = read("src/utils/auth.ts");

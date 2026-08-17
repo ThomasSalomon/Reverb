@@ -2,25 +2,20 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/services/db";
 import { unstable_cache } from "next/cache";
 import { getTopCanonicalReviewTag } from "@/utils/review-tags";
+import {
+  USER_DERIVED_CACHE_TTL_SECONDS,
+  userRecapCacheTag,
+} from "@/services/user-derived-cache";
 
 export const dynamic = "force-dynamic";
 
-const getRecapData = async (username: string, year: number) => {
+const getRecapData = async (userId: string, year: number) => {
   const startDate = new Date(`${year}-01-01T00:00:00Z`);
   const endDate = new Date(`${year + 1}-01-01T00:00:00Z`);
 
-  const user = await prisma.user.findUnique({
-    where: { username },
-    select: { id: true }
-  });
-
-  if (!user) {
-    return { error: "Usuario no encontrado", status: 404 };
-  }
-
   const reviews = await prisma.review.findMany({
     where: {
-      userId: user.id,
+      userId,
       createdAt: {
         gte: startDate,
         lt: endDate
@@ -97,20 +92,28 @@ export async function GET(
     }
 
     const year = parseInt(yearStr, 10);
-    
-    // Cache per user and year for 1 hour
+
+    const user = await prisma.user.findUnique({
+      where: { username },
+      select: { id: true },
+    });
+
+    if (!user) {
+      return NextResponse.json({ error: "Usuario no encontrado" }, { status: 404 });
+    }
+
+    // Cache per stable user ID and recap period. The tag mirrors every key dimension.
     const getCachedRecap = unstable_cache(
-      async () => getRecapData(username, year),
-      ['recap', username, year.toString()],
-      { revalidate: 3600, tags: ['recap'] }
+      async () => getRecapData(user.id, year),
+      ["user-recap", user.id, year.toString()],
+      {
+        revalidate: USER_DERIVED_CACHE_TTL_SECONDS,
+        tags: [userRecapCacheTag(user.id, year)],
+      },
     );
     
     const result = await getCachedRecap();
     
-    if (result.error) {
-      return NextResponse.json({ error: result.error }, { status: result.status });
-    }
-
     return NextResponse.json(result);
   } catch (error) {
     console.error("Recap API Error:", error);

@@ -1,24 +1,12 @@
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
 import { prisma } from "@/services/db";
-import { verifyToken } from "@/utils/auth";
-import { MusicService } from "@/services/music";
+import { getAuthUser } from "@/utils/auth";
+import { updateProfile } from "@/services/profile";
 import { parseProfileUpdate } from "@/services/profile-input";
-import { readJsonObject, RequestBodyError } from "@/utils/request-body";
+import { routeErrorResponse } from "@/utils/http-errors";
+import { readJsonObject } from "@/utils/request-body";
 
 export const dynamic = "force-dynamic";
-
-// Helper to authenticate request
-async function getAuthUser() {
-  try {
-    const cookieStore = cookies();
-    const token = cookieStore.get("token")?.value;
-    if (!token) return null;
-    return await verifyToken(token);
-  } catch {
-    return null;
-  }
-}
 
 export async function GET(
   req: Request,
@@ -76,7 +64,7 @@ export async function GET(
 
     // Check if current user is following this user
     let isFollowing = false;
-    const authUser = await getAuthUser();
+    const authUser = await getAuthUser(req);
     if (authUser && authUser.userId !== user.id) {
       const followRecord = await prisma.follow.findUnique({
         where: {
@@ -118,7 +106,7 @@ export async function PUT(
     const { username } = params;
 
     // 1. Authenticate request
-    const authUser = await getAuthUser();
+    const authUser = await getAuthUser(req);
     if (!authUser) {
       return NextResponse.json(
         { error: "No autenticado" },
@@ -136,132 +124,17 @@ export async function PUT(
 
     // 3. Validate the complete DTO before performing any write.
     const input = parseProfileUpdate(await readJsonObject(req));
-    const { bio, favoriteGenre, profileColor, profileImage, favoriteAlbums: favoriteAlbumsInput } = input;
-
-    // SEC-07: Validation & length constraints
-    if (bio && bio.length > 500) {
-      return NextResponse.json(
-        { error: "La biografía no puede superar los 500 caracteres" },
-        { status: 400 }
-      );
-    }
-
-    let finalProfileImage = profileImage;
-
-    // Handle base64 image uploads
-    if (profileImage && profileImage.startsWith("data:image/")) {
-      const matches = profileImage.match(/^data:([a-zA-Z0-9]+\/[a-zA-Z0-9-.+]+);base64,(.+)$/);
-      if (!matches || matches.length !== 3) {
-        return NextResponse.json(
-          { error: "Formato de imagen base64 inválido." },
-          { status: 400 }
-        );
-      }
-
-      const mimeType = matches[1];
-      
-      const allowedMimes = ["image/png", "image/jpeg", "image/jpg", "image/webp", "image/gif"];
-      if (!allowedMimes.includes(mimeType)) {
-        return NextResponse.json(
-          { error: "Tipo de archivo no permitido. Solo se permiten imágenes (PNG, JPEG, WEBP, GIF)." },
-          { status: 400 }
-        );
-      }
-
-      // Max size limit: 2MB. A base64 string length is ~1.37 times the binary size.
-      if (profileImage.length > 2.8 * 1024 * 1024) {
-        return NextResponse.json(
-          { error: "La imagen supera el límite de tamaño de 2MB." },
-          { status: 400 }
-        );
-      }
-
-      // Store the base64 string directly in the database (serverless friendly)
-      finalProfileImage = profileImage;
-    } else if (profileImage && profileImage.trim() !== "") {
-      // Validate preset image or existing custom image/base64
-      if (!profileImage.startsWith("/avatars/") && !profileImage.startsWith("/uploads/") && !profileImage.startsWith("data:image/")) {
-        return NextResponse.json(
-          { error: "Avatar inválido. Seleccione un preset o cargue una foto." },
-          { status: 400 }
-        );
-      }
-    } else if (profileImage === "") {
-      // Image cleared, will be set to null in database
-    }
-
-    // Resolve all requested albums before writing a slot, so an unknown or
-    // non-album item cannot leave an earlier slot update behind.
-    const requestedAlbums = await Promise.all(
-      (favoriteAlbumsInput ?? [])
-        .filter((item) => item.musicItemId !== null)
-        .map(async (item) => MusicService.getItemById(item.musicItemId!)),
-    );
-    if (requestedAlbums.some((item) => !item || item.type !== "ALBUM")) {
-      return NextResponse.json({ error: "Álbum no encontrado en el catálogo" }, { status: 404 });
-    }
-
-    if (favoriteAlbumsInput) {
-      for (const { slot, musicItemId } of favoriteAlbumsInput) {
-        if (musicItemId !== null) {
-          await prisma.favoriteAlbum.upsert({
-            where: { userId_slot: { userId: authUser.userId, slot } },
-            update: { musicItemId },
-            create: { userId: authUser.userId, slot, musicItemId },
-          });
-        } else {
-          await prisma.favoriteAlbum.deleteMany({
-            where: { userId: authUser.userId, slot },
-          });
-        }
-      }
-    }
-
-    // 4. Update user details in database
-    const updatedUser = await prisma.user.update({
-      where: { username },
-      data: {
-        bio: bio !== undefined ? bio : undefined,
-        favoriteGenre: favoriteGenre !== undefined ? favoriteGenre : undefined,
-        profileColor: profileColor !== undefined ? profileColor : undefined,
-        profileImage: finalProfileImage !== undefined ? (finalProfileImage.trim() === "" ? null : finalProfileImage) : undefined,
-      },
-      select: {
-        username: true,
-        bio: true,
-        favoriteGenre: true,
-        profileColor: true,
-        profileImage: true,
-        favoriteAlbums: {
-          orderBy: { slot: "asc" },
-          include: {
-            musicItem: {
-              select: {
-                id: true,
-                title: true,
-                artist: true,
-                coverUrl: true,
-                type: true,
-              },
-            },
-          },
-        },
-      },
-    });
+    const updatedUser = await updateProfile(authUser, username, input);
 
     return NextResponse.json({
       message: "Perfil actualizado con éxito",
       profile: updatedUser,
     });
   } catch (error) {
-    if (error instanceof RequestBodyError) {
-      return NextResponse.json({ error: error.message }, { status: error.status });
-    }
-    console.error("PUT user profile error:", error);
-    return NextResponse.json(
-      { error: "Error al actualizar perfil de usuario" },
-      { status: 500 }
-    );
+    return routeErrorResponse(error, {
+      operation: "PUT user profile error:",
+      fallbackMessage: "Error al actualizar perfil de usuario",
+    });
   }
 }
 
@@ -271,7 +144,7 @@ export async function DELETE(
 ) {
   try {
     const { username } = params;
-    const authUser = await getAuthUser();
+    const authUser = await getAuthUser(req);
     if (!authUser) {
       return NextResponse.json({ error: "No autenticado" }, { status: 401 });
     }

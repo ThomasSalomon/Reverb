@@ -1,5 +1,6 @@
 import type { Prisma } from "@prisma/client";
 import { prisma } from "@/services/db";
+import { AppError } from "@/utils/errors";
 
 const MIN_RATING = 0.5;
 const MAX_RATING = 5;
@@ -16,13 +17,12 @@ const currentRatingSelect = {
 
 type RatingPersistenceClient = Pick<Prisma.TransactionClient, "musicItem" | "rating">;
 
-export class RatingError extends Error {
+export class RatingError extends AppError {
   constructor(
     message: string,
-    readonly status: 400 | 404,
+    status: 400 | 404,
   ) {
-    super(message);
-    this.name = "RatingError";
+    super(message, status, status === 404 ? "MUSIC_ITEM_NOT_FOUND" : "INVALID_RATING");
   }
 }
 

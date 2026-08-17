@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
 import { prisma } from "@/services/db";
-import { verifyToken } from "@/utils/auth";
+import { getAuthUser } from "@/utils/auth";
 import { MusicService } from "@/services/music";
 import { MAX_ITEMS_PER_LIST } from "@/services/list-constraints";
 import { parseMusicItemId, RatingError } from "@/services/ratings";
@@ -9,24 +8,13 @@ import { readJsonObject, rejectUnknownFields, RequestBodyError } from "@/utils/r
 
 export const dynamic = "force-dynamic";
 
-async function getAuthUser() {
-  try {
-    const cookieStore = cookies();
-    const token = cookieStore.get("token")?.value;
-    if (!token) return null;
-    return await verifyToken(token);
-  } catch {
-    return null;
-  }
-}
-
 export async function POST(
   req: Request,
   { params }: { params: { id: string } }
 ) {
   try {
     const listId = params.id;
-    const authUser = await getAuthUser();
+    const authUser = await getAuthUser(req);
     if (!authUser) {
       return NextResponse.json({ error: "No autenticado" }, { status: 401 });
     }

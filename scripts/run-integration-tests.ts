@@ -4,12 +4,15 @@ import { resolve } from "node:path";
 const tsxCli = resolve(process.cwd(), "node_modules", "tsx", "dist", "cli.mjs");
 const groups = [
   ["test/backend-integration.test.ts"],
+  ["test/architecture-refactor.test.ts"],
+  ["test/auth-me-contract.test.ts"],
   ["test/auth-route-handlers.test.ts", "test/revocable-sessions.test.ts"],
   ["test/deezer-http.test.ts", "test/deezer-routes.test.ts"],
   ["test/diary-events.test.ts"],
   ["test/listen-later-authorization.test.ts"],
   ["test/playlist-import.test.ts"],
   ["test/rating-integrity.test.ts"],
+  ["test/user-derived-cache.test.ts"],
   ["test/social-actions.test.ts"],
 ];
 

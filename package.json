@@ -34,6 +34,7 @@
     "test:ratings": "tsx --test test/rating-integrity.test.ts",
     "test:playlists": "tsx --test test/playlist-import.test.ts",
     "test:social": "tsx --test test/social-actions.test.ts",
+    "perf:user-derived-cache": "tsx scripts/perf-user-derived-cache.ts",
     "postinstall": "prisma generate"
   },
   "dependencies": {

@@ -5,6 +5,14 @@ const originalFetch = globalThis.fetch;
 
 test.afterEach(() => { globalThis.fetch = originalFetch; });
 
+test("music search preserves a valid empty provider response", async () => {
+  globalThis.fetch = async () => new Response(JSON.stringify({ data: [] }), { status: 200 });
+  const { GET } = await import("../src/app/api/music/route");
+  const response = await GET(new Request("http://localhost/api/music?q=without-results&limit=10"));
+  assert.equal(response.status, 200);
+  assert.deepEqual(await response.json(), []);
+});
+
 test("music search maps a Deezer rate limit to a retryable non-200 response", async () => {
   globalThis.fetch = async () => new Response("{}", { status: 429, headers: { "retry-after": "7" } });
   const { GET } = await import("../src/app/api/music/route");
@@ -22,6 +30,14 @@ test("artist search rejects malformed paging before calling Deezer", async () =>
   assert.equal(response.status, 400);
   assert.deepEqual(await response.json(), { error: "DEEZER_INVALID_INPUT" });
   assert.equal(calls, 0);
+});
+
+test("music search keeps malformed provider responses distinct from an empty result", async () => {
+  globalThis.fetch = async () => new Response("not-json", { status: 200 });
+  const { GET } = await import("../src/app/api/music/route");
+  const response = await GET(new Request("http://localhost/api/music?q=metallica&limit=10"));
+  assert.equal(response.status, 502);
+  assert.deepEqual(await response.json(), { error: "DEEZER_INVALID_JSON" });
 });
 
 test("artist detail accepts album entries without an embedded artist", async () => {

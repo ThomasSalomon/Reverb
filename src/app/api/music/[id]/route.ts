@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
 import { MusicService } from "@/services/music";
-import { verifyToken } from "@/utils/auth";
+import { getAuthUser } from "@/utils/auth";
 import { prisma } from "@/services/db";
 import { descendingTemporalWhere, getPageLimit, pageResult, PaginationError, temporalCursor } from "@/utils/cursor-pagination";
 import { DeezerError, deezerHttpError } from "@/services/deezer-http";
+import { enrichReviewSummaries } from "@/services/reviews";
 
 export async function GET(
   req: Request,
@@ -16,19 +16,7 @@ export async function GET(
     const limit = getPageLimit(searchParams);
     const cursor = temporalCursor(searchParams);
 
-    let currentUserId: string | null = null;
-    try {
-      const cookieStore = cookies();
-      const token = cookieStore.get("token")?.value;
-      if (token) {
-        const authUser = await verifyToken(token);
-        if (authUser) {
-          currentUserId = authUser.userId;
-        }
-      }
-    } catch (e) {
-      console.error("Failed to verify token:", e);
-    }
+    const currentUserId = (await getAuthUser(req))?.userId ?? null;
 
     const item = await MusicService.getItemById(id, req.signal);
 
@@ -84,50 +72,7 @@ export async function GET(
         currentUserRating = ratingRecord?.value || null;
       }
 
-      // Fetch favorite tracks for all authors of the reviews on this album
-      const reviewUserIds = reviewPage.items.map((review) => review.userId);
-      if (reviewUserIds.length > 0) {
-        const favTracks = await prisma.favoriteTrack.findMany({
-          where: {
-            musicItemId: id,
-            userId: { in: reviewUserIds },
-          },
-          select: {
-            userId: true,
-            trackTitle: true,
-          },
-        });
-        const favMap = new Map(favTracks.map((ft: any) => [ft.userId, ft.trackTitle]));
-        
-        // Fetch likes and comments count
-        const reviewIds = reviewPage.items.map((review) => review.id);
-        const [reviewLikes, reviewComments, currentUserLikes] = await Promise.all([
-          prisma.reviewLike.groupBy({ by: ["reviewId"], where: { reviewId: { in: reviewIds } }, _count: { _all: true } }),
-          prisma.comment.groupBy({ by: ["reviewId"], where: { reviewId: { in: reviewIds } }, _count: { _all: true } }),
-          currentUserId ? prisma.reviewLike.findMany({ where: { reviewId: { in: reviewIds }, userId: currentUserId }, select: { reviewId: true } }) : [],
-        ]);
-
-        // Group by reviewId
-        const likesMap = new Map<string, number>();
-        const commentsCountMap = new Map<string, number>();
-
-        reviewLikes.forEach((like) => likesMap.set(like.reviewId, like._count._all));
-
-        reviewComments.forEach((comment) => commentsCountMap.set(comment.reviewId, comment._count._all));
-        const likedReviewIds = new Set(currentUserLikes.map((like) => like.reviewId));
-
-        // Authenticated user (already resolved at the beginning of the handler)
-
-        enrichedReviews = reviewPage.items.map((r) => {
-          return {
-            ...r,
-            favoriteTrack: favMap.get(r.userId) || null,
-            likesCount: likesMap.get(r.id) || 0,
-            commentsCount: commentsCountMap.get(r.id) || 0,
-            likedByUser: currentUserId ? likedReviewIds.has(r.id) : false,
-          };
-        });
-      }
+      enrichedReviews = await enrichReviewSummaries(reviewPage.items, currentUserId);
     } catch (e) {
       console.error("Failed to query favorite track or interactive details:", e);
     }

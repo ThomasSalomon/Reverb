@@ -120,8 +120,10 @@ export async function signToken(payload: {
 }
 
 async function verifyJwt(token: string): Promise<SessionTokenPayload | AuthFailureReason> {
+  const secret = getSecretKey();
+
   try {
-    const { payload } = await jwtVerify(token, getSecretKey(), {
+    const { payload } = await jwtVerify(token, secret, {
       algorithms: ["HS256"],
       requiredClaims: ["iat", "exp"],
     });
@@ -147,7 +149,9 @@ async function verifyJwt(token: string): Promise<SessionTokenPayload | AuthFailu
       credentialsVersion: payload.credentialsVersion,
     };
   } catch (error) {
-    return error instanceof errors.JWTExpired ? "expired" : "invalid";
+    if (error instanceof errors.JWTExpired) return "expired";
+    if (error instanceof errors.JOSEError) return "invalid";
+    throw error;
   }
 }
 

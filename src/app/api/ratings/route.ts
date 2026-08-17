@@ -7,6 +7,7 @@ import {
 } from "@/services/ratings";
 import { resolveAuthUser } from "@/utils/auth";
 import { rejectUnknownFields, RequestBodyError, readJsonObject } from "@/utils/request-body";
+import { invalidateUserStatsCache } from "@/services/user-derived-cache";
 
 export async function POST(req: Request) {
   try {
@@ -28,6 +29,8 @@ export async function POST(req: Request) {
       musicItemId,
       value: numericValue,
     });
+    // The upsert has committed before this framework-level invalidation runs.
+    invalidateUserStatsCache(userId);
 
     return NextResponse.json({
       message: "Calificación guardada con éxito",

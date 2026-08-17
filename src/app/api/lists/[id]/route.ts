@@ -1,22 +1,10 @@
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
 import { prisma } from "@/services/db";
-import { verifyToken } from "@/utils/auth";
+import { getAuthUser } from "@/utils/auth";
 import { readJsonObject, rejectUnknownFields, RequestBodyError } from "@/utils/request-body";
 import { ascendingListItemWhere, getPageLimit, listItemCursor, listItemPageResult, PaginationError } from "@/utils/cursor-pagination";
 
 export const dynamic = "force-dynamic";
-
-async function getAuthUser() {
-  try {
-    const cookieStore = cookies();
-    const token = cookieStore.get("token")?.value;
-    if (!token) return null;
-    return await verifyToken(token);
-  } catch {
-    return null;
-  }
-}
 
 export async function GET(
   req: Request,
@@ -27,7 +15,7 @@ export async function GET(
     const searchParams = new URL(req.url).searchParams;
     const limit = getPageLimit(searchParams);
     const cursor = listItemCursor(searchParams);
-    const authUser = await getAuthUser();
+    const authUser = await getAuthUser(req);
 
     const list = await prisma.list.findUnique({
       where: { id: listId },
@@ -82,7 +70,7 @@ export async function PUT(
 ) {
   try {
     const listId = params.id;
-    const authUser = await getAuthUser();
+    const authUser = await getAuthUser(req);
     if (!authUser) {
       return NextResponse.json({ error: "No autenticado" }, { status: 401 });
     }
@@ -150,7 +138,7 @@ export async function DELETE(
 ) {
   try {
     const listId = params.id;
-    const authUser = await getAuthUser();
+    const authUser = await getAuthUser(req);
     if (!authUser) {
       return NextResponse.json({ error: "No autenticado" }, { status: 401 });
     }

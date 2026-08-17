@@ -1,9 +1,8 @@
-export class RequestBodyError extends Error {
-  readonly status = 400;
+import { AppError } from "@/utils/errors";
 
+export class RequestBodyError extends AppError {
   constructor(message: string) {
-    super(message);
-    this.name = "RequestBodyError";
+    super(message, 400, "INVALID_REQUEST_BODY");
   }
 }
 

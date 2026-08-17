@@ -234,8 +234,12 @@ export default function AlbumDetailClient({ id }: { id: string }) {
       setLoading(true);
       try {
         const userRes = await fetch("/api/auth/me", { cache: "no-store" });
-        const userData = await userRes.json();
-        setUser(userData.user);
+        if (userRes.ok) {
+          const userData = await userRes.json();
+          setUser(userData.user ?? null);
+        } else {
+          console.error("Authentication state unavailable", { status: userRes.status });
+        }
 
         await fetchAlbumDetails();
       } catch (e) {

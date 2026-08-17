@@ -1,10 +1,14 @@
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
 import { prisma } from "@/services/db";
-import { RatingService } from "@/services/ratings";
-import { resolveAuthUser, verifyToken } from "@/utils/auth";
-import { parseCreateReviewInput, isReviewInputError } from "@/services/review-input";
+import { getAuthUser, resolveAuthUser } from "@/utils/auth";
+import { parseCreateReviewInput } from "@/services/review-input";
+import { createReview, enrichReviewSummaries } from "@/services/reviews";
 import { readJsonObject } from "@/utils/request-body";
+import { routeErrorResponse } from "@/utils/http-errors";
+import {
+  invalidateUserRecapCache,
+  invalidateUserStatsCache,
+} from "@/services/user-derived-cache";
 
 export const dynamic = "force-dynamic";
 
@@ -18,18 +22,16 @@ export async function GET(req: Request) {
     let whereClause = {};
 
     if (feed === "following") {
-      const cookieStore = cookies();
-      const token = cookieStore.get("token")?.value;
-      if (!token) {
+      const auth = await resolveAuthUser(req);
+      if (!auth.ok && auth.reason === "missing") {
         return NextResponse.json({ error: "No autenticado" }, { status: 401 });
       }
-      const authUser = await verifyToken(token);
-      if (!authUser) {
+      if (!auth.ok) {
         return NextResponse.json({ error: "Token inválido" }, { status: 401 });
       }
 
       const follows = await prisma.follow.findMany({
-        where: { followerId: authUser.userId },
+        where: { followerId: auth.user.userId },
         select: { followingId: true },
       });
       const followingIds = follows.map((f) => f.followingId);
@@ -68,76 +70,10 @@ export async function GET(req: Request) {
       take: 10,
     });
 
-    // Fetch matching favorite tracks for these user/album pairs
-    const userMusicPairs = reviews.map((r) => ({
-      userId: r.userId,
-      musicItemId: r.musicItemId,
-    }));
-
-    let enrichedReviews = reviews.map(r => ({
-      ...r,
-      favoriteTrack: null as string | null,
-      likesCount: 0,
-      commentsCount: 0,
-      likedByUser: false,
-    }));
-
-    if (reviews.length > 0) {
-      // 1. Fetch favorite tracks
-      let favMap = new Map<string, string>();
-      if (userMusicPairs.length > 0) {
-        const favoriteTracks = await prisma.favoriteTrack.findMany({
-          where: { OR: userMusicPairs },
-          select: { userId: true, musicItemId: true, trackTitle: true },
-        });
-        favMap = new Map(
-          favoriteTracks.map((ft) => [`${ft.userId}_${ft.musicItemId}`, ft.trackTitle])
-        );
-      }
-
-      // 2. Fetch likes and comments
-      const reviewIds = reviews.map((r) => r.id);
-      const [reviewLikes, reviewComments] = await Promise.all([
-        prisma.reviewLike.groupBy({ by: ["reviewId"], where: { reviewId: { in: reviewIds } }, _count: { _all: true } }),
-        prisma.comment.groupBy({ by: ["reviewId"], where: { reviewId: { in: reviewIds } }, _count: { _all: true } }),
-      ]);
-
-      // Group likes and comments
-      const likesMap = new Map<string, number>();
-      const commentsCountMap = new Map<string, number>();
-
-      reviewLikes.forEach((like) => likesMap.set(like.reviewId, like._count._all));
-
-      reviewComments.forEach((comment) => commentsCountMap.set(comment.reviewId, comment._count._all));
-
-      // Get auth token if available to set likedByUser
-      let currentUserId: string | null = null;
-      try {
-        const cookieStore = cookies();
-        const token = cookieStore.get("token")?.value;
-        if (token) {
-          const authUser = await verifyToken(token);
-          if (authUser) currentUserId = authUser.userId;
-        }
-      } catch {}
-
-      const currentUserLikes = currentUserId ? await prisma.reviewLike.findMany({
-        where: { reviewId: { in: reviewIds }, userId: currentUserId },
-        select: { reviewId: true },
-      }) : [];
-      const likedReviewIds = new Set(currentUserLikes.map((like) => like.reviewId));
-
-      enrichedReviews = reviews.map((r) => {
-        const key = `${r.userId}_${r.musicItemId}`;
-        return {
-          ...r,
-          favoriteTrack: favMap.get(key) || null,
-          likesCount: likesMap.get(r.id) || 0,
-          commentsCount: commentsCountMap.get(r.id) || 0,
-          likedByUser: currentUserId ? likedReviewIds.has(r.id) : false,
-        };
-      });
-    }
+    const currentUserId = reviews.length > 0
+      ? (await getAuthUser(req))?.userId ?? null
+      : null;
+    const enrichedReviews = await enrichReviewSummaries(reviews, currentUserId);
 
     return NextResponse.json(enrichedReviews);
   } catch (error) {
@@ -159,85 +95,12 @@ export async function POST(req: Request) {
         { status: 401 }
       );
     }
-    const { userId } = auth.user;
-
     const input = parseCreateReviewInput(await readJsonObject(req));
+    const { review, rating } = await createReview(auth.user, input);
 
-    // --- SECURITY 007: Rate Limiting ---
-    // Limit to 20 reviews per user per day to prevent DoS via SQLite flooding
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
-    
-    const recentReviewsCount = await prisma.review.count({
-      where: {
-        userId,
-        createdAt: {
-          gte: yesterday,
-        },
-      },
-    });
-
-    if (recentReviewsCount >= 20) {
-      return NextResponse.json(
-        { error: "Rate limit exceeded: Has alcanzado el límite de 20 reseñas por día." },
-        { status: 429 }
-      );
-    }
-
-    const { review, rating } = await prisma.$transaction(async (tx) => {
-      const currentRating = await RatingService.setCurrent(
-        { userId, musicItemId: input.musicItemId, value: input.ratingValue },
-        tx,
-      );
-      const createdReview = await tx.review.create({
-        data: {
-          userId,
-          musicItemId: input.musicItemId,
-          content: input.content,
-          ratingValue: input.ratingValue,
-          tags: input.tags,
-        },
-      });
-
-      return { review: createdReview, rating: currentRating };
-    });
-
-    // Check if it's the user's first review to award "FIRST_REVIEW" badge
-    const reviewsCount = await prisma.review.count({
-      where: { userId }
-    });
-
-    if (reviewsCount === 1) {
-      // It's their first review! Give them a badge.
-      try {
-        await prisma.earnedBadge.create({
-          data: {
-            userId,
-            badgeId: "FIRST_REVIEW"
-          }
-        });
-
-        const userForBadge = await prisma.user.findUnique({
-          where: { id: userId },
-          select: { username: true }
-        });
-        
-        // Notify them
-        await prisma.notification.create({
-          data: {
-            userId,
-            type: "NEW_BADGE",
-            message: "¡Has obtenido el logro 'Crítico en Ascenso' por tu primera reseña!",
-            link: `/users/${userForBadge?.username || userId}`
-          }
-        });
-      } catch (badgeErr) {
-        // Ignore unique constraint error if they already have it (P2002)
-        if ((badgeErr as any).code !== "P2002") {
-          console.error("Error awarding badge:", badgeErr);
-        }
-      }
-    }
+    // The review/rating transaction is durable. Both aggregates include this review.
+    invalidateUserStatsCache(auth.user.userId);
+    invalidateUserRecapCache(auth.user.userId, review.createdAt.getUTCFullYear());
 
     return NextResponse.json({
       message: "Reseña guardada con éxito",
@@ -245,13 +108,9 @@ export async function POST(req: Request) {
       rating,
     });
   } catch (error) {
-    if (isReviewInputError(error)) {
-      return NextResponse.json({ error: error.message }, { status: error.status });
-    }
-    console.error("Save review error:", error);
-    return NextResponse.json(
-      { error: "Error al guardar la reseña" },
-      { status: 500 }
-    );
+    return routeErrorResponse(error, {
+      operation: "Save review error:",
+      fallbackMessage: "Error al guardar la reseña",
+    });
   }
 }

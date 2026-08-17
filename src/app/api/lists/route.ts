@@ -1,27 +1,15 @@
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
 import { prisma } from "@/services/db";
-import { verifyToken } from "@/utils/auth";
+import { getAuthUser } from "@/utils/auth";
 import { MAX_LISTS_PER_USER } from "@/services/list-constraints";
 import { readJsonObject, rejectUnknownFields, RequestBodyError } from "@/utils/request-body";
 import { descendingTemporalWhere, getPageLimit, pageResult, PaginationError, temporalCursor } from "@/utils/cursor-pagination";
 
 export const dynamic = "force-dynamic";
 
-async function getAuthUser() {
-  try {
-    const cookieStore = cookies();
-    const token = cookieStore.get("token")?.value;
-    if (!token) return null;
-    return await verifyToken(token);
-  } catch {
-    return null;
-  }
-}
-
 export async function POST(req: Request) {
   try {
-    const authUser = await getAuthUser();
+    const authUser = await getAuthUser(req);
     if (!authUser) {
       return NextResponse.json({ error: "No autenticado" }, { status: 401 });
     }
@@ -82,7 +70,7 @@ export async function GET(req: Request) {
     const limit = getPageLimit(searchParams);
     const cursor = temporalCursor(searchParams);
     const username = searchParams.get("username");
-    const authUser = await getAuthUser();
+    const authUser = await getAuthUser(req);
 
     let whereClause: any = {
       isPublic: true,

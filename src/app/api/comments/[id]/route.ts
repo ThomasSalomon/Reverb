@@ -1,20 +1,8 @@
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
 import { prisma } from "@/services/db";
-import { verifyToken } from "@/utils/auth";
+import { getAuthUser } from "@/utils/auth";
 
 export const dynamic = "force-dynamic";
-
-async function getAuthUser() {
-  try {
-    const cookieStore = cookies();
-    const token = cookieStore.get("token")?.value;
-    if (!token) return null;
-    return await verifyToken(token);
-  } catch {
-    return null;
-  }
-}
 
 export async function DELETE(
   req: Request,
@@ -22,7 +10,7 @@ export async function DELETE(
 ) {
   try {
     const commentId = params.id;
-    const authUser = await getAuthUser();
+    const authUser = await getAuthUser(req);
     if (!authUser) {
       return NextResponse.json({ error: "No autenticado" }, { status: 401 });
     }

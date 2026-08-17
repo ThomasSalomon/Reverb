@@ -2,23 +2,15 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/services/db";
 import { DiaryService } from "@/services/diary";
 import { unstable_cache } from "next/cache";
+import {
+  USER_DERIVED_CACHE_TTL_SECONDS,
+  userStatsCacheTag,
+} from "@/services/user-derived-cache";
 
-// Cache stats for 1 hour to prevent DoS from heavy aggregation queries
-export const revalidate = 3600;
+// This route itself is dynamic; only its costly review/rating aggregate is cached.
+export const dynamic = "force-dynamic";
 
-const getStatsData = async (username: string) => {
-  // 1. Fetch user to verify existence
-  const user = await prisma.user.findUnique({
-    where: { username },
-    select: { id: true },
-  });
-
-  if (!user) {
-    return { error: "Usuario no encontrado", status: 404 };
-  }
-
-  const userId = user.id;
-
+const getStatsData = async (userId: string) => {
   // 2. Fetch rating distribution (Prisma groupBy for DB-level optimization)
   const rawDistribution = await prisma.review.groupBy({
     by: ["ratingValue"],
@@ -77,7 +69,6 @@ const getStatsData = async (username: string) => {
       : 0;
 
   return {
-    userId,
     ratingDistribution,
     topArtists,
     totalRatings,
@@ -92,26 +83,30 @@ export async function GET(
   try {
     const { username } = params;
 
+    const user = await prisma.user.findUnique({
+      where: { username },
+      select: { id: true },
+    });
+
+    if (!user) {
+      return NextResponse.json({ error: "Usuario no encontrado" }, { status: 404 });
+    }
+
     const getCachedStats = unstable_cache(
-      async () => getStatsData(username),
-      ['stats', username],
-      { revalidate: 3600, tags: ['stats'] }
+      async () => getStatsData(user.id),
+      ["user-stats", user.id],
+      {
+        revalidate: USER_DERIVED_CACHE_TTL_SECONDS,
+        tags: [userStatsCacheTag(user.id)],
+      },
     );
 
     const result = await getCachedStats();
 
-    if ("error" in result) {
-      return NextResponse.json(
-        { error: result.error },
-        { status: result.status }
-      );
-    }
-
-    const { userId, ...reviewAndRatingStats } = result;
-    const diaryStats = await DiaryService.getStats(userId);
+    const diaryStats = await DiaryService.getStats(user.id);
 
     return NextResponse.json({
-      ...reviewAndRatingStats,
+      ...result,
       ...diaryStats,
     });
   } catch (error) {
