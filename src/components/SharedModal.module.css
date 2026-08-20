@@ -171,6 +171,21 @@
   transform: scale(0.995);
 }
 
+.formInput:is(select) {
+  background: var(--bg-card);
+  color-scheme: dark;
+}
+
+.formInput:is(select) option {
+  background-color: var(--bg-card);
+  color: var(--text-primary);
+}
+
+.formInput:is(select) option:checked {
+  background-color: var(--primary);
+  color: var(--bg-deep);
+}
+
 .modalFooter {
   display: flex;
   justify-content: flex-end;
