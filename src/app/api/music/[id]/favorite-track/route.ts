@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/services/db";
 import { getAuthUser } from "@/utils/auth";
 import { MusicService } from "@/services/music";
-import { parseFavoriteTrack } from "@/services/review-input";
+import { parseFavoriteTrack, validateFavoriteTrackForAlbum } from "@/services/review-input";
 import { readJsonObject, rejectUnknownFields, RequestBodyError } from "@/utils/request-body";
 
 export const dynamic = "force-dynamic";
@@ -34,6 +34,7 @@ export async function POST(
         { status: 404 }
       );
     }
+    validateFavoriteTrackForAlbum(trackTitle, musicItem.tracks);
 
     // 4. Save Favorite Track (upsert)
     const existing = await prisma.favoriteTrack.findFirst({

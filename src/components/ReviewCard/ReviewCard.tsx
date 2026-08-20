@@ -66,14 +66,14 @@ const ReviewCard = React.memo(function ReviewCard({ review, showMusicDetails = f
   const [content, setContent] = useState(review.content);
   const [ratingValue, setRatingValue] = useState(review.ratingValue);
   const [tags, setTags] = useState(review.tags);
-  const [favoriteTrack, setFavoriteTrack] = useState(review.favoriteTrack);
+  const [favoriteTrack, setFavoriteTrack] = useState<string | null>(review.favoriteTrack ?? null);
 
   // Sync props to state if they change
   useEffect(() => {
     setContent(review.content);
     setRatingValue(review.ratingValue);
     setTags(review.tags);
-    setFavoriteTrack(review.favoriteTrack);
+    setFavoriteTrack(review.favoriteTrack ?? null);
   }, [review]);
 
   // Interaction states
@@ -101,7 +101,12 @@ const ReviewCard = React.memo(function ReviewCard({ review, showMusicDetails = f
   const [editRating, setEditRating] = useState(review.ratingValue);
   const [editTags, setEditTags] = useState<string[]>(normalizeReviewTagValues(review.tags ? review.tags.split(",") : [], Infinity));
   const [editFavoriteTrack, setEditFavoriteTrack] = useState(review.favoriteTrack || "");
+  const [editTracks, setEditTracks] = useState<string[] | null>(null);
+  const [tracksLoading, setTracksLoading] = useState(false);
+  const [tracklistUnavailable, setTracklistUnavailable] = useState(false);
+  const [favoriteTrackTouched, setFavoriteTrackTouched] = useState(false);
   const [savingEdit, setSavingEdit] = useState(false);
+  const favoriteTrackId = React.useId();
 
   const toggleEditTag = (tag: string) => {
     setEditTags(prev => 
@@ -109,6 +114,37 @@ const ReviewCard = React.memo(function ReviewCard({ review, showMusicDetails = f
         ? prev.filter(t => t !== tag)
         : prev.length < 5 ? [...prev, tag] : prev
     );
+  };
+
+  const loadEditTracks = async () => {
+    const musicItemId = review.musicItem?.id ?? review.musicItemId;
+    if (!musicItemId) {
+      setEditTracks([]);
+      setTracklistUnavailable(true);
+      return;
+    }
+
+    setTracksLoading(true);
+    setTracklistUnavailable(false);
+    try {
+      const response = await fetch(`/api/music/${encodeURIComponent(musicItemId)}`, { cache: "no-store" });
+      if (!response.ok) throw new Error("Unable to load album tracks");
+      const data: unknown = await response.json();
+      const tracks = typeof data === "object" && data !== null && "tracks" in data && Array.isArray(data.tracks)
+        ? data.tracks.flatMap((track) => (
+          typeof track === "object" && track !== null && "title" in track && typeof track.title === "string" && track.title.trim()
+            ? [track.title.trim()]
+            : []
+        ))
+        : [];
+      setEditTracks(tracks);
+      setTracklistUnavailable(tracks.length === 0);
+    } catch {
+      setEditTracks([]);
+      setTracklistUnavailable(true);
+    } finally {
+      setTracksLoading(false);
+    }
   };
 
   // Check auth user
@@ -298,17 +334,18 @@ const ReviewCard = React.memo(function ReviewCard({ review, showMusicDetails = f
 
     setSavingEdit(true);
     try {
+      const body = {
+        content: editContent,
+        ratingValue: editRating,
+        tags: editTags,
+        ...(favoriteTrackTouched ? { favoriteTrack: editFavoriteTrack } : {}),
+      };
       const res = await fetch(`/api/reviews/${review.id}`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          content: editContent,
-          ratingValue: editRating,
-          tags: editTags,
-          favoriteTrack: editFavoriteTrack,
-        }),
+        body: JSON.stringify(body),
       });
 
       const data = await res.json();
@@ -320,7 +357,9 @@ const ReviewCard = React.memo(function ReviewCard({ review, showMusicDetails = f
       setContent(editContent.trim());
       setRatingValue(editRating);
       setTags(editTags.join(","));
-      setFavoriteTrack(editFavoriteTrack.trim() || null);
+      if (favoriteTrackTouched) {
+        setFavoriteTrack(editFavoriteTrack.trim() || null);
+      }
 
       showToast(t("reviewUpdated"), "success");
       setIsEditing(false);
@@ -330,7 +369,7 @@ const ReviewCard = React.memo(function ReviewCard({ review, showMusicDetails = f
           content: editContent.trim(),
           ratingValue: editRating,
           tags: editTags.join(","),
-          favoriteTrack: editFavoriteTrack.trim() || null,
+          favoriteTrack: favoriteTrackTouched ? editFavoriteTrack.trim() || null : favoriteTrack,
         });
       }
     } catch (err: any) {
@@ -372,7 +411,11 @@ const ReviewCard = React.memo(function ReviewCard({ review, showMusicDetails = f
                         setEditRating(ratingValue);
                         setEditTags(normalizeReviewTagValues(tags ? tags.split(",") : [], Infinity));
                         setEditFavoriteTrack(favoriteTrack || "");
+                        setEditTracks(null);
+                        setTracklistUnavailable(false);
+                        setFavoriteTrackTouched(false);
                         setIsEditing(true);
+                        void loadEditTracks();
                       }}
                       className={styles.editReviewBtn}
                       title={t("edit")}
@@ -810,15 +853,26 @@ const ReviewCard = React.memo(function ReviewCard({ review, showMusicDetails = f
 
               {/* Favorite Track */}
               <div className={sharedStyles.formGroup}>
-                <label className={sharedStyles.formLabel}>{t("favoriteTrack")} ({common("optional")}):</label>
-                <input
-                  type="text"
+                <label htmlFor={favoriteTrackId} className={sharedStyles.formLabel}>{t("favoriteTrack")} ({common("optional")}):</label>
+                <select
+                  id={favoriteTrackId}
                   value={editFavoriteTrack}
-                  onChange={(e) => setEditFavoriteTrack(e.target.value)}
-                  placeholder={t("trackPlaceholder")}
+                  onChange={(e) => {
+                    setEditFavoriteTrack(e.target.value);
+                    setFavoriteTrackTouched(true);
+                  }}
                   className={sharedStyles.formInput}
-                  disabled={savingEdit}
-                />
+                  disabled={savingEdit || tracksLoading || tracklistUnavailable}
+                  aria-describedby={tracklistUnavailable ? `${favoriteTrackId}-help` : undefined}
+                >
+                  <option value="">
+                    {tracksLoading ? t("loadingTracks") : tracklistUnavailable ? t("tracklistUnavailable") : t("noFavoriteTrack")}
+                  </option>
+                  {editTracks?.map((track, index) => (
+                    <option key={`${track}-${index}`} value={track}>{track}</option>
+                  ))}
+                </select>
+                {tracklistUnavailable && <p id={`${favoriteTrackId}-help`} className={sharedStyles.formLabel}>{t("tracklistUnavailableHelp")}</p>}
               </div>
 
               {/* Modal Footer */}

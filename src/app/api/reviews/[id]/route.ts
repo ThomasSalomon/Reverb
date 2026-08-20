@@ -73,7 +73,7 @@ export async function PATCH(
     const reviewId = params.id;
     const reviewContext = await authorizeReviewUpdate(auth.user, reviewId);
     const input = parseUpdateReviewInput(await readJsonObject(request));
-    const { review: updatedReview, originalCreatedAt } = await updateReview(
+    const { review: updatedReview, originalCreatedAt, favoriteTrack } = await updateReview(
       auth.user,
       reviewContext,
       input,
@@ -91,7 +91,7 @@ export async function PATCH(
       success: true,
       review: {
         ...updatedReview,
-        favoriteTrack: input.favoriteTrack,
+        favoriteTrack,
       }
     }, { status: 200 });
 

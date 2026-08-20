@@ -53,6 +53,49 @@ export function parseFavoriteTrack(value: unknown): string | null {
   return normalized;
 }
 
+function albumTrackTitles(value: unknown): string[] {
+  let tracks = value;
+  if (typeof tracks === "string") {
+    try {
+      tracks = JSON.parse(tracks);
+    } catch {
+      return [];
+    }
+  }
+
+  if (!Array.isArray(tracks)) return [];
+
+  return tracks.flatMap((track) => {
+    if (typeof track === "string") return track.trim() ? [track.trim()] : [];
+    if (
+      typeof track === "object" &&
+      track !== null &&
+      "title" in track &&
+      typeof track.title === "string" &&
+      track.title.trim()
+    ) {
+      return [track.title.trim()];
+    }
+    return [];
+  });
+}
+
+export function validateFavoriteTrackForAlbum(
+  favoriteTrack: string | null,
+  albumTracks: unknown,
+): string | null {
+  if (favoriteTrack === null) return null;
+
+  const trackTitles = albumTrackTitles(albumTracks);
+  if (trackTitles.length === 0) {
+    invalid("El álbum no tiene un tracklist disponible para seleccionar una canción favorita");
+  }
+  if (!trackTitles.includes(favoriteTrack)) {
+    invalid("La canción favorita debe pertenecer al álbum de la reseña");
+  }
+  return favoriteTrack;
+}
+
 export function parseReviewTags(value: unknown): string | null {
   if (value === undefined || value === null) return null;
   if (!Array.isArray(value) || value.length > MAX_REVIEW_TAGS) {

@@ -1,7 +1,11 @@
 import type { PrismaClient } from "@prisma/client";
 import { prisma } from "@/services/db";
 import { RatingService } from "@/services/ratings";
-import type { CreateReviewInput, UpdateReviewInput } from "@/services/review-input";
+import {
+  type CreateReviewInput,
+  type UpdateReviewInput,
+  validateFavoriteTrackForAlbum,
+} from "@/services/review-input";
 import { AppError } from "@/utils/errors";
 
 const MAX_REVIEWS_PER_DAY = 20;
@@ -159,7 +163,10 @@ export async function authorizeReviewUpdate(
   reviewId: string,
   client: PrismaClient = prisma,
 ) {
-  const existing = await client.review.findUnique({ where: { id: reviewId } });
+  const existing = await client.review.findUnique({
+    where: { id: reviewId },
+    include: { musicItem: { select: { tracks: true } } },
+  });
   if (!existing) {
     throw new AppError("Reseña no encontrada", 404, "REVIEW_NOT_FOUND");
   }
@@ -179,6 +186,10 @@ export async function updateReview(
   input: UpdateReviewInput,
   client: PrismaClient = prisma,
 ) {
+  const favoriteTrack = input.favoriteTrack === undefined
+    ? undefined
+    : validateFavoriteTrackForAlbum(input.favoriteTrack, existing.musicItem.tracks);
+
   const review = await client.$transaction(async (tx) => {
     const updated = await tx.review.update({
       where: { id: existing.id },
@@ -200,11 +211,11 @@ export async function updateReview(
       );
     }
 
-    if (input.favoriteTrack === null) {
+    if (favoriteTrack === null) {
       await tx.favoriteTrack.deleteMany({
         where: { userId: actor.userId, musicItemId: existing.musicItemId },
       });
-    } else if (input.favoriteTrack !== undefined) {
+    } else if (favoriteTrack !== undefined) {
       const favorite = await tx.favoriteTrack.findFirst({
         where: { userId: actor.userId, musicItemId: existing.musicItemId },
         select: { id: true },
@@ -212,14 +223,14 @@ export async function updateReview(
       if (favorite) {
         await tx.favoriteTrack.update({
           where: { id: favorite.id },
-          data: { trackTitle: input.favoriteTrack },
+          data: { trackTitle: favoriteTrack },
         });
       } else {
         await tx.favoriteTrack.create({
           data: {
             userId: actor.userId,
             musicItemId: existing.musicItemId,
-            trackTitle: input.favoriteTrack,
+            trackTitle: favoriteTrack,
           },
         });
       }
@@ -228,5 +239,5 @@ export async function updateReview(
     return updated;
   });
 
-  return { review, originalCreatedAt: existing.createdAt };
+  return { review, originalCreatedAt: existing.createdAt, favoriteTrack };
 }

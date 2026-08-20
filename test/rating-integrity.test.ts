@@ -58,9 +58,9 @@ async function setup(): Promise<Context> {
     INSERT INTO "User" ("id", "username", "email", "password", "updatedAt") VALUES
       ('${USER_A_ID}', 'rating-alice', 'rating-alice@example.test', 'hash', CURRENT_TIMESTAMP),
       ('${USER_B_ID}', 'rating-bob', 'rating-bob@example.test', 'hash', CURRENT_TIMESTAMP);
-    INSERT INTO "MusicItem" ("id", "title", "artist", "type", "coverUrl", "releaseYear") VALUES
-      ('${ALBUM_A_ID}', 'Rating Album A', 'Test Artist', 'ALBUM', 'https://example.test/a.jpg', 2026),
-      ('${ALBUM_B_ID}', 'Rating Album B', 'Test Artist', 'ALBUM', 'https://example.test/b.jpg', 2026);
+    INSERT INTO "MusicItem" ("id", "title", "artist", "type", "coverUrl", "releaseYear", "tracks") VALUES
+      ('${ALBUM_A_ID}', 'Rating Album A', 'Test Artist', 'ALBUM', 'https://example.test/a.jpg', 2026, '[{"title":"Album A Track"}]'),
+      ('${ALBUM_B_ID}', 'Rating Album B', 'Test Artist', 'ALBUM', 'https://example.test/b.jpg', 2026, '[{"title":"Album B Track"}]');
   `);
 
   const auth = await import("../src/utils/auth");
@@ -86,6 +86,7 @@ async function setup(): Promise<Context> {
 async function reset(context: Context): Promise<void> {
   await context.prisma.notification.deleteMany();
   await context.prisma.earnedBadge.deleteMany();
+  await context.prisma.favoriteTrack.deleteMany();
   await context.prisma.review.deleteMany();
   await context.prisma.rating.deleteMany();
 }
@@ -218,6 +219,54 @@ test("Rating mantiene una fila actual por usuario y elemento", async (t) => {
       assert.equal(deleteResponse.status, 200);
       assert.equal(await context.prisma.review.count(), 0);
       assert.equal(await context.prisma.rating.count(), 1);
+    });
+
+    await t.test("la canción favorita debe existir en el tracklist del álbum de la reseña", async () => {
+      await reset(context);
+      const created = await reviewRequest(context, "a", ALBUM_A_ID, 4, "Review with a favorite track");
+      assert.equal(created.status, 200);
+      const reviewId = (await created.json()).review.id as string;
+
+      const selectValidTrack = await context.patchReview(
+        request(
+          `/api/reviews/${reviewId}`,
+          "PATCH",
+          { favoriteTrack: "Album A Track" },
+          context.tokenA,
+        ),
+        { params: { id: reviewId } },
+      );
+      assert.equal(selectValidTrack.status, 200);
+      assert.equal(
+        (await context.prisma.favoriteTrack.findUniqueOrThrow({
+          where: { userId_musicItemId: { userId: USER_A_ID, musicItemId: ALBUM_A_ID } },
+        })).trackTitle,
+        "Album A Track",
+      );
+
+      for (const favoriteTrack of ["Missing Track", "Album B Track"]) {
+        const invalidTrack = await context.patchReview(
+          request(`/api/reviews/${reviewId}`, "PATCH", { favoriteTrack }, context.tokenA),
+          { params: { id: reviewId } },
+        );
+        assert.equal(invalidTrack.status, 400);
+      }
+      assert.equal(
+        (await context.prisma.favoriteTrack.findUniqueOrThrow({
+          where: { userId_musicItemId: { userId: USER_A_ID, musicItemId: ALBUM_A_ID } },
+        })).trackTitle,
+        "Album A Track",
+      );
+
+      const removeTrack = await context.patchReview(
+        request(`/api/reviews/${reviewId}`, "PATCH", { favoriteTrack: null }, context.tokenA),
+        { params: { id: reviewId } },
+      );
+      assert.equal(removeTrack.status, 200);
+      assert.equal(
+        await context.prisma.favoriteTrack.count({ where: { userId: USER_A_ID, musicItemId: ALBUM_A_ID } }),
+        0,
+      );
     });
 
     await t.test("conteo y promedio usan una fila actual por usuario", async () => {
