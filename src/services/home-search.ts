@@ -4,16 +4,22 @@ import { MusicItemWithStats, MusicService } from "./music";
 export const HOME_SEARCH_LIMITS = {
   minQueryLength: 2,
   artistResults: 3,
-  directAlbumResults: 6,
+  titleMatchGroups: 6,
   featuredAlbumResults: 4,
-  directCandidates: 25,
+  directCandidates: 50,
   artistAlbumCandidates: 12,
 } as const;
 
+export interface HomeAlbumMatchGroup {
+  primary: MusicItemWithStats;
+  variants: MusicItemWithStats[];
+}
+
 export interface HomeSearchResponse {
   artists: DeezerArtistSearchItem[];
-  directAlbums: MusicItemWithStats[];
+  titleAlbumGroups: HomeAlbumMatchGroup[];
   featuredAlbums: MusicItemWithStats[];
+  featuredArtistName: string | null;
   partial: boolean;
 }
 
@@ -45,7 +51,7 @@ export function normalizeSearchText(value: string): string {
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase()
-    .replace(/[^a-z0-9]+/g, " ")
+    .replace(/[\u0000-\u002f\u003a-\u0040\u005b-\u0060\u007b-\u00bf\u2000-\u206f\u3000-\u303f]+/g, " ")
     .trim()
     .replace(/\s+/g, " ");
 }
@@ -103,6 +109,69 @@ function dedupeById<T extends { id: string }>(items: T[]): T[] {
   });
 }
 
+function editionBaseTitle(title: string): string {
+  const match = title.match(/\s*\(([^)]*)\)\s*$/);
+  if (!match) return title;
+
+  const editionMarker = /\b(?:anniversary|box set|deluxe|edition|expanded|explicit|remaster(?:ed)?|version)\b/i;
+  return editionMarker.test(match[1]) ? title.slice(0, match.index).trim() : title;
+}
+
+function getAlbumTitleMatchTier(title: string, query: string): number {
+  const normalizedTitle = normalizeSearchText(title);
+  const normalizedBaseTitle = normalizeSearchText(editionBaseTitle(title));
+  const normalizedQuery = normalizeSearchText(query);
+
+  if (!normalizedTitle || !normalizedQuery) return 4;
+  if (normalizedTitle === normalizedQuery || normalizedBaseTitle === normalizedQuery) return 0;
+  if (
+    normalizedTitle.startsWith(normalizedQuery) ||
+    normalizedTitle.includes(` ${normalizedQuery}`)
+  ) {
+    return 1;
+  }
+
+  const queryTokens = normalizedQuery.split(" ");
+  const titleTokens = normalizedTitle.split(" ");
+  if (queryTokens.every((token) => titleTokens.includes(token))) return 2;
+  return 3;
+}
+
+function groupTitleMatches(
+  query: string,
+  albums: DeezerAlbumSearchItem[],
+  enrichedAlbums: Map<string, MusicItemWithStats>
+): HomeAlbumMatchGroup[] {
+  const grouped = new Map<string, { tier: number; sourceIndex: number; items: DeezerAlbumSearchItem[] }>();
+
+  for (const candidate of dedupeById(albums).map((album, sourceIndex) => ({
+    album,
+    sourceIndex,
+    tier: getAlbumTitleMatchTier(album.title, query),
+  }))) {
+    if (candidate.tier > 2) continue;
+
+    const groupKey = `${normalizeSearchText(editionBaseTitle(candidate.album.title))}:${normalizeSearchText(candidate.album.artist)}`;
+    const current = grouped.get(groupKey);
+    if (!current) {
+      grouped.set(groupKey, { tier: candidate.tier, sourceIndex: candidate.sourceIndex, items: [candidate.album] });
+      continue;
+    }
+
+    current.tier = Math.min(current.tier, candidate.tier);
+    current.items.push(candidate.album);
+  }
+
+  return Array.from(grouped.values())
+    .sort((left, right) => left.tier - right.tier || left.sourceIndex - right.sourceIndex)
+    .slice(0, HOME_SEARCH_LIMITS.titleMatchGroups)
+    .map(({ items }) => items
+      .map((item) => enrichedAlbums.get(item.id))
+      .filter((item): item is MusicItemWithStats => Boolean(item)))
+    .filter((items) => items.length > 0)
+    .map(([primary, ...variants]) => ({ primary, variants }));
+}
+
 export function composeHomeSearchResult(
   query: string,
   artists: DeezerArtistSearchItem[],
@@ -117,24 +186,20 @@ export function composeHomeSearchResult(
     (artist) => artist.name,
     HOME_SEARCH_LIMITS.artistResults
   );
-  const rankedDirectAlbums = rankCandidates(
-    dedupeById(directAlbums),
-    query,
-    (album) => album.title,
-    HOME_SEARCH_LIMITS.directAlbumResults
+  const titleAlbumGroups = groupTitleMatches(query, directAlbums, enrichedAlbums);
+  const titleMatchIds = new Set(
+    titleAlbumGroups.flatMap(({ primary, variants }) => [primary.id, ...variants.map((variant) => variant.id)])
   );
-  const directIds = new Set(rankedDirectAlbums.map(({ value }) => value.id));
-  const limitedFeaturedAlbums = dedupeById(featuredAlbums).filter((album) => !directIds.has(album.id));
+  const limitedFeaturedAlbums = dedupeById(featuredAlbums).filter((album) => !titleMatchIds.has(album.id));
 
   return {
     artists: rankedArtists.map(({ value }) => value),
-    directAlbums: rankedDirectAlbums
-      .map(({ value }) => enrichedAlbums.get(value.id))
-      .filter((item): item is MusicItemWithStats => Boolean(item)),
+    titleAlbumGroups,
     featuredAlbums: limitedFeaturedAlbums
       .slice(0, HOME_SEARCH_LIMITS.featuredAlbumResults)
       .map((album) => enrichedAlbums.get(album.id))
       .filter((item): item is MusicItemWithStats => Boolean(item)),
+    featuredArtistName: null,
     partial,
   };
 }
@@ -163,6 +228,7 @@ export async function searchHomeWithTiming(
 
   const rankedArtists = rankCandidates(artists, query, (artist) => artist.name, 1)[0];
   const canExpandArtist = rankedArtists && (rankedArtists.tier === 0 || (rankedArtists.tier === 1 && normalizeSearchText(query).length >= 3));
+  const featuredArtistName = canExpandArtist ? rankedArtists.value.name : null;
   let artistExpansionMs = 0;
 
   if (canExpandArtist) {
@@ -189,14 +255,17 @@ export async function searchHomeWithTiming(
   const enrichedMap = new Map(enriched.map((item) => [item.id, item]));
 
   return {
-    result: composeHomeSearchResult(
+    result: {
+      ...composeHomeSearchResult(
       query,
       artists,
       directAlbums,
       featuredAlbums,
       enrichedMap,
       partial
-    ),
+      ),
+      featuredArtistName,
+    },
     timing: {
       initialSearchMs,
       artistExpansionMs,

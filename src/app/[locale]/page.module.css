@@ -258,6 +258,43 @@
   color: var(--text-primary);
 }
 
+.albumMatchGroup {
+  min-width: 0;
+}
+
+.albumMatchGroup .albumsGrid {
+  display: block;
+}
+
+.editionVariants {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 10px;
+  padding: 10px 0 0 12px;
+  border-left: 2px solid var(--border);
+}
+
+.editionVariantsLabel {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.editionVariantLink {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  line-height: 1.35;
+  text-decoration: none;
+}
+
+.editionVariantLink:hover {
+  color: var(--primary);
+  text-decoration: underline;
+}
+
 .artistResults {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(100%, var(--result-card-min, 200px)), 1fr));

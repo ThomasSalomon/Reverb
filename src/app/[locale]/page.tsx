@@ -47,8 +47,9 @@ interface ArtistSearchResult {
 
 interface SearchResponse {
   artists: ArtistSearchResult[];
-  directAlbums: MusicItem[];
+  titleAlbumGroups: Array<{ primary: MusicItem; variants: MusicItem[] }>;
   featuredAlbums: MusicItem[];
+  featuredArtistName: string | null;
   partial: boolean;
 }
 
@@ -68,6 +69,30 @@ function AlbumGrid({ items }: { items: MusicItem[] }) {
               <span className={styles.statsCount}>({item.stats.totalRatings})</span>
             </div>
           </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function AlbumMatchGrid({ groups }: { groups: SearchResponse["titleAlbumGroups"] }) {
+  const t = useTranslations("Home");
+
+  return (
+    <div className={styles.albumsGrid}>
+      {groups.map(({ primary, variants }) => (
+        <div key={primary.id} className={styles.albumMatchGroup}>
+          <AlbumGrid items={[primary]} />
+          {variants.length > 0 && (
+            <div className={styles.editionVariants}>
+              <span className={styles.editionVariantsLabel}>{t("editionVariants")}</span>
+              {variants.map((variant) => (
+                <Link key={variant.id} href={`/albums/${variant.id}`} className={styles.editionVariantLink}>
+                  {variant.title}
+                </Link>
+              ))}
+            </div>
+          )}
         </div>
       ))}
     </div>
@@ -244,9 +269,9 @@ export default function HomePage() {
   }, [searchRetryKey, urlSearchQuery]);
 
   const hasSearchResults = Boolean(
-    searchResponse && (
-      searchResponse.artists.length > 0 ||
-      searchResponse.directAlbums.length > 0 ||
+      searchResponse && (
+        searchResponse.artists.length > 0 ||
+      searchResponse.titleAlbumGroups.length > 0 ||
       searchResponse.featuredAlbums.length > 0
     )
   );
@@ -365,15 +390,15 @@ export default function HomePage() {
                     </div>
                   </div>
                 )}
-                {searchResponse && searchResponse.directAlbums.length > 0 && (
+                {searchResponse && searchResponse.titleAlbumGroups.length > 0 && (
                   <div className={styles.searchGroup}>
                     <h2 className={styles.searchGroupTitle}>{t("directAlbums")}</h2>
-                    <AlbumGrid items={searchResponse.directAlbums} />
+                    <AlbumMatchGrid groups={searchResponse.titleAlbumGroups} />
                   </div>
                 )}
                 {searchResponse && searchResponse.featuredAlbums.length > 0 && (
                   <div className={styles.searchGroup}>
-                    <h2 className={styles.searchGroupTitle}>{t("featuredAlbums")}</h2>
+                    <h2 className={styles.searchGroupTitle}>{t("albumsByArtist", { artist: searchResponse.featuredArtistName ?? searchResponse.artists[0]?.name ?? "" })}</h2>
                     <AlbumGrid items={searchResponse.featuredAlbums} />
                   </div>
                 )}
